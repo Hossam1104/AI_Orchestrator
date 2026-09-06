@@ -113,6 +113,10 @@ public sealed class ApplicationDataPaths
     public string GetProjectOrchestrationDirectory(Guid projectId) =>
         GetProjectPaths(projectId).OrchestrationDirectory;
 
+    /// <summary>Project-isolated append-only human approval lifecycle events.</summary>
+    public string GetProjectApprovalsDirectory(Guid projectId) =>
+        GetProjectPaths(projectId).ApprovalsDirectory;
+
     public string GetProjectRoutingPolicyFile(Guid projectId) => GetProjectPaths(projectId).RoutingPolicyFile;
 
     public string GetProjectAgentOverridesFile(Guid projectId) =>
@@ -367,6 +371,7 @@ public sealed class ApplicationDataPaths
         EnsureDirectories();
         Directory.CreateDirectory(projectPaths.RootDirectory);
         Directory.CreateDirectory(projectPaths.OrchestrationDirectory);
+        Directory.CreateDirectory(projectPaths.ApprovalsDirectory);
         Directory.CreateDirectory(projectPaths.ContractsDirectory);
         Directory.CreateDirectory(projectPaths.WorkGraphsDirectory);
         Directory.CreateDirectory(projectPaths.HandoffsDirectory);
@@ -414,6 +419,7 @@ public sealed class ProjectDataPaths
         EvidenceDirectory = Path.Combine(OrchestrationDirectory, "evidence");
         ReviewsDirectory = Path.Combine(OrchestrationDirectory, "reviews");
         ReviewWorkflowDirectory = Path.Combine(OrchestrationDirectory, "review-workflow");
+        ApprovalsDirectory = Path.Combine(OrchestrationDirectory, "approvals");
         ActivityDirectory = Path.Combine(OrchestrationDirectory, "activity");
         TrackerAuditDirectory = Path.Combine(OrchestrationDirectory, "tracker-audit");
         ContractsDirectory = Path.Combine(rootDirectory, "contracts");
@@ -441,6 +447,9 @@ public sealed class ProjectDataPaths
 
     /// <summary>Append-only typed lifecycle events for the review/remediation workflow.</summary>
     public string ReviewWorkflowDirectory { get; }
+
+    /// <summary>Monthly JSONL for the provider-independent APO-49 approval authority.</summary>
+    public string ApprovalsDirectory { get; }
 
     public string ActivityDirectory { get; }
 

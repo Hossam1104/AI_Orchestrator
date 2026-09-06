@@ -10,9 +10,13 @@ This file is a short authority boundary, not an executable executor prompt.
 - `APO-48 = Done`.
 - `APO-51 = FINAL ACCEPTED / MERGED / DONE`.
 - Current next gate: `APO-49`.
-- `APO-49 = NOT STARTED` and remains `To Do`.
+- `APO-49 executor delivery complete`; Sol exact-head review and acceptance are pending.
+- Executor branch: `feat/APO-49-human-approval-gates`.
+- Functional commit: `8d4416e981becdb6433268fe461858192b5d13d7`; tree
+  `5c95b5082e44ad67300cb0bd9b67ae5ff363480f`.
+- `APO-63 = NOT STARTED`.
 - The accepted APO-51 product merge is `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`.
-- `TASK.md` does not authorize implementation, downstream implementation, or roadmap continuation.
+- `TASK.md` does not authorize downstream implementation or roadmap continuation.
 - The next executor prompt requires GPT-5.6 Sol authority; no automatic roadmap continuation is permitted.
 
 ## FAST V1 order
@@ -32,3 +36,9 @@ This file is a short authority boundary, not an executable executor prompt.
 - No automatic roadmap execution.
 - Do not start a downstream Story without a fresh Sol-authored contract.
 - GitHub remains V1 infrastructure; GitHub Actions remains APO-33 and is not yet delivered.
+
+## Handoff status
+
+- `APO-49 executor delivery = COMPLETE / PENDING SOL ACCEPTANCE`.
+- `JIRA EXECUTOR ADMIN = DEFERRED TO SOL`.
+- `APO-63 NOT STARTED`.
