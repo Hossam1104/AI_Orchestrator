@@ -15,22 +15,26 @@ APO-62 (remote SCM and CI evidence) is also Done. APO-48 is **FINAL ACCEPTED / M
 with product merge SHA `7fe179844ceb056c542067485843bc892ebdefcc`, accepted product head
 `caed10d0486994e9235a66ef44ec6137649dd347`, accepted tree
 `f152699b89b4c1f498c3dbb4357ee07ac00fda77`, canonical suite 1,136 passed / 0 failed / 0 skipped,
-and build 0 warnings / 0 errors. APO-51, APO-49, APO-63, APO-50, and APO-33 are To Do and not
-started. `GITHUB ACTIONS CI = NONE / NOT CLAIMED`. The live authority snapshot is maintained in
-`.ai/CURRENT_STATE.md` and `TASK.md`.
+and build 0 warnings / 0 errors. APO-51 is **FINAL ACCEPTED / MERGED / DONE** with product merge
+SHA `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`, accepted head
+`4aeb7e062320d78ab0323473d8ce321a30b66476`, and accepted tree
+`56053615c679fc64464464c9b856a5cf52a50860`. APO-49, APO-63, APO-50, and APO-33 remain To Do and
+not started; APO-49 is the current next gate. `GITHUB ACTIONS CI = NONE / NOT CLAIMED`. The live
+authority snapshot is maintained in `.ai/CURRENT_STATE.md` and `TASK.md`.
 
 ## FAST V1 closeout baseline
 
 ### MUST SHIP
 
-1. APO-51 - minimal Review Inbox / bounded remediation loop (current next gate)
-2. APO-49 - minimal Human Approval + Delivery Gates
+1. APO-51 - minimal Review Inbox / bounded remediation loop (delivered and accepted)
+2. APO-49 - minimal Human Approval + Delivery Gates (current next gate; not started)
 3. APO-63 - controlled remote source-control delivery
 4. APO-50 - Mission Control read model + UI
 5. APO-33 - GitHub Actions CI + build/test/package
 
 The exact FAST V1 order is `APO-51 -> APO-49 -> APO-63 -> APO-50 -> APO-33 -> Final V1 Release
-Audit -> v1.0.0`. All five Stories remain To Do; this roadmap does not authorize implementation.
+Audit -> v1.0.0`. APO-51 is complete; the remaining four implementation Stories are To Do. This
+roadmap does not authorize implementation.
 
 ### ACTIVE V1 AI RESOURCE BOUNDARY
 
@@ -186,8 +190,8 @@ and owner attention into an evidence-backed command-center read model and surfac
 
 ### P1 acceleration — APO-51..56
 
-APO-51 is the next FAST V1 gate for the Review Inbox and bounded remediation loop. APO-52 through
-APO-56 remain POST-V1 / deferred until a later approved phase.
+APO-51 Review Inbox and bounded remediation is delivered and accepted. APO-52 through APO-56 remain
+POST-V1 / deferred until a later approved phase.
 
 ### P2 controlled expansion — APO-57..58
 
@@ -290,8 +294,8 @@ explicit human gates. No remote write may silently bypass the evidence or approv
 ## 11. Jira hygiene / roadmap identity
 
 The approved APO-1 through APO-17 Epic structure is reused. APO-48 is delivered and the remaining
-FAST V1 must-ship backlog is APO-51, APO-49, APO-63, APO-50, and APO-33. APO-52 through APO-61 are
-post-V1 deferred scope. APO-38 through APO-47 are delivered. APO-64 through APO-67 are Done, VOID,
+FAST V1 must-ship backlog remaining after accepted APO-51 is APO-49, APO-63, APO-50, and APO-33.
+APO-52 through APO-61 are post-V1 deferred scope. APO-38 through APO-47 are delivered. APO-64 through APO-67 are Done, VOID,
 `no-project-work`, and `connector-correction` artifacts retained only as transparent Jira connector
 history; they have zero product scope and are excluded from roadmap totals, dependencies, sequencing,
 BRD claims, and Mission Control scope. APO-68 is delivered workspace-preparation hardening. APO-69
@@ -324,11 +328,7 @@ APO-44 → APO-46 → APO-45                 recovery context
 Authoritative planner sequence for the remaining backlog:
 
 ```text
-Accepted APO-38..47 and APO-68 foundation
-        v
-APO-62 read-only remote SCM/CI evidence
-        v
-APO-48 QA/evidence gates
+Accepted APO-38..48 and APO-51 foundation
         v
 APO-49 owner approval policy
         v
@@ -336,11 +336,11 @@ APO-63 controlled remote delivery
         v
 APO-50 Mission Control
         v
-APO-51..56
+APO-33 GitHub Actions CI + build/test/package
         v
-APO-57..58
+Final V1 Release Audit
         v
-APO-59..61 remaining/planned hardening (Jira: To Do)
+v1.0.0
 ```
 
 Read-only remote evidence must precede controlled remote writes because APO cannot safely mutate a
@@ -352,7 +352,7 @@ planner sequencing, not a claim that every adjacent pair is a Jira hard dependen
 ## 13. Current planner boundary
 
 APO-69 is complete, APO-47 is merged and Jira Done, and APO-62 (remote SCM and CI evidence) is
-delivered and Jira Done. APO-48 is final accepted, merged, and Jira Done. The current FAST V1 gate
-is APO-51, which remains To Do and not started; APO-49, APO-63, APO-50, and APO-33 also remain To
-Do. No implementation is authorized by this roadmap. GPT-5.6 Sol must provide a fresh,
+delivered and Jira Done. APO-48 and APO-51 are final accepted, merged, and Jira Done. The current
+FAST V1 gate is APO-49, which remains To Do and not started; APO-63, APO-50, and APO-33 also remain
+To Do. No implementation is authorized by this roadmap. GPT-5.6 Sol must provide a fresh,
 self-contained contract for each Story, and no automatic roadmap execution is permitted.
