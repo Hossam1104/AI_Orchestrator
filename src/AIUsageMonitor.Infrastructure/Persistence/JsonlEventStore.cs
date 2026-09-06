@@ -252,6 +252,49 @@ public sealed class JsonlEventStore<TRecord>
         }
     }
 
+    /// <summary>
+    /// Reads every partition while preserving valid records and reporting malformed or
+    /// unavailable history. Callers provide a hard record bound so a damaged or unexpectedly
+    /// large stream cannot become an unbounded read.
+    /// </summary>
+    public async Task<HistoryReadResult<TRecord>> ReadAllWithStatusAsync(
+        string directory,
+        Func<TRecord, DateTimeOffset> timestampSelector,
+        int maximumRecords,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(timestampSelector);
+        if (maximumRecords <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maximumRecords));
+        if (!Directory.Exists(directory))
+            return new HistoryReadResult<TRecord>([], HistoryReadStatus.Success);
+
+        var records = new List<TRecord>();
+        var issues = new List<HistoryReadIssue>();
+        var completedPartitions = 0;
+        foreach (var path in Directory.EnumerateFiles(directory, "*.jsonl", SearchOption.TopDirectoryOnly)
+                     .OrderBy(static path => path, StringComparer.OrdinalIgnoreCase))
+        {
+            var partition = await ReadFileWithStatusAsync(path, timestampSelector, cancellationToken).ConfigureAwait(false);
+            records.AddRange(partition.Records);
+            issues.AddRange(partition.Issues);
+            if (partition.Completed)
+                completedPartitions++;
+            if (records.Count > maximumRecords)
+            {
+                issues.Add(CreateIssue(path, HistoryReadIssueKind.CorruptRecord, "History record capacity was exceeded."));
+                break;
+            }
+        }
+
+        var hasStorageFailure = issues.Any(static issue =>
+            issue.Kind is HistoryReadIssueKind.PermissionFailure or HistoryReadIssueKind.IoFailure);
+        var status = hasStorageFailure
+            ? completedPartitions > 0 ? HistoryReadStatus.Partial : HistoryReadStatus.Unavailable
+            : issues.Count == 0 ? HistoryReadStatus.Success : HistoryReadStatus.Partial;
+        return new HistoryReadResult<TRecord>(records, status, issues);
+    }
+
     private async Task<IReadOnlyList<TRecord>> ReadFileAsync(
         string path,
         Func<TRecord, DateTimeOffset> timestampSelector,

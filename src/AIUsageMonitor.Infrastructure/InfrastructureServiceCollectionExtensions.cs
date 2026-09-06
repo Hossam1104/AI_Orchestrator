@@ -47,6 +47,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<JsonlEventStore<ExecutionRunRecord>>();
         services.AddSingleton<JsonlEventStore<EvidenceMetadataRecord>>();
         services.AddSingleton<JsonlEventStore<ReviewMetadataRecord>>();
+        services.AddSingleton<JsonlEventStore<ReviewWorkflowEventRecord>>();
         services.AddSingleton<JsonlEventStore<ActivityAuditRecordFile>>();
         services.AddSingleton<JsonlEventStore<TrackerMutationAuditRecord>>();
 
@@ -89,7 +90,11 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IRoutingInputAssembler, RoutingInputAssembler>();
         services.AddSingleton<IRoutingDecisionEngine, RoutingDecisionEngine>();
         services.AddSingleton<IRoutingDecisionService, RoutingDecisionService>();
-        services.AddSingleton<IProjectOrchestrationStore, JsonProjectOrchestrationStore>();
+        services.AddSingleton<JsonProjectOrchestrationStore>();
+        services.AddSingleton<IProjectOrchestrationStore>(service => service.GetRequiredService<JsonProjectOrchestrationStore>());
+        services.AddSingleton<IReviewMetadataReader>(service => service.GetRequiredService<JsonProjectOrchestrationStore>());
+        services.AddSingleton<IReviewWorkflowStore, JsonReviewWorkflowStore>();
+        services.AddSingleton<IReviewWorkflowService, ReviewWorkflowService>();
         services.AddSingleton<IExecutionRunAuthorityRepository, JsonExecutionRunAuthorityRepository>();
         services.AddSingleton<IExecutionAdapterResolver, ExecutionAdapterResolver>();
         services.AddSingleton<IExecutionBudgetTimeoutProvider, ExecutionBudgetTimeoutProvider>();
