@@ -265,6 +265,17 @@ public sealed class ReviewWorkflowTests
             "planner", ReviewAuthorityKind.Planner, new string('x', ReviewWorkflowLimits.MaxReasonLength + 1)));
         Assert.Equal(ReviewWorkflowMutationStatus.InvalidRequest, oversized.Status);
 
+        var secretAuthority = await harness.Service.AdjudicateFindingAsync(new(
+            harness.ProjectId, root, root, "F1", ReviewFindingAdjudication.Accepted,
+            "api_key=not-a-reference", ReviewAuthorityKind.Planner, "bounded reason"));
+        Assert.Equal(ReviewWorkflowMutationStatus.InvalidRequest, secretAuthority.Status);
+
+        var redactedReason = await harness.Service.AdjudicateFindingAsync(new(
+            harness.ProjectId, root, root, "F1", ReviewFindingAdjudication.Accepted,
+            "planner", ReviewAuthorityKind.Planner, "credential api_key=not-a-secret-value"));
+        Assert.True(redactedReason.Succeeded, redactedReason.ErrorMessage);
+        Assert.DoesNotContain("not-a-secret-value", redactedReason.Event!.Reason, StringComparison.Ordinal);
+
         var tooManyFindings = Enumerable.Range(0, 257)
             .Select(index => new ReviewFindingMetadata($"F{index}", "High", "APO-51", "legacy", blocking: false))
             .ToArray();

@@ -421,6 +421,7 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
     private readonly IExecutionRunAuthorityRepository? _runAuthorities;
     private readonly IHandoffPackageRepository? _handoffs;
     private readonly IClock _clock;
+    private readonly IHandoffRedactionService _redaction;
     private readonly SemaphoreSlim _mutationGate = new(1, 1);
 
     public ReviewWorkflowService(
@@ -429,7 +430,8 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
         IClock clock,
         IValidationGateDecisionRepository? validationDecisions = null,
         IExecutionRunAuthorityRepository? runAuthorities = null,
-        IHandoffPackageRepository? handoffs = null)
+        IHandoffPackageRepository? handoffs = null,
+        IHandoffRedactionService? redaction = null)
     {
         _reviews = reviews ?? throw new ArgumentNullException(nameof(reviews));
         _events = events ?? throw new ArgumentNullException(nameof(events));
@@ -437,6 +439,7 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
         _validationDecisions = validationDecisions;
         _runAuthorities = runAuthorities;
         _handoffs = handoffs;
+        _redaction = redaction ?? new HandoffRedactionService();
     }
 
     public Task<ReviewWorkflowMutationResult> AdjudicateFindingAsync(ReviewFindingAdjudicationRequest request, CancellationToken cancellationToken = default) =>
@@ -448,7 +451,8 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
         if (!ValidIdentity(request.ProjectId, request.RootReviewId, request.CurrentReviewId) ||
             !Bounded(request.FindingId, ReviewWorkflowLimits.MaxReferenceLength) ||
             !Bounded(request.AuthorityReference, ReviewWorkflowLimits.MaxAuthorityReferenceLength) ||
-            !Bounded(request.Reason, ReviewWorkflowLimits.MaxReasonLength))
+            !Bounded(request.Reason, ReviewWorkflowLimits.MaxReasonLength) ||
+            !SafeIdentity(request.FindingId) || !SafeIdentity(request.AuthorityReference))
             return Invalid("Adjudication identity, authority, finding, and reason are required.");
         if (!Enum.IsDefined(request.Disposition) || !Enum.IsDefined(request.AuthorityKind))
             return Invalid("Adjudication values are undefined.");
@@ -479,7 +483,7 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
         var value = new ReviewWorkflowEvent(
             request.EventId ?? Guid.NewGuid(), request.ProjectId, request.RootReviewId, request.CurrentReviewId,
             ReviewWorkflowEventKind.FindingAdjudicated, _clock.UtcNow, request.FindingId, request.Disposition,
-            request.AuthorityReference, request.AuthorityKind, request.Reason);
+            request.AuthorityReference, request.AuthorityKind, RedactReason(request.Reason));
         return await AppendAsync(value, cancellationToken).ConfigureAwait(false);
     }
 
@@ -615,7 +619,7 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
             return new(ReviewWorkflowMutationStatus.Conflict, ErrorMessage: "The workflow already requires an owner decision.");
         var value = new ReviewWorkflowEvent(
             request.EventId ?? Guid.NewGuid(), request.ProjectId, request.RootReviewId, request.CurrentReviewId,
-            ReviewWorkflowEventKind.HumanDecisionRequired, _clock.UtcNow, reason: request.Reason);
+            ReviewWorkflowEventKind.HumanDecisionRequired, _clock.UtcNow, reason: RedactReason(request.Reason));
         return await AppendAsync(value, cancellationToken).ConfigureAwait(false);
     }
 
@@ -791,9 +795,13 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
     private static bool Bounded(string? value, int maximumLength) =>
         !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= maximumLength && !value.Any(char.IsControl);
 
-    private static bool ValidEvidenceReferences(IReadOnlyList<string>? values) =>
+    private bool ValidEvidenceReferences(IReadOnlyList<string>? values) =>
         values is null || (values.Count <= ReviewWorkflowLimits.MaxEvidenceReferences &&
-                           values.All(value => Bounded(value, ReviewWorkflowLimits.MaxReferenceLength)));
+                           values.All(value => Bounded(value, ReviewWorkflowLimits.MaxReferenceLength) && SafeIdentity(value)));
+
+    private bool SafeIdentity(string value) => !_redaction.ValidateIdentityText(value).RequiresRedaction;
+
+    private string RedactReason(string value) => _redaction.Redact(value).Value;
 
     private static ReviewWorkflowMutationResult Invalid(string message) => new(ReviewWorkflowMutationStatus.InvalidRequest, ErrorMessage: message);
 

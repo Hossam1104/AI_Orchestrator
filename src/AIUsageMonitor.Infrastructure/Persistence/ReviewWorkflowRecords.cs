@@ -119,6 +119,7 @@ public sealed class ReviewWorkflowEventRecord
 
 public sealed class JsonReviewWorkflowStore : IReviewWorkflowStore
 {
+    private static readonly HandoffRedactionService Redaction = new();
     private readonly ApplicationDataPaths _paths;
     private readonly JsonlEventStore<ReviewWorkflowEventRecord> _events;
     private readonly ILogger<JsonReviewWorkflowStore> _logger;
@@ -137,6 +138,8 @@ public sealed class JsonReviewWorkflowStore : IReviewWorkflowStore
     public async Task<ReviewWorkflowStoreWriteResult> AppendAsync(ReviewWorkflowEvent value, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(value);
+        if (!SafeToPersist(value))
+            return new(ReviewWorkflowStoreWriteStatus.Unavailable, "Review workflow metadata crossed the redaction boundary.");
         await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -196,6 +199,14 @@ public sealed class JsonReviewWorkflowStore : IReviewWorkflowStore
             }
             try
             {
+                if (!SafeToPersist(record))
+                {
+                    issues.Add(new HistoryReadIssue(
+                        HistoryReadIssueKind.CorruptRecord,
+                        $"{record.OccurredAt.UtcDateTime:yyyy-MM}.jsonl",
+                        "A review workflow record crossed the redaction boundary and was skipped."));
+                    continue;
+                }
                 records.Add(record.ToApplication());
             }
             catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or NullReferenceException)
@@ -210,4 +221,16 @@ public sealed class JsonReviewWorkflowStore : IReviewWorkflowStore
         return new HistoryReadResult<ReviewWorkflowEvent>(
             records.OrderBy(value => value.OccurredAt).ThenBy(value => value.EventId).ToArray(), status, issues);
     }
+
+    private static bool SafeToPersist(ReviewWorkflowEvent value) =>
+        (value.FindingId is null || !Redaction.ValidateIdentityText(value.FindingId).RequiresRedaction) &&
+        (value.AuthorityReference is null || !Redaction.ValidateIdentityText(value.AuthorityReference).RequiresRedaction) &&
+        (value.Reason is null || !Redaction.ValidateIdentityText(value.Reason).RequiresRedaction) &&
+        value.EvidenceReferences.All(reference => !Redaction.ValidateIdentityText(reference).RequiresRedaction);
+
+    private static bool SafeToPersist(ReviewWorkflowEventRecord value) =>
+        (value.FindingId is null || !Redaction.ValidateIdentityText(value.FindingId).RequiresRedaction) &&
+        (value.AuthorityReference is null || !Redaction.ValidateIdentityText(value.AuthorityReference).RequiresRedaction) &&
+        (value.Reason is null || !Redaction.ValidateIdentityText(value.Reason).RequiresRedaction) &&
+        (value.EvidenceReferences ?? []).All(reference => !Redaction.ValidateIdentityText(reference).RequiresRedaction);
 }
