@@ -8,15 +8,16 @@ This file is a short authority boundary, not an executable executor prompt.
 ## Current authority
 
 - `APO-48 = Done`.
-- Current next gate: `APO-51`.
-- `APO-51 R1 = EXECUTOR REMEDIATION COMPLETE / PENDING SOL EXACT-HEAD RE-REVIEW` and remains `In Progress`.
-- The implementation is on `feat/APO-51-review-remediation-loop` with one Draft, unmerged PR.
-- `TASK.md` does not authorize acceptance, merge, downstream implementation, or roadmap continuation.
-- The next authority action must come from GPT-5.6 Sol: exact-head review and acceptance decision.
+- `APO-51 = FINAL ACCEPTED / MERGED / DONE`.
+- Current next gate: `APO-49`.
+- `APO-49 = NOT STARTED` and remains `To Do`.
+- The accepted APO-51 product merge is `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`.
+- `TASK.md` does not authorize implementation, downstream implementation, or roadmap continuation.
+- The next executor prompt requires GPT-5.6 Sol authority; no automatic roadmap continuation is permitted.
 
 ## FAST V1 order
 
-`APO-51 -> APO-49 -> APO-63 -> APO-50 -> APO-33 -> release audit`
+`APO-49 -> APO-63 -> APO-50 -> APO-33 -> Final V1 Release Audit -> v1.0.0`
 
 ## Resource boundary
 
