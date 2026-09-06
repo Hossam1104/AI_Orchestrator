@@ -8,7 +8,7 @@ namespace AIUsageMonitor.Infrastructure.Persistence;
 /// physically rooted below one GUID directory and every record carries the same project id for a
 /// second, independent isolation check.
 /// </summary>
-public sealed class JsonProjectOrchestrationStore : IProjectOrchestrationStore
+public sealed class JsonProjectOrchestrationStore : IProjectOrchestrationStore, IReviewMetadataReader
 {
     private readonly ApplicationDataPaths _paths;
     private readonly JsonlEventStore<ExecutionRunRecord> _runs;
@@ -159,6 +159,42 @@ public sealed class JsonProjectOrchestrationStore : IProjectOrchestrationStore
                 continue;
             }
 
+            TryAdd(record, records, issues);
+        }
+
+        return BuildResult(
+            raw.Status,
+            records.OrderBy(static value => value.OccurredAt).ThenBy(static value => value.ReviewId).ToArray(),
+            issues);
+    }
+
+    public async Task<HistoryReadResult<ReviewMetadata>> ReadAllReviewsAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (projectId == Guid.Empty)
+        {
+            return new HistoryReadResult<ReviewMetadata>(
+                [],
+                HistoryReadStatus.Unavailable,
+                [new(HistoryReadIssueKind.CorruptRecord, "review-metadata", "Project id is required.")]);
+        }
+
+        var raw = await _reviews.ReadAllWithStatusAsync(
+                _paths.GetProjectReviewsDirectory(projectId),
+                static value => value.OccurredAt,
+                ReviewWorkflowLimits.MaxReviewRecords,
+                cancellationToken)
+            .ConfigureAwait(false);
+        var records = new List<ReviewMetadata>();
+        var issues = raw.Issues.ToList();
+        foreach (var record in raw.Records)
+        {
+            if (record.ProjectId != projectId || !string.Equals(record.RecordType, "review-metadata", StringComparison.Ordinal))
+            {
+                issues.Add(CreateMappingIssue(record.OccurredAt, "A review record failed project or record-type isolation."));
+                continue;
+            }
             TryAdd(record, records, issues);
         }
 

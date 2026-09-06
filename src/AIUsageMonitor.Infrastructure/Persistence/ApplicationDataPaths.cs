@@ -302,6 +302,8 @@ public sealed class ApplicationDataPaths
 
     public string GetProjectReviewsDirectory(Guid projectId) => GetProjectPaths(projectId).ReviewsDirectory;
 
+    public string GetProjectReviewWorkflowDirectory(Guid projectId) => GetProjectPaths(projectId).ReviewWorkflowDirectory;
+
     public string GetProjectActivityDirectory(Guid projectId) => GetProjectPaths(projectId).ActivityDirectory;
 
     public string GetProjectTrackerAuditDirectory(Guid projectId) => GetProjectPaths(projectId).TrackerAuditDirectory;
@@ -378,6 +380,7 @@ public sealed class ApplicationDataPaths
         Directory.CreateDirectory(GetProjectValidationEvidenceDirectory(projectId));
         Directory.CreateDirectory(GetProjectValidationDecisionsDirectory(projectId));
         Directory.CreateDirectory(projectPaths.ReviewsDirectory);
+        Directory.CreateDirectory(projectPaths.ReviewWorkflowDirectory);
         Directory.CreateDirectory(projectPaths.ActivityDirectory);
         Directory.CreateDirectory(projectPaths.TrackerAuditDirectory);
         Directory.CreateDirectory(projectPaths.RootDirectory);
@@ -410,6 +413,7 @@ public sealed class ProjectDataPaths
         RunsDirectory = Path.Combine(OrchestrationDirectory, "runs");
         EvidenceDirectory = Path.Combine(OrchestrationDirectory, "evidence");
         ReviewsDirectory = Path.Combine(OrchestrationDirectory, "reviews");
+        ReviewWorkflowDirectory = Path.Combine(OrchestrationDirectory, "review-workflow");
         ActivityDirectory = Path.Combine(OrchestrationDirectory, "activity");
         TrackerAuditDirectory = Path.Combine(OrchestrationDirectory, "tracker-audit");
         ContractsDirectory = Path.Combine(rootDirectory, "contracts");
@@ -434,6 +438,9 @@ public sealed class ProjectDataPaths
     public string EvidenceDirectory { get; }
 
     public string ReviewsDirectory { get; }
+
+    /// <summary>Append-only typed lifecycle events for the review/remediation workflow.</summary>
+    public string ReviewWorkflowDirectory { get; }
 
     public string ActivityDirectory { get; }
 
