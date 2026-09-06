@@ -238,9 +238,11 @@ public sealed class JsonHumanApprovalStore : IHumanApprovalStore, IDisposable
         var raw = await _events.ReadAllWithStatusAsync(
                 directory,
                 static value => value.OccurredAt,
-                HumanApprovalLimits.MaxEventsPerProject + 1,
+                HumanApprovalLimits.MaxEventsPerProject,
                 cancellationToken)
             .ConfigureAwait(false);
+        if (raw.Records.Count > HumanApprovalLimits.MaxEventsPerProject)
+            return new(HumanApprovalHistoryReadStatus.Corrupt, errorMessage: "Approval history exceeded its read capacity.");
         if (raw.Status != AIUsageMonitor.Application.Orchestration.HistoryReadStatus.Success)
         {
             var status = raw.Issues.Any(static issue => issue.Kind == AIUsageMonitor.Application.Orchestration.HistoryReadIssueKind.UnsupportedSchema)

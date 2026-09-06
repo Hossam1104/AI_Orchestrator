@@ -50,7 +50,8 @@ public enum HumanApprovalState
     Rejected,
     Waived,
     Expired,
-    Stale
+    Stale,
+    CurrentContextUnknown
 }
 
 public enum HumanApprovalActorKind
@@ -58,11 +59,6 @@ public enum HumanApprovalActorKind
     Requester,
     Automation,
     HumanOwner
-}
-
-public enum HumanOwnerAuthorityKind
-{
-    LocalSingleOwner
 }
 
 public enum HumanApprovalReasonCode
@@ -80,7 +76,9 @@ public enum HumanApprovalReasonCode
     RequestNotFound,
     InvalidHistory,
     UnauthorizedOwner,
-    NotRequired
+    NotRequired,
+    StalePolicy,
+    CurrentContextUnknown
 }
 
 public enum HumanApprovalNextAction
@@ -89,70 +87,113 @@ public enum HumanApprovalNextAction
     AwaitOwnerDecision,
     CreateFreshApprovalRequest,
     ResolveRejection,
-    ProceedWithAuthorizedAction
+    ProceedWithAuthorizedAction,
+    ResolveCurrentContext
 }
 
 /// <summary>
-/// Replaceable V1 authority marker for the one local human owner. It is not a password, token,
-/// cookie, or authentication payload and is never persisted as an authority secret.
+/// Opaque bearer proof of an explicit owner decision. Ordinary callers can hold a capability but
+/// cannot construct one from visible owner identity values. The live material is intentionally not
+/// exposed and is never part of an approval event or persisted record.
 /// </summary>
-public sealed class HumanOwnerAuthority
+public sealed class HumanOwnerDecisionCapability
 {
-    public HumanOwnerAuthority(
+    private readonly byte[] _material;
+    private readonly byte[] _proof;
+    private readonly string _ownerReference;
+    private readonly string _authorityReference;
+
+    private HumanOwnerDecisionCapability(
         string ownerReference,
         string authorityReference,
-        HumanOwnerAuthorityKind kind = HumanOwnerAuthorityKind.LocalSingleOwner)
+        byte[] material,
+        byte[] proof)
     {
-        if (!Enum.IsDefined(kind))
-            throw new ArgumentException("Owner authority kind is undefined.", nameof(kind));
-
-        OwnerReference = Required(ownerReference, nameof(ownerReference), HumanApprovalLimits.MaxTextLength);
-        AuthorityReference = Required(authorityReference, nameof(authorityReference), HumanApprovalLimits.MaxTextLength);
-        Kind = kind;
+        _ownerReference = ownerReference;
+        _authorityReference = authorityReference;
+        _material = material;
+        _proof = proof;
     }
 
-    public string OwnerReference { get; }
-
-    public string AuthorityReference { get; }
-
-    public HumanOwnerAuthorityKind Kind { get; }
-
-    private static string Required(string value, string parameterName, int maximumLength)
+    internal static HumanOwnerDecisionCapability Issue(
+        string ownerReference,
+        string authorityReference,
+        byte[] authorityKey)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("A bounded authority reference is required.", parameterName);
-        var normalized = value.Trim();
-        if (normalized.Length > maximumLength)
-            throw new ArgumentException($"The value cannot exceed {maximumLength} characters.", parameterName);
-        if (normalized.Any(static character => char.IsControl(character)))
-            throw new ArgumentException("Authority references cannot contain control characters.", parameterName);
-        return normalized;
+        ArgumentNullException.ThrowIfNull(authorityKey);
+        var material = RandomNumberGenerator.GetBytes(32);
+        var proof = ComputeProof(ownerReference, authorityReference, material, authorityKey);
+        return new(ownerReference, authorityReference, material, proof);
+    }
+
+    internal bool TryVerify(
+        string expectedOwnerReference,
+        string expectedAuthorityReference,
+        byte[] authorityKey,
+        out string verifiedOwnerReference)
+    {
+        verifiedOwnerReference = string.Empty;
+        if (!string.Equals(_ownerReference, expectedOwnerReference, StringComparison.Ordinal) ||
+            !string.Equals(_authorityReference, expectedAuthorityReference, StringComparison.Ordinal))
+            return false;
+
+        var expectedProof = ComputeProof(_ownerReference, _authorityReference, _material, authorityKey);
+        var valid = CryptographicOperations.FixedTimeEquals(_proof, expectedProof);
+        CryptographicOperations.ZeroMemory(expectedProof);
+        if (valid)
+            verifiedOwnerReference = _ownerReference;
+        return valid;
+    }
+
+    private static byte[] ComputeProof(
+        string ownerReference,
+        string authorityReference,
+        byte[] material,
+        byte[] authorityKey)
+    {
+        var binding = Encoding.UTF8.GetBytes($"{ownerReference}\u001f{authorityReference}");
+        var payload = new byte[binding.Length + material.Length];
+        Buffer.BlockCopy(binding, 0, payload, 0, binding.Length);
+        Buffer.BlockCopy(material, 0, payload, binding.Length, material.Length);
+        using var hmac = new HMACSHA256(authorityKey);
+        return hmac.ComputeHash(payload);
     }
 }
 
 public interface IHumanOwnerAuthority
 {
-    bool IsAuthorized(HumanOwnerAuthority authority);
+    bool TryVerify(HumanOwnerDecisionCapability capability, out string verifiedOwnerReference);
 }
 
 /// <summary>Minimum replaceable single-owner authority implementation for local V1 use.</summary>
 public sealed class LocalSingleOwnerAuthority : IHumanOwnerAuthority
 {
+    private readonly string _ownerReference;
+    private readonly string _authorityReference;
+    private readonly byte[] _authorityKey = RandomNumberGenerator.GetBytes(32);
+
     public LocalSingleOwnerAuthority(string ownerReference, string authorityReference = "local-owner")
     {
-        ExpectedOwnerReference = Required(ownerReference, nameof(ownerReference));
-        ExpectedAuthorityReference = Required(authorityReference, nameof(authorityReference));
+        _ownerReference = Required(ownerReference, nameof(ownerReference));
+        _authorityReference = Required(authorityReference, nameof(authorityReference));
     }
 
-    public string ExpectedOwnerReference { get; }
+    public bool TryVerify(HumanOwnerDecisionCapability capability, out string verifiedOwnerReference)
+    {
+        verifiedOwnerReference = string.Empty;
+        return capability is not null && capability.TryVerify(
+            _ownerReference,
+            _authorityReference,
+            _authorityKey,
+            out verifiedOwnerReference);
+    }
 
-    public string ExpectedAuthorityReference { get; }
-
-    public bool IsAuthorized(HumanOwnerAuthority authority) =>
-        authority is not null &&
-        authority.Kind == HumanOwnerAuthorityKind.LocalSingleOwner &&
-        string.Equals(authority.OwnerReference, ExpectedOwnerReference, StringComparison.Ordinal) &&
-        string.Equals(authority.AuthorityReference, ExpectedAuthorityReference, StringComparison.Ordinal);
+    /// <summary>
+    /// Narrow trusted-owner seam for a future interactive owner-command adapter and friend tests.
+    /// It is deliberately not public and is not registered as a minting service in DI.
+    /// </summary>
+    internal HumanOwnerDecisionCapability IssueTrustedOwnerDecisionCapability() =>
+        HumanOwnerDecisionCapability.Issue(_ownerReference, _authorityReference, _authorityKey);
 
     private static string Required(string value, string parameterName)
     {
@@ -590,20 +631,30 @@ public sealed class HumanApprovalEvaluationContext
         Guid projectId,
         PlanningExecutionContractReference contractReference,
         HumanApprovalTarget target,
-        HumanApprovalEvidenceRevision evidenceRevision)
+        HumanApprovalEvidenceRevision evidenceRevision,
+        string currentPolicyReference)
     {
         if (projectId == Guid.Empty)
             throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
         ContractReference = contractReference ?? throw new ArgumentNullException(nameof(contractReference));
         Target = target ?? throw new ArgumentNullException(nameof(target));
         EvidenceRevision = evidenceRevision ?? throw new ArgumentNullException(nameof(evidenceRevision));
+        if (string.IsNullOrWhiteSpace(currentPolicyReference))
+            throw new ArgumentException("The current approval policy reference is required.", nameof(currentPolicyReference));
+        var normalizedPolicyReference = currentPolicyReference.Trim();
+        if (normalizedPolicyReference.Length > HumanApprovalLimits.MaxPolicyIdentityLength)
+            throw new ArgumentException($"The value cannot exceed {HumanApprovalLimits.MaxPolicyIdentityLength} characters.", nameof(currentPolicyReference));
+        if (normalizedPolicyReference.Any(static character => char.IsControl(character)))
+            throw new ArgumentException("The current approval policy reference cannot contain control characters.", nameof(currentPolicyReference));
         ProjectId = projectId;
+        CurrentPolicyReference = normalizedPolicyReference;
     }
 
     public Guid ProjectId { get; }
     public PlanningExecutionContractReference ContractReference { get; }
     public HumanApprovalTarget Target { get; }
     public HumanApprovalEvidenceRevision EvidenceRevision { get; }
+    public string CurrentPolicyReference { get; }
 }
 
 public sealed class HumanApprovalDecisionRequest
@@ -611,7 +662,7 @@ public sealed class HumanApprovalDecisionRequest
     public HumanApprovalDecisionRequest(
         Guid projectId,
         Guid requestId,
-        HumanOwnerAuthority ownerAuthority,
+        HumanOwnerDecisionCapability ownerDecisionCapability,
         string reason,
         HumanApprovalEvaluationContext currentContext)
     {
@@ -619,7 +670,7 @@ public sealed class HumanApprovalDecisionRequest
             throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
         if (requestId == Guid.Empty)
             throw new ArgumentException("Request id cannot be empty.", nameof(requestId));
-        OwnerAuthority = ownerAuthority ?? throw new ArgumentNullException(nameof(ownerAuthority));
+        OwnerDecisionCapability = ownerDecisionCapability ?? throw new ArgumentNullException(nameof(ownerDecisionCapability));
         CurrentContext = currentContext ?? throw new ArgumentNullException(nameof(currentContext));
         if (string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("A reason is required for a terminal decision.", nameof(reason));
@@ -630,7 +681,7 @@ public sealed class HumanApprovalDecisionRequest
 
     public Guid ProjectId { get; }
     public Guid RequestId { get; }
-    public HumanOwnerAuthority OwnerAuthority { get; }
+    public HumanOwnerDecisionCapability OwnerDecisionCapability { get; }
     public string Reason { get; }
     public HumanApprovalEvaluationContext CurrentContext { get; }
 }
@@ -764,6 +815,7 @@ public sealed class HumanApprovalInboxItem
     public bool IsStale { get; internal set; }
     public HumanApprovalNextAction NextRequiredAction { get; internal set; }
     public HumanApprovalReference? SatisfyingApprovalReference { get; internal set; }
+    public HumanApprovalEventKind? HistoricalDecisionKind { get; internal set; }
 }
 
 public sealed class HumanApprovalInboxReadResult
@@ -803,12 +855,13 @@ public static class HumanApprovalRecoveryProjection
     public static RecoveryGateSnapshot ToRecoveryGateSnapshot(HumanApprovalEvaluation evaluation)
     {
         ArgumentNullException.ThrowIfNull(evaluation);
-        var state = evaluation.CanProceed &&
-                    (evaluation.EffectiveState is HumanApprovalState.Approved or HumanApprovalState.Waived)
-            ? RecoveryGateState.Satisfied
-            : evaluation.EffectiveState is HumanApprovalState.Pending or HumanApprovalState.Escalated
-                ? RecoveryGateState.Pending
-                : RecoveryGateState.Failed;
+        var state = evaluation.EffectiveState switch
+        {
+            HumanApprovalState.Approved or HumanApprovalState.Waived
+                when evaluation.CanProceed && evaluation.SatisfyingReference is not null => RecoveryGateState.Satisfied,
+            HumanApprovalState.Pending or HumanApprovalState.Escalated => RecoveryGateState.Pending,
+            _ => RecoveryGateState.Failed
+        };
 
         var supportingEvidence = state == RecoveryGateState.Satisfied && evaluation.SatisfyingReference?.EventId is Guid eventId
             ? new[] { eventId }

@@ -196,20 +196,13 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
             if (!TryValidateHistory([history], out _, out var request, out var terminal, out var escalated, out var error))
                 return new(HumanApprovalHistoryReadStatus.Corrupt, errorMessage: error);
 
-            var contextKnown = false;
-            HumanApprovalEvaluationContext? currentContext = null;
-            if (currentContexts is not null && currentContexts.TryGetValue(request.RequestId, out var suppliedContext))
-            {
-                contextKnown = true;
-                currentContext = suppliedContext;
-            }
-
-            currentContext ??= new HumanApprovalEvaluationContext(
-                    request.ProjectId,
-                    request.ContractReference,
-                    request.Target,
-                    request.EvidenceRevision);
-            var evaluation = EvaluateValidHistory(currentContext, request, terminal, escalated, _clock.UtcNow);
+            HumanApprovalEvaluationContext? suppliedContext = null;
+            var contextKnown = currentContexts is not null &&
+                currentContexts.TryGetValue(request.RequestId, out suppliedContext) &&
+                suppliedContext is not null;
+            var evaluation = contextKnown
+                ? EvaluateValidHistory(suppliedContext!, request, terminal, escalated, _clock.UtcNow)
+                : EvaluateUnknownCurrentContext(request, terminal);
             var decision = terminal;
             items.Add(new HumanApprovalInboxItem
             {
@@ -227,9 +220,10 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
                 TargetFingerprint = request.Target.ContentHash,
                 EvidenceRevisionHash = request.EvidenceRevision.ContentHash,
                 CurrentContextKnown = contextKnown,
-                IsStale = evaluation.ReasonCode is HumanApprovalReasonCode.StaleContract or HumanApprovalReasonCode.StaleTarget or HumanApprovalReasonCode.StaleEvidence,
+                IsStale = evaluation.ReasonCode is HumanApprovalReasonCode.StaleContract or HumanApprovalReasonCode.StaleTarget or HumanApprovalReasonCode.StaleEvidence or HumanApprovalReasonCode.StalePolicy,
                 NextRequiredAction = evaluation.NextAction,
-                SatisfyingApprovalReference = evaluation.SatisfyingReference
+                SatisfyingApprovalReference = evaluation.SatisfyingReference,
+                HistoricalDecisionKind = decision?.Kind
             });
         }
 
@@ -246,7 +240,7 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
         try
         {
             ValidateSafeText(decision.Reason, nameof(decision.Reason));
-            if (!_ownerAuthority.IsAuthorized(decision.OwnerAuthority))
+            if (!_ownerAuthority.TryVerify(decision.OwnerDecisionCapability, out var verifiedOwnerReference))
                 return new(HumanApprovalMutationStatus.Unauthorized, ErrorMessage: "The supplied authority is not the configured human owner.");
 
             var read = await _store.ReadAsync(decision.ProjectId, decision.RequestId, cancellationToken).ConfigureAwait(false);
@@ -274,7 +268,7 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
                 kind,
                 now,
                 HumanApprovalActorKind.HumanOwner,
-                decision.OwnerAuthority.OwnerReference,
+                verifiedOwnerReference,
                 decision.Reason);
             return await _store.AppendAsync(value, cancellationToken).ConfigureAwait(false);
         }
@@ -316,7 +310,9 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
                 ? HumanApprovalReasonCode.StaleContract
                 : bindingReason.StartsWith("target", StringComparison.Ordinal)
                     ? HumanApprovalReasonCode.StaleTarget
-                    : HumanApprovalReasonCode.StaleEvidence;
+                    : bindingReason.StartsWith("evidence", StringComparison.Ordinal)
+                        ? HumanApprovalReasonCode.StaleEvidence
+                        : HumanApprovalReasonCode.StalePolicy;
             return new(
                 request.ProjectId,
                 request.RequestId,
@@ -356,6 +352,25 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
             true,
             request,
             reason: escalated is null ? "Owner approval is pending." : "Owner attention was escalated.");
+    }
+
+    private static HumanApprovalEvaluation EvaluateUnknownCurrentContext(
+        HumanApprovalRequest request,
+        HumanApprovalEvent? terminal)
+    {
+        var historicalDescription = terminal is null
+            ? "No terminal owner decision is recorded."
+            : $"Historical owner decision {terminal.Kind} is recorded at {terminal.OccurredAt:O}.";
+        return new(
+            request.ProjectId,
+            request.RequestId,
+            HumanApprovalState.CurrentContextUnknown,
+            false,
+            HumanApprovalReasonCode.CurrentContextUnknown,
+            HumanApprovalNextAction.ResolveCurrentContext,
+            true,
+            request,
+            reason: $"The current approval context was not supplied. {historicalDescription}");
     }
 
     private static bool TryValidateHistory(
@@ -495,6 +510,8 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
         if (!string.Equals(request.EvidenceRevision.ContentHash, context.EvidenceRevision.ContentHash, StringComparison.Ordinal) ||
             request.EvidenceRevision.SchemaVersion != context.EvidenceRevision.SchemaVersion)
             return "evidence binding is stale.";
+        if (!string.Equals(request.PolicyReference, context.CurrentPolicyReference, StringComparison.Ordinal))
+            return "policy binding is stale.";
         return null;
     }
 
