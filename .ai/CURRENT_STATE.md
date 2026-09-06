@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 6 September 2026 (APO-51 controlled integration closeout)
+**Last Updated:** 6 September 2026 (APO-49 executor delivery closeout)
 
 ## Canonical live snapshot
 
@@ -13,6 +13,12 @@
 - Accepted APO-48 product merge on `main`: `7fe179844ceb056c542067485843bc892ebdefcc`
 - Accepted APO-48 product head: `caed10d0486994e9235a66ef44ec6137649dd347`
 - Accepted APO-48 product tree: `f152699b89b4c1f498c3dbb4357ee07ac00fda77`
+- APO-49 required baseline: `origin/main` `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48`; tree
+  `a54a4d3fe8727b26c2d0291f2fdd1801023b0cc6`
+- APO-49 executor branch: `feat/APO-49-human-approval-gates`
+- APO-49 functional commit: `8d4416e981becdb6433268fe461858192b5d13d7`; tree
+  `5c95b5082e44ad67300cb0bd9b67ae5ff363480f`; parent
+  `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48`
 - Jira project key: `APO`. The Jira display name remains `AI Project Orchestrator`; this is a
   connector-visible display surface and is not changed by this closeout.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
@@ -77,11 +83,12 @@ provider cleanup/removal is deferred and is not part of this closeout.
 ## FAST V1 gate
 
 `APO-51 = FINAL ACCEPTED / MERGED / DONE` and is no longer the current gate. The current FAST V1
-gate is `APO-49`, which remains `To Do` and not started.
+gate is `APO-49`, whose bounded executor delivery is complete and whose exact-head Sol review and
+acceptance are pending.
 
 Remaining V1 Stories:
 
-1. `APO-49` - must ship; current next gate; `To Do`
+1. `APO-49` - must ship; executor delivery complete; Sol acceptance pending
 2. `APO-63` - must ship; `To Do`
 3. `APO-50` - must ship; `To Do`
 4. `APO-33` - must ship; `To Do`
@@ -103,13 +110,37 @@ The following remain `POST-V1 / DEFERRED FAST CLOSEOUT` and must not be started 
 - Additional provider integrations
 - Provider polish not required for the core V1 loop or release safety
 
-No downstream implementation was started by this closeout. APO-51 is the only implementation scope
-started in this handoff; no APO-49, APO-63, APO-50, or APO-33 product work was started.
+APO-49 is the only product implementation scope started in this handoff and is executor-complete.
+APO-63, APO-50, and APO-33 product work was not started.
+
+## APO-49 executor delivery
+
+`APO-49 EXECUTOR DELIVERY = COMPLETE / PENDING SOL ACCEPTANCE`
+
+- Branch: `feat/APO-49-human-approval-gates`.
+- Baseline: `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48` / tree
+  `a54a4d3fe8727b26c2d0291f2fdd1801023b0cc6`.
+- Functional commit: `8d4416e981becdb6433268fe461858192b5d13d7` / tree
+  `5c95b5082e44ad67300cb0bd9b67ae5ff363480f`; parent
+  `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48`.
+- Human approval policy is provider-independent, append-only, project-isolated, owner-authorized,
+  exact-contract/target/evidence bound, expiry-aware, stale-safe, and projected to the existing
+  Recovery Approval gate vocabulary.
+- Focused APO-49 tests: `8 passed / 0 failed / 0 skipped`.
+- Canonical solution tests: `1,163 passed / 0 failed / 0 skipped` (`Domain 28`,
+  `Infrastructure 659`, `Provider 145`, `Connection 248`, `Desktop 83`).
+- Restore succeeded; build `0 warnings / 0 errors`; `git diff --check` clean.
+- `JIRA EXECUTOR ADMIN = DEFERRED TO SOL` because the executor Jira connector is unavailable;
+  no Jira state is claimed.
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `APO-63 = NOT STARTED`; no remote delivery, UI, provider, Copilot, CI, or automatic human
+  approval behavior was added.
 
 ## APO-51 final acceptance
 
 `APO-51 = FINAL ACCEPTED / MERGED / DONE`. The bounded review/finding/remediation lifecycle remains
-provider-independent and no APO-49 implementation was started.
+provider-independent; APO-49 is tracked separately and is now executor-complete pending Sol
+acceptance.
 
 - Jira status: `Done`; resolution: `Done`; labels: `fast-v1`, `v1-must-ship`, `v1-closed`.
 - Required starting `origin/main`: `248808d911402cd2b5116d0959b83f640d4f0ae9`.
@@ -128,11 +159,12 @@ provider-independent and no APO-49 implementation was started.
   `1,155 passed / 0 failed / 0 skipped`; focused APO-51 tests `19 passed / 0 failed / 0 skipped`;
   `git diff --check` clean.
 - GitHub Actions CI: `NONE / NOT CLAIMED`.
-- Downstream FAST V1 Stories remain not started: `APO-49`, `APO-63`, `APO-50`, `APO-33`.
+- Downstream FAST V1 Stories remain not started: `APO-63`, `APO-50`, `APO-33`.
 
 ## FAST V1 handoff
 
-`FAST V1 CURRENT GATE = APO-49` and `APO-49 = NOT STARTED`.
+`FAST V1 CURRENT GATE = APO-49`; APO-49 executor delivery is complete and exact-head Sol review is
+pending.
 
 Remaining implementation order:
 
@@ -140,6 +172,6 @@ Remaining implementation order:
 
 ## Authority boundary
 
-`TASK.md` is the short authority boundary for the next planner decision. It does not authorize
-implementation. The next executor or reviewer prompt must come from GPT-5.6 Sol. There is no
+`TASK.md` records the APO-49 executor handoff and does not authorize APO-63 or any roadmap
+continuation. The next executor or reviewer prompt must come from GPT-5.6 Sol. There is no
 automatic roadmap execution and no feature creep.
