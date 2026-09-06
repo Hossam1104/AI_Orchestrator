@@ -144,10 +144,12 @@ public sealed class JsonReviewWorkflowStore : IReviewWorkflowStore
         try
         {
             var existing = await ReadAllAsync(value.ProjectId, cancellationToken).ConfigureAwait(false);
-            if (existing.Status != HistoryReadStatus.Success)
+            if (existing.Status != HistoryReadStatus.Success || existing.Issues.Count > 0)
                 return new(ReviewWorkflowStoreWriteStatus.Unavailable, "Review workflow history is incomplete; append was rejected.");
             if (existing.Records.Any(item => item.EventId == value.EventId))
                 return new(ReviewWorkflowStoreWriteStatus.DuplicateEvent, "The immutable workflow event id already exists.");
+            if (existing.Records.Count >= ReviewWorkflowLimits.MaxLifecycleEvents)
+                return new(ReviewWorkflowStoreWriteStatus.Unavailable, "Review workflow history reached its supported lifecycle-event capacity.");
 
             await _paths.EnsureProjectDirectoriesAsync(value.ProjectId, cancellationToken).ConfigureAwait(false);
             await _events.AppendAsync(

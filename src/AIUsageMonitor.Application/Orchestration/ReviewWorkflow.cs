@@ -172,8 +172,8 @@ public sealed class ReviewWorkflowEvent
                 break;
             case ReviewWorkflowEventKind.RemediationCompleted:
                 ValidateAttempt();
-                if (ExecutionRunAuthorityReference is null && HandoffPackageReference is null && EvidenceReferences.Count == 0)
-                    throw new ArgumentException("Remediation completion requires at least one bounded evidence reference.");
+                if (ExecutionRunAuthorityReference is null)
+                    throw new ArgumentException("Remediation completion requires an exact execution-run authority reference.");
                 break;
             case ReviewWorkflowEventKind.RevalidationRecorded:
                 ValidateAttempt();
@@ -527,6 +527,8 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
             return Invalid("Remediation attempt must be numbered 1..2.");
         if (!ValidEvidenceReferences(request.EvidenceReferences))
             return Invalid("Remediation evidence references are invalid or exceed their supported bound.");
+        if (request.ExecutionRunAuthorityReference is null)
+            return Invalid("Remediation completion requires an exact execution-run authority reference.");
         var context = await LoadAsync(request.ProjectId, request.RootReviewId, cancellationToken).ConfigureAwait(false);
         if (!context.IsUsable || context.InboxItem is null) return FromReadFailure(context);
         if (context.InboxItem.CurrentReviewId != request.CurrentReviewId || context.InboxItem.ActiveRemediationAttempt != request.AttemptNumber)
@@ -563,11 +565,18 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
         if (context.Events.Any(value => value.Kind == ReviewWorkflowEventKind.RevalidationRecorded && value.AttemptNumber == request.AttemptNumber))
             return new(ReviewWorkflowMutationStatus.Conflict, ErrorMessage: "This remediation attempt already has revalidation.");
 
+        var remediationCompletion = context.Events.SingleOrDefault(value =>
+            value.Kind == ReviewWorkflowEventKind.RemediationCompleted && value.AttemptNumber == request.AttemptNumber);
+        if (remediationCompletion?.ExecutionRunAuthorityReference is null)
+            return Invalid("The exact remediation execution authority is missing from the completed attempt.");
+
         var decision = await _validationDecisions.GetAsync(request.ProjectId, request.ValidationDecisionReference.DecisionId, cancellationToken).ConfigureAwait(false);
         if (!decision.IsValid || decision.Decision is null || decision.Decision.ProjectId != request.ProjectId ||
             decision.Decision.Reference.DecisionId != request.ValidationDecisionReference.DecisionId ||
             decision.Decision.Reference.SchemaVersion != request.ValidationDecisionReference.SchemaVersion ||
-            !string.Equals(decision.Decision.Reference.ContentHash, request.ValidationDecisionReference.ContentHash, StringComparison.OrdinalIgnoreCase))
+            !string.Equals(decision.Decision.Reference.ContentHash, request.ValidationDecisionReference.ContentHash, StringComparison.OrdinalIgnoreCase) ||
+            !Same(decision.Decision.ExecutionRunAuthorityReference, remediationCompletion.ExecutionRunAuthorityReference) ||
+            decision.Decision.DecidedAt < remediationCompletion.OccurredAt)
             return Invalid("The exact APO-48 validation-gate decision is missing, stale, partial, or invalid.");
 
         var value = new ReviewWorkflowEvent(
@@ -593,10 +602,35 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
             return new(ReviewWorkflowMutationStatus.PersistenceUnavailable, ErrorMessage: "Authoritative review history is incomplete or unavailable.");
         if (allReviews.Records.All(value => value.ReviewId != request.RereviewId))
             return new(ReviewWorkflowMutationStatus.NotFound, ErrorMessage: "The re-review does not exist in authoritative review storage.");
-        if (context.Events.Any(value => value.Kind == ReviewWorkflowEventKind.RereviewLinked && value.LinkedReviewId == request.RereviewId))
-            return new(ReviewWorkflowMutationStatus.Conflict, ErrorMessage: "The re-review is already linked.");
+
+        var allEvents = await _events.ReadAllAsync(request.ProjectId, cancellationToken).ConfigureAwait(false);
+        if (allEvents.Status != HistoryReadStatus.Success || allEvents.Issues.Count > 0)
+            return new(ReviewWorkflowMutationStatus.PersistenceUnavailable, ErrorMessage: "Authoritative review workflow history is incomplete or unavailable.");
+
+        var successfulRevalidation = context.Events
+            .Where(value => value.Kind == ReviewWorkflowEventKind.RevalidationRecorded && value.ValidationState == ValidationGateDecisionState.Satisfied)
+            .OrderByDescending(value => value.OccurredAt)
+            .ThenByDescending(value => value.EventId)
+            .FirstOrDefault();
+        if (successfulRevalidation is null)
+            return Invalid("A successful revalidation is required before linking a re-review.");
 
         var review = allReviews.Records.Single(value => value.ReviewId == request.RereviewId);
+        var visitedReviews = new HashSet<Guid> { request.RootReviewId, request.PreviousReviewId };
+        foreach (var linked in context.Events.Where(value => value.Kind == ReviewWorkflowEventKind.RereviewLinked))
+        {
+            visitedReviews.Add(linked.CurrentReviewId);
+            if (linked.LinkedReviewId.HasValue) visitedReviews.Add(linked.LinkedReviewId.Value);
+        }
+        if (!visitedReviews.Add(review.ReviewId))
+            return new(ReviewWorkflowMutationStatus.Conflict, ErrorMessage: "The re-review is already part of this workflow or would create a cycle.");
+        if (review.OccurredAt < successfulRevalidation.OccurredAt)
+            return Invalid("The re-review must be created at or after the successful revalidation.");
+
+        if (allEvents.Records.Any(value => value.RootReviewId != request.RootReviewId &&
+            (value.RootReviewId == review.ReviewId || value.CurrentReviewId == review.ReviewId || value.LinkedReviewId == review.ReviewId)))
+            return new(ReviewWorkflowMutationStatus.Conflict, ErrorMessage: "The re-review is already owned by another workflow.");
+
         var value = new ReviewWorkflowEvent(
             request.EventId ?? Guid.NewGuid(), request.ProjectId, request.RootReviewId, request.PreviousReviewId,
             ReviewWorkflowEventKind.RereviewLinked, _clock.UtcNow, linkedReviewId: review.ReviewId);
@@ -762,7 +796,12 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
                 throw new ReviewWorkflowIntegrityException("Review workflow history contains a cross-project or duplicate event identity.");
             if (!reviewById.ContainsKey(value.RootReviewId) || !reviewById.ContainsKey(value.CurrentReviewId))
                 throw new ReviewWorkflowIntegrityException("Review workflow history references a missing review.");
+            if (value.Kind == ReviewWorkflowEventKind.RereviewLinked &&
+                (!value.LinkedReviewId.HasValue || !reviewById.ContainsKey(value.LinkedReviewId.Value)))
+                throw new ReviewWorkflowIntegrityException("Review workflow history contains a re-review link to a missing review.");
         }
+
+        ValidateWorkflowOwnershipAndCycles(events);
 
         var roots = new HashSet<Guid>(reviewById.Keys);
         foreach (var value in events)
@@ -791,6 +830,62 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
         projectId != Guid.Empty && rootReviewId != Guid.Empty && currentReviewId != Guid.Empty;
 
     private static bool ValidIdentity(Guid projectId, Guid rootReviewId) => projectId != Guid.Empty && rootReviewId != Guid.Empty;
+
+    private static void ValidateWorkflowOwnershipAndCycles(IReadOnlyList<ReviewWorkflowEvent> events)
+    {
+        var owners = new Dictionary<Guid, Guid>();
+        var links = new Dictionary<Guid, Guid>();
+        var linkedOwners = new Dictionary<Guid, Guid>();
+
+        foreach (var value in events)
+        {
+            ClaimOwner(value.RootReviewId, value.RootReviewId, owners);
+            ClaimOwner(value.CurrentReviewId, value.RootReviewId, owners);
+
+            if (value.Kind != ReviewWorkflowEventKind.RereviewLinked || !value.LinkedReviewId.HasValue)
+                continue;
+
+            ClaimOwner(value.LinkedReviewId.Value, value.RootReviewId, owners);
+            if (!linkedOwners.TryAdd(value.LinkedReviewId.Value, value.RootReviewId))
+                throw new ReviewWorkflowIntegrityException("Review workflow history contains duplicate re-review ownership.");
+            if (!links.TryAdd(value.CurrentReviewId, value.LinkedReviewId.Value))
+                throw new ReviewWorkflowIntegrityException("Review workflow history contains duplicate re-review transitions.");
+        }
+
+        var visited = new HashSet<Guid>();
+        var visiting = new HashSet<Guid>();
+        foreach (var reviewId in links.Keys)
+        {
+            if (HasCycle(reviewId, links, visited, visiting))
+                throw new ReviewWorkflowIntegrityException("Review workflow history contains a re-review cycle.");
+        }
+    }
+
+    private static void ClaimOwner(Guid reviewId, Guid rootReviewId, IDictionary<Guid, Guid> owners)
+    {
+        if (owners.TryGetValue(reviewId, out var existingRoot) && existingRoot != rootReviewId)
+            throw new ReviewWorkflowIntegrityException("Review workflow history contains conflicting lifecycle ownership.");
+        owners[reviewId] = rootReviewId;
+    }
+
+    private static bool HasCycle(
+        Guid reviewId,
+        IReadOnlyDictionary<Guid, Guid> links,
+        ISet<Guid> visited,
+        ISet<Guid> visiting)
+    {
+        if (visited.Contains(reviewId)) return false;
+        if (!visiting.Add(reviewId)) return true;
+        if (links.TryGetValue(reviewId, out var next) && HasCycle(next, links, visited, visiting)) return true;
+        visiting.Remove(reviewId);
+        visited.Add(reviewId);
+        return false;
+    }
+
+    private static bool Same(ExecutionRunAuthorityReference left, ExecutionRunAuthorityReference right) =>
+        left.RunId == right.RunId &&
+        left.SchemaVersion == right.SchemaVersion &&
+        string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase);
 
     private static bool Bounded(string? value, int maximumLength) =>
         !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= maximumLength && !value.Any(char.IsControl);
@@ -894,6 +989,9 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
                         throw new ReviewWorkflowIntegrityException("Re-review link is not a legal project-isolated transition.");
                     if (value.OccurredAt < rereview.OccurredAt)
                         throw new ReviewWorkflowIntegrityException("A re-review link cannot predate the re-review record.");
+                    if (_latestValidation is null || _latestValidation.ValidationState != ValidationGateDecisionState.Satisfied ||
+                        rereview.OccurredAt < _latestValidation.OccurredAt)
+                        throw new ReviewWorkflowIntegrityException("A re-review link must use a fresh review created after successful revalidation.");
                     _currentReviewId = rereview.ReviewId;
                     _state = BaseState(rereview);
                     _activeAttempt = null;

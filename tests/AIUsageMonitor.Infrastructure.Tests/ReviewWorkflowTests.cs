@@ -29,15 +29,19 @@ public sealed class ReviewWorkflowTests
 
         var remediationRequired = await harness.Service.ReadCaseAsync(harness.ProjectId, root);
         Assert.Equal(ReviewWorkflowState.RemediationRequired, remediationRequired.InboxItem!.WorkflowState);
-        var started = await harness.Service.StartRemediationAsync(new(harness.ProjectId, root, root));
+        var runA = harness.RegisterAuthority();
+        var started = await harness.Service.StartRemediationAsync(new(
+            harness.ProjectId, root, root, ExecutionRunAuthorityReference: runA.Reference));
         Assert.True(started.Succeeded);
         Assert.Equal(1, started.Event!.AttemptNumber);
 
         var completed = await harness.Service.CompleteRemediationAsync(new(
-            harness.ProjectId, root, root, 1, EvidenceReferences: ["validation-evidence:attempt-1"]));
+            harness.ProjectId, root, root, 1, runA.Reference,
+            EvidenceReferences: ["validation-evidence:attempt-1"]));
         Assert.True(completed.Succeeded, completed.ErrorMessage);
 
-        harness.Validation.Decision = CreateDecision(harness.ProjectId, harness.Clock.UtcNow, ValidationGateDecisionState.Satisfied);
+        harness.Clock.UtcNowValue = completed.Event!.OccurredAt.AddMinutes(1);
+        harness.Validation.Decision = CreateDecision(harness.ProjectId, runA.Reference, harness.Clock.UtcNow, ValidationGateDecisionState.Satisfied);
         var revalidated = await harness.Service.RecordRevalidationAsync(new(
             harness.ProjectId, root, root, 1, harness.Validation.Decision.Reference));
         Assert.True(revalidated.Succeeded, revalidated.ErrorMessage);
@@ -136,18 +140,27 @@ public sealed class ReviewWorkflowTests
         using var harness = CreateHarness();
         var root = await CreateAcceptedCaseAsync(harness);
 
-        Assert.True((await harness.Service.StartRemediationAsync(new(harness.ProjectId, root, root))).Succeeded);
+        var runA = harness.RegisterAuthority();
+        Assert.True((await harness.Service.StartRemediationAsync(new(
+            harness.ProjectId, root, root, ExecutionRunAuthorityReference: runA.Reference))).Succeeded);
         Assert.Equal(ReviewWorkflowMutationStatus.Conflict,
             (await harness.Service.StartRemediationAsync(new(harness.ProjectId, root, root))).Status);
-        var completed = await harness.Service.CompleteRemediationAsync(new(harness.ProjectId, root, root, 1, EvidenceReferences: ["attempt-1"]));
+        var completed = await harness.Service.CompleteRemediationAsync(new(
+            harness.ProjectId, root, root, 1, runA.Reference, EvidenceReferences: ["attempt-1"]));
         Assert.True(completed.Succeeded, completed.ErrorMessage);
-        harness.Validation.Decision = CreateDecision(harness.ProjectId, harness.Clock.UtcNow, ValidationGateDecisionState.Failed);
+        harness.Clock.UtcNowValue = completed.Event!.OccurredAt.AddMinutes(1);
+        harness.Validation.Decision = CreateDecision(harness.ProjectId, runA.Reference, harness.Clock.UtcNow, ValidationGateDecisionState.Failed);
         var firstRevalidation = await harness.Service.RecordRevalidationAsync(new(harness.ProjectId, root, root, 1, harness.Validation.Decision.Reference));
         Assert.True(firstRevalidation.Succeeded, firstRevalidation.ErrorMessage);
 
-        Assert.True((await harness.Service.StartRemediationAsync(new(harness.ProjectId, root, root))).Succeeded);
-        Assert.True((await harness.Service.CompleteRemediationAsync(new(harness.ProjectId, root, root, 2, EvidenceReferences: ["attempt-2"]))).Succeeded);
-        harness.Validation.Decision = CreateDecision(harness.ProjectId, harness.Clock.UtcNow, ValidationGateDecisionState.Failed);
+        var runB = harness.RegisterAuthority();
+        Assert.True((await harness.Service.StartRemediationAsync(new(
+            harness.ProjectId, root, root, ExecutionRunAuthorityReference: runB.Reference))).Succeeded);
+        var secondCompleted = await harness.Service.CompleteRemediationAsync(new(
+            harness.ProjectId, root, root, 2, runB.Reference, EvidenceReferences: ["attempt-2"]));
+        Assert.True(secondCompleted.Succeeded, secondCompleted.ErrorMessage);
+        harness.Clock.UtcNowValue = secondCompleted.Event!.OccurredAt.AddMinutes(1);
+        harness.Validation.Decision = CreateDecision(harness.ProjectId, runB.Reference, harness.Clock.UtcNow, ValidationGateDecisionState.Failed);
         Assert.True((await harness.Service.RecordRevalidationAsync(new(harness.ProjectId, root, root, 2, harness.Validation.Decision.Reference))).Succeeded);
 
         var exhausted = await harness.Service.ReadCaseAsync(harness.ProjectId, root);
@@ -162,8 +175,12 @@ public sealed class ReviewWorkflowTests
     {
         using var harness = CreateHarness();
         var root = await CreateAcceptedCaseAsync(harness);
-        Assert.True((await harness.Service.StartRemediationAsync(new(harness.ProjectId, root, root))).Succeeded);
-        Assert.True((await harness.Service.CompleteRemediationAsync(new(harness.ProjectId, root, root, 1, EvidenceReferences: ["attempt-1"]))).Succeeded);
+        var runA = harness.RegisterAuthority();
+        Assert.True((await harness.Service.StartRemediationAsync(new(
+            harness.ProjectId, root, root, ExecutionRunAuthorityReference: runA.Reference))).Succeeded);
+        var completed = await harness.Service.CompleteRemediationAsync(new(
+            harness.ProjectId, root, root, 1, runA.Reference, EvidenceReferences: ["attempt-1"]));
+        Assert.True(completed.Succeeded, completed.ErrorMessage);
 
         var missing = await harness.Service.RecordRevalidationAsync(new(
             harness.ProjectId, root, root, 1,
@@ -176,23 +193,255 @@ public sealed class ReviewWorkflowTests
     }
 
     [Fact]
-    public async Task Revalidation_RejectsAnExactDecisionFromAnotherProject()
+    public async Task Revalidation_RejectsAnExactDecisionFromAnotherExecutionInTheSameProject()
     {
         using var harness = CreateHarness();
         var root = await CreateAcceptedCaseAsync(harness);
-        Assert.True((await harness.Service.StartRemediationAsync(new(harness.ProjectId, root, root))).Succeeded);
+        var runA = harness.RegisterAuthority();
+        Assert.True((await harness.Service.StartRemediationAsync(new(
+            harness.ProjectId, root, root, ExecutionRunAuthorityReference: runA.Reference))).Succeeded);
         var completed = await harness.Service.CompleteRemediationAsync(new(
-            harness.ProjectId, root, root, 1, EvidenceReferences: ["attempt-1"]));
+            harness.ProjectId, root, root, 1, runA.Reference, EvidenceReferences: ["attempt-1"]));
         Assert.True(completed.Succeeded, completed.ErrorMessage);
 
-        var otherProjectDecision = CreateDecision(Guid.NewGuid(), harness.Clock.UtcNow, ValidationGateDecisionState.Satisfied);
-        harness.Validation.Decision = otherProjectDecision;
+        var runB = harness.RegisterAuthority();
+        var otherRunDecision = CreateDecision(
+            harness.ProjectId, runB.Reference, completed.Event!.OccurredAt.AddMinutes(1), ValidationGateDecisionState.Satisfied);
+        harness.Validation.Decision = otherRunDecision;
         var result = await harness.Service.RecordRevalidationAsync(new(
-            harness.ProjectId, root, root, 1, otherProjectDecision.Reference));
+            harness.ProjectId, root, root, 1, otherRunDecision.Reference));
 
         Assert.Equal(ReviewWorkflowMutationStatus.InvalidRequest, result.Status);
         Assert.Equal(ReviewWorkflowState.RevalidationRequired,
             (await harness.Service.ReadCaseAsync(harness.ProjectId, root)).InboxItem!.WorkflowState);
+    }
+
+    [Fact]
+    public async Task RemediationCompletion_RequiresRepositoryValidatedExecutionAuthority()
+    {
+        using var harness = CreateHarness();
+        var root = await CreateAcceptedCaseAsync(harness);
+        Assert.True((await harness.Service.StartRemediationAsync(new(harness.ProjectId, root, root))).Succeeded);
+
+        var missing = new ExecutionRunAuthorityReference(Guid.NewGuid(), 1, Hash('8'));
+        var missingResult = await harness.Service.CompleteRemediationAsync(new(
+            harness.ProjectId, root, root, 1, missing, EvidenceReferences: ["attempt-1"]));
+        Assert.Equal(ReviewWorkflowMutationStatus.InvalidRequest, missingResult.Status);
+
+        var tamperedAuthority = harness.RegisterAuthority();
+        var tampered = new ExecutionRunAuthorityReference(
+            tamperedAuthority.RunId, tamperedAuthority.SchemaVersion, Hash('9'));
+        var tamperedResult = await harness.Service.CompleteRemediationAsync(new(
+            harness.ProjectId, root, root, 1, tampered, EvidenceReferences: ["attempt-1"]));
+        Assert.Equal(ReviewWorkflowMutationStatus.InvalidRequest, tamperedResult.Status);
+
+        var caseResult = await harness.Service.ReadCaseAsync(harness.ProjectId, root);
+        Assert.Equal(ReviewWorkflowState.RemediationRequired, caseResult.InboxItem!.WorkflowState);
+        Assert.Equal(1, caseResult.InboxItem.ActiveRemediationAttempt);
+        Assert.Equal(2, caseResult.Events.Count);
+        Assert.Contains(caseResult.Events, value => value.Kind == ReviewWorkflowEventKind.RemediationStarted);
+        Assert.DoesNotContain(caseResult.Events, value => value.Kind == ReviewWorkflowEventKind.RemediationCompleted);
+    }
+
+    [Fact]
+    public async Task RemediationCompletion_RejectsStringOnlyEvidenceAndPersistsNothing()
+    {
+        using var harness = CreateHarness();
+        var root = await CreateAcceptedCaseAsync(harness);
+        Assert.True((await harness.Service.StartRemediationAsync(new(harness.ProjectId, root, root))).Succeeded);
+
+        var result = await harness.Service.CompleteRemediationAsync(new(
+            harness.ProjectId, root, root, 1, EvidenceReferences: ["attempt-1"]));
+
+        Assert.Equal(ReviewWorkflowMutationStatus.InvalidRequest, result.Status);
+        var history = await harness.Events.ReadAllAsync(harness.ProjectId);
+        Assert.Equal(2, history.Records.Count);
+        Assert.Contains(history.Records, value => value.Kind == ReviewWorkflowEventKind.RemediationStarted);
+        Assert.DoesNotContain(history.Records, value => value.Kind == ReviewWorkflowEventKind.RemediationCompleted);
+        var caseResult = await harness.Service.ReadCaseAsync(harness.ProjectId, root);
+        Assert.Equal(ReviewWorkflowState.RemediationRequired, caseResult.InboxItem!.WorkflowState);
+        Assert.Equal(1, caseResult.InboxItem.ActiveRemediationAttempt);
+    }
+
+    [Fact]
+    public async Task Revalidation_RejectsDecisionPredatingRemediationCompletion()
+    {
+        using var harness = CreateHarness();
+        var root = await CreateAcceptedCaseAsync(harness);
+        var runA = harness.RegisterAuthority();
+        Assert.True((await harness.Service.StartRemediationAsync(new(
+            harness.ProjectId, root, root, ExecutionRunAuthorityReference: runA.Reference))).Succeeded);
+        var completed = await harness.Service.CompleteRemediationAsync(new(
+            harness.ProjectId, root, root, 1, runA.Reference, EvidenceReferences: ["attempt-1"]));
+        Assert.True(completed.Succeeded, completed.ErrorMessage);
+
+        var stale = CreateDecision(
+            harness.ProjectId, runA.Reference, completed.Event!.OccurredAt.AddTicks(-1), ValidationGateDecisionState.Satisfied);
+        harness.Validation.Decision = stale;
+        var result = await harness.Service.RecordRevalidationAsync(new(
+            harness.ProjectId, root, root, 1, stale.Reference));
+
+        Assert.Equal(ReviewWorkflowMutationStatus.InvalidRequest, result.Status);
+        Assert.Equal(ReviewWorkflowState.RevalidationRequired,
+            (await harness.Service.ReadCaseAsync(harness.ProjectId, root)).InboxItem!.WorkflowState);
+    }
+
+    [Fact]
+    public async Task Rereview_RejectsAReviewCreatedBeforeSuccessfulRevalidation()
+    {
+        using var harness = CreateHarness();
+        var root = await CreateAcceptedCaseAsync(harness);
+        var successful = await CompleteSatisfiedRevalidationAsync(harness, root);
+        var staleId = Guid.NewGuid();
+        await harness.Reviews.AppendReviewAsync(Review(
+            staleId, harness.ProjectId, successful.Revalidation.OccurredAt.AddTicks(-1), blockingFinding: false));
+
+        var result = await harness.Service.LinkRereviewAsync(new(harness.ProjectId, root, root, staleId));
+
+        Assert.Equal(ReviewWorkflowMutationStatus.InvalidRequest, result.Status);
+        var caseResult = await harness.Service.ReadCaseAsync(harness.ProjectId, root);
+        Assert.Equal(ReviewWorkflowState.RereviewRequired, caseResult.InboxItem!.WorkflowState);
+        Assert.Equal(root, caseResult.InboxItem.CurrentReviewId);
+    }
+
+    [Fact]
+    public async Task Rereview_RejectsRootAndPreviousAncestorReuse()
+    {
+        using var harness = CreateHarness();
+        var root = await CreateAcceptedCaseAsync(harness);
+        await CompleteSatisfiedRevalidationAsync(harness, root);
+
+        var rootReuse = await harness.Service.LinkRereviewAsync(new(harness.ProjectId, root, root, root));
+        Assert.Equal(ReviewWorkflowMutationStatus.Conflict, rootReuse.Status);
+
+        var firstRereviewId = Guid.NewGuid();
+        var firstRereviewTime = harness.Clock.UtcNow.AddMinutes(1);
+        await harness.Reviews.AppendReviewAsync(Review(
+            firstRereviewId, harness.ProjectId, firstRereviewTime, blockingFinding: true));
+        harness.Clock.UtcNowValue = firstRereviewTime.AddMinutes(1);
+        Assert.True((await harness.Service.LinkRereviewAsync(new(
+            harness.ProjectId, root, root, firstRereviewId))).Succeeded);
+
+        Assert.True((await harness.Service.AdjudicateFindingAsync(new(
+            harness.ProjectId, root, firstRereviewId, "F1", ReviewFindingAdjudication.Accepted,
+            "planner", ReviewAuthorityKind.Planner, "fix again"))).Succeeded);
+        var second = await CompleteSatisfiedRevalidationAsync(harness, root, firstRereviewId);
+
+        var ancestorReuse = await harness.Service.LinkRereviewAsync(new(
+            harness.ProjectId, root, firstRereviewId, root));
+        Assert.Equal(ReviewWorkflowMutationStatus.Conflict, ancestorReuse.Status);
+        var caseResult = await harness.Service.ReadCaseAsync(harness.ProjectId, root);
+        Assert.Equal(ReviewWorkflowState.RereviewRequired, caseResult.InboxItem!.WorkflowState);
+        Assert.Equal(firstRereviewId, caseResult.InboxItem.CurrentReviewId);
+        Assert.True(second.Revalidation.OccurredAt > firstRereviewTime);
+    }
+
+    [Fact]
+    public async Task Rereview_RejectsReviewOwnedByAnotherWorkflow()
+    {
+        using var harness = CreateHarness();
+        var rootA = await CreateAcceptedCaseAsync(harness);
+        var rootB = await CreateAcceptedCaseAsync(harness);
+        await CompleteSatisfiedRevalidationAsync(harness, rootA);
+        var successfulB = await CompleteSatisfiedRevalidationAsync(harness, rootB);
+
+        var candidateId = Guid.NewGuid();
+        var candidateTime = successfulB.Revalidation.OccurredAt.AddMinutes(1);
+        await harness.Reviews.AppendReviewAsync(Review(candidateId, harness.ProjectId, candidateTime, blockingFinding: false));
+        harness.Clock.UtcNowValue = candidateTime.AddMinutes(1);
+        Assert.True((await harness.Service.LinkRereviewAsync(new(
+            harness.ProjectId, rootB, rootB, candidateId))).Succeeded);
+
+        var result = await harness.Service.LinkRereviewAsync(new(
+            harness.ProjectId, rootA, rootA, candidateId));
+
+        Assert.Equal(ReviewWorkflowMutationStatus.Conflict, result.Status);
+        var caseResult = await harness.Service.ReadCaseAsync(harness.ProjectId, rootA);
+        Assert.Equal(ReviewWorkflowState.RereviewRequired, caseResult.InboxItem!.WorkflowState);
+        Assert.Equal(rootA, caseResult.InboxItem.CurrentReviewId);
+    }
+
+    [Fact]
+    public async Task Replay_RejectsDuplicateProjectWideReReviewOwnership()
+    {
+        using var harness = CreateHarness();
+        var rootA = Guid.NewGuid();
+        var rootB = Guid.NewGuid();
+        var candidate = Guid.NewGuid();
+        await harness.Reviews.AppendReviewAsync(Review(rootA, harness.ProjectId, harness.Clock.UtcNow, blockingFinding: false));
+        await harness.Reviews.AppendReviewAsync(Review(rootB, harness.ProjectId, harness.Clock.UtcNow, blockingFinding: false));
+        await harness.Reviews.AppendReviewAsync(Review(candidate, harness.ProjectId, harness.Clock.UtcNow, blockingFinding: false));
+
+        var first = new ReviewWorkflowEvent(Guid.NewGuid(), harness.ProjectId, rootA, rootA,
+            ReviewWorkflowEventKind.RereviewLinked, harness.Clock.UtcNow, linkedReviewId: candidate);
+        var second = new ReviewWorkflowEvent(Guid.NewGuid(), harness.ProjectId, rootB, rootB,
+            ReviewWorkflowEventKind.RereviewLinked, harness.Clock.UtcNow.AddTicks(1), linkedReviewId: candidate);
+        Assert.True((await harness.Events.AppendAsync(first)).Succeeded);
+        Assert.True((await harness.Events.AppendAsync(second)).Succeeded);
+
+        var result = await harness.Service.ReadInboxAsync(harness.ProjectId);
+
+        Assert.False(result.IsUsable);
+        Assert.Equal(HistoryReadStatus.Partial, result.Status);
+        Assert.Empty(result.Items);
+    }
+
+    [Fact]
+    public async Task Replay_RejectsAReReviewCycle()
+    {
+        using var harness = CreateHarness();
+        var root = Guid.NewGuid();
+        var next = Guid.NewGuid();
+        await harness.Reviews.AppendReviewAsync(Review(root, harness.ProjectId, harness.Clock.UtcNow, blockingFinding: false));
+        await harness.Reviews.AppendReviewAsync(Review(next, harness.ProjectId, harness.Clock.UtcNow, blockingFinding: false));
+
+        var first = new ReviewWorkflowEvent(Guid.NewGuid(), harness.ProjectId, root, root,
+            ReviewWorkflowEventKind.RereviewLinked, harness.Clock.UtcNow, linkedReviewId: next);
+        var second = new ReviewWorkflowEvent(Guid.NewGuid(), harness.ProjectId, root, next,
+            ReviewWorkflowEventKind.RereviewLinked, harness.Clock.UtcNow.AddTicks(1), linkedReviewId: root);
+        Assert.True((await harness.Events.AppendAsync(first)).Succeeded);
+        Assert.True((await harness.Events.AppendAsync(second)).Succeeded);
+
+        var result = await harness.Service.ReadCaseAsync(harness.ProjectId, root);
+
+        Assert.False(result.IsUsable);
+        Assert.Equal(HistoryReadStatus.Partial, result.Status);
+        Assert.Empty(result.Events);
+    }
+
+    [Fact]
+    public async Task Store_RejectsTheEventAfterExactLifecycleCapacityWithoutWritingIt()
+    {
+        using var harness = CreateHarness();
+        var root = Guid.NewGuid();
+        var occurredAt = harness.Clock.UtcNow;
+        var rawEvents = Jsonl<ReviewWorkflowEventRecord>(harness.Temp);
+        var directory = harness.Paths.GetProjectReviewWorkflowDirectory(harness.ProjectId);
+        foreach (var index in Enumerable.Range(0, ReviewWorkflowLimits.MaxLifecycleEvents - 1))
+        {
+            var value = new ReviewWorkflowEvent(Guid.NewGuid(), harness.ProjectId, root, root,
+                ReviewWorkflowEventKind.HumanDecisionRequired, occurredAt, reason: $"event-{index}");
+            await rawEvents.AppendAsync(directory, occurredAt, ReviewWorkflowEventRecord.FromApplication(value));
+        }
+
+        var boundary = new ReviewWorkflowEvent(Guid.NewGuid(), harness.ProjectId, root, root,
+            ReviewWorkflowEventKind.HumanDecisionRequired, occurredAt, reason: "event-1024");
+        Assert.True((await harness.Events.AppendAsync(boundary)).Succeeded);
+
+        var atCapacity = await harness.Events.ReadAllAsync(harness.ProjectId);
+        Assert.Equal(HistoryReadStatus.Success, atCapacity.Status);
+        Assert.Equal(ReviewWorkflowLimits.MaxLifecycleEvents, atCapacity.Records.Count);
+
+        var rejectedId = Guid.NewGuid();
+        var rejected = new ReviewWorkflowEvent(rejectedId, harness.ProjectId, root, root,
+            ReviewWorkflowEventKind.HumanDecisionRequired, occurredAt, reason: "event-1025");
+        var write = await harness.Events.AppendAsync(rejected);
+        Assert.Equal(ReviewWorkflowStoreWriteStatus.Unavailable, write.Status);
+
+        var after = await harness.Events.ReadAllAsync(harness.ProjectId);
+        Assert.Equal(HistoryReadStatus.Success, after.Status);
+        Assert.Equal(ReviewWorkflowLimits.MaxLifecycleEvents, after.Records.Count);
+        Assert.DoesNotContain(after.Records, value => value.EventId == rejectedId);
     }
 
     [Fact]
@@ -296,6 +545,32 @@ public sealed class ReviewWorkflowTests
         return root;
     }
 
+    private static async Task<(ExecutionRunAuthority Authority, ReviewWorkflowEvent Completion, ReviewWorkflowEvent Revalidation)>
+        CompleteSatisfiedRevalidationAsync(Harness harness, Guid rootReviewId, Guid? currentReviewId = null)
+    {
+        var current = currentReviewId ?? rootReviewId;
+        var before = await harness.Service.ReadCaseAsync(harness.ProjectId, rootReviewId);
+        Assert.True(before.IsUsable, before.ErrorMessage);
+        var attempt = before.InboxItem!.RemediationAttemptCount + 1;
+        var authority = harness.RegisterAuthority();
+        var started = await harness.Service.StartRemediationAsync(new(
+            harness.ProjectId, rootReviewId, current, ExecutionRunAuthorityReference: authority.Reference));
+        Assert.True(started.Succeeded, started.ErrorMessage);
+        var completed = await harness.Service.CompleteRemediationAsync(new(
+            harness.ProjectId, rootReviewId, current, attempt, authority.Reference,
+            EvidenceReferences: [$"attempt-{attempt}"]));
+        Assert.True(completed.Succeeded, completed.ErrorMessage);
+
+        harness.Clock.UtcNowValue = completed.Event!.OccurredAt.AddMinutes(1);
+        var decision = CreateDecision(
+            harness.ProjectId, authority.Reference, harness.Clock.UtcNow, ValidationGateDecisionState.Satisfied);
+        harness.Validation.Decision = decision;
+        var revalidated = await harness.Service.RecordRevalidationAsync(new(
+            harness.ProjectId, rootReviewId, current, attempt, decision.Reference));
+        Assert.True(revalidated.Succeeded, revalidated.ErrorMessage);
+        return (authority, completed.Event!, revalidated.Event!);
+    }
+
     private static ReviewMetadata Review(Guid reviewId, Guid projectId, DateTimeOffset occurredAt, bool blockingFinding) =>
         new(projectId, reviewId, occurredAt, "reviewer:opus", "Changes Required", "High", findings:
         [
@@ -303,12 +578,16 @@ public sealed class ReviewWorkflowTests
             new ReviewFindingMetadata("F2", "Low", "APO-51:traceability", "legacy", false, summary: "non-blocking finding")
         ]);
 
-    private static ValidationGateDecision CreateDecision(Guid projectId, DateTimeOffset now, ValidationGateDecisionState state) =>
+    private static ValidationGateDecision CreateDecision(
+        Guid projectId,
+        ExecutionRunAuthorityReference executionReference,
+        DateTimeOffset decidedAt,
+        ValidationGateDecisionState state) =>
         new(projectId, Guid.NewGuid(),
             new ValidationPlanReference(projectId, Guid.NewGuid(), 1, 1, Hash('b')),
-            new ExecutionRunAuthorityReference(Guid.NewGuid(), 1, Hash('c')),
+            executionReference,
             new RecoveryCheckpointReference(Guid.NewGuid(), 1, Hash('d')),
-            now, state, []);
+            decidedAt, state, []);
 
     private static Harness CreateHarness()
     {
@@ -326,8 +605,9 @@ public sealed class ReviewWorkflowTests
             NullLogger<JsonReviewWorkflowStore>.Instance);
         var clock = new MutableClock(new DateTimeOffset(2026, 9, 6, 10, 0, 0, TimeSpan.Zero));
         var validation = new FakeValidationDecisionRepository();
-        var service = new ReviewWorkflowService(reviews, events, clock, validation);
-        return new Harness(temp, reviews, events, service, validation, clock);
+        var authorities = new FakeRunAuthorityRepository();
+        var service = new ReviewWorkflowService(reviews, events, clock, validation, authorities);
+        return new Harness(temp, reviews, events, service, validation, authorities, clock);
     }
 
     private static JsonlEventStore<TRecord> Jsonl<TRecord>(TemporaryStore store) where TRecord : class =>
@@ -341,6 +621,7 @@ public sealed class ReviewWorkflowTests
         JsonReviewWorkflowStore events,
         ReviewWorkflowService service,
         FakeValidationDecisionRepository validation,
+        FakeRunAuthorityRepository authorities,
         MutableClock clock) : IDisposable
     {
         public Guid ProjectId { get; } = Guid.NewGuid();
@@ -350,7 +631,14 @@ public sealed class ReviewWorkflowTests
         public JsonReviewWorkflowStore Events { get; } = events;
         public ReviewWorkflowService Service { get; } = service;
         public FakeValidationDecisionRepository Validation { get; } = validation;
+        public FakeRunAuthorityRepository Authorities { get; } = authorities;
         public MutableClock Clock { get; } = clock;
+        public ExecutionRunAuthority RegisterAuthority(Guid? runId = null)
+        {
+            var authority = ExecutionRunAuthorityPersistenceTests.CreateAuthority(ProjectId, runId);
+            Authorities.Values[(authority.ProjectId, authority.RunId)] = authority;
+            return authority;
+        }
         public void Dispose() => Temp.Dispose();
     }
 
@@ -374,5 +662,22 @@ public sealed class ReviewWorkflowTests
                 ? new ValidationDecisionReadResult(ValidationDecisionReadState.Valid, decision)
                 : new ValidationDecisionReadResult(ValidationDecisionReadState.Missing));
         }
+    }
+
+    private sealed class FakeRunAuthorityRepository : IExecutionRunAuthorityRepository
+    {
+        public Dictionary<(Guid ProjectId, Guid RunId), ExecutionRunAuthority> Values { get; } = new();
+
+        public Task<ExecutionRunAuthorityRepositoryWriteResult> CreateAsync(
+            ExecutionRunAuthority authority, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Values.TryAdd((authority.ProjectId, authority.RunId), authority)
+                ? new ExecutionRunAuthorityRepositoryWriteResult(ExecutionRunAuthorityRepositoryWriteStatus.Created)
+                : new ExecutionRunAuthorityRepositoryWriteResult(ExecutionRunAuthorityRepositoryWriteStatus.RunConflict));
+
+        public Task<ExecutionRunAuthorityReadResult> GetAsync(
+            Guid projectId, Guid runId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Values.TryGetValue((projectId, runId), out var authority)
+                ? new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Valid, authority)
+                : new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Missing));
     }
 }
