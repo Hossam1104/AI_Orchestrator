@@ -10,10 +10,11 @@ This file is a short authority boundary, not an executable executor prompt.
 - `APO-48 = Done`.
 - `APO-51 = FINAL ACCEPTED / MERGED / DONE`.
 - Current next gate: `APO-49`.
-- `APO-49 executor delivery complete`; Sol exact-head review and acceptance are pending.
+- `APO-49 R1 executor remediation complete`; Sol exact-head re-review and acceptance are pending.
 - Executor branch: `feat/APO-49-human-approval-gates`.
-- Functional commit: `8d4416e981becdb6433268fe461858192b5d13d7`; tree
-  `5c95b5082e44ad67300cb0bd9b67ae5ff363480f`.
+- R1 functional commit: `9ff04a0a953c6a8676808447dbc2a8f594cba4c2`; tree
+  `55491427e6d0ac950d9d1576377b31d870647ae3`.
+- `APO-49 remains In Progress` pending Sol re-review.
 - `APO-63 = NOT STARTED`.
 - The accepted APO-51 product merge is `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`.
 - `TASK.md` does not authorize downstream implementation or roadmap continuation.
@@ -39,6 +40,7 @@ This file is a short authority boundary, not an executable executor prompt.
 
 ## Handoff status
 
-- `APO-49 executor delivery = COMPLETE / PENDING SOL ACCEPTANCE`.
+- `APO-49 R1 executor remediation = COMPLETE / PENDING SOL RE-REVIEW`.
+- `APO-49 remains In Progress`.
 - `JIRA EXECUTOR ADMIN = DEFERRED TO SOL`.
 - `APO-63 NOT STARTED`.

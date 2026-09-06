@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 6 September 2026 (APO-49 executor delivery closeout)
+**Last Updated:** 7 September 2026 (APO-49 R1 executor remediation closeout)
 
 ## Canonical live snapshot
 
@@ -16,9 +16,11 @@
 - APO-49 required baseline: `origin/main` `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48`; tree
   `a54a4d3fe8727b26c2d0291f2fdd1801023b0cc6`
 - APO-49 executor branch: `feat/APO-49-human-approval-gates`
-- APO-49 functional commit: `8d4416e981becdb6433268fe461858192b5d13d7`; tree
-  `5c95b5082e44ad67300cb0bd9b67ae5ff363480f`; parent
-  `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48`
+- APO-49 original reviewed head: `d48a9aec5d4740374e276cd9b6228042474c9186`; tree
+  `6531a588c6a3c01c3666fc1afcac673598807ac5`.
+- APO-49 R1 functional commit: `9ff04a0a953c6a8676808447dbc2a8f594cba4c2`; tree
+  `55491427e6d0ac950d9d1576377b31d870647ae3`; parent
+  `d48a9aec5d4740374e276cd9b6228042474c9186`.
 - Jira project key: `APO`. The Jira display name remains `AI Project Orchestrator`; this is a
   connector-visible display surface and is not changed by this closeout.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
@@ -115,26 +117,39 @@ APO-63, APO-50, and APO-33 product work was not started.
 
 ## APO-49 executor delivery
 
-`APO-49 EXECUTOR DELIVERY = COMPLETE / PENDING SOL ACCEPTANCE`
+`APO-49 R1 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL RE-REVIEW`
 
 - Branch: `feat/APO-49-human-approval-gates`.
 - Baseline: `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48` / tree
   `a54a4d3fe8727b26c2d0291f2fdd1801023b0cc6`.
-- Functional commit: `8d4416e981becdb6433268fe461858192b5d13d7` / tree
-  `5c95b5082e44ad67300cb0bd9b67ae5ff363480f`; parent
-  `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48`.
-- Human approval policy is provider-independent, append-only, project-isolated, owner-authorized,
-  exact-contract/target/evidence bound, expiry-aware, stale-safe, and projected to the existing
-  Recovery Approval gate vocabulary.
-- Focused APO-49 tests: `8 passed / 0 failed / 0 skipped`.
-- Canonical solution tests: `1,163 passed / 0 failed / 0 skipped` (`Domain 28`,
-  `Infrastructure 659`, `Provider 145`, `Connection 248`, `Desktop 83`).
+- R1 functional commit: `9ff04a0a953c6a8676808447dbc2a8f594cba4c2` / tree
+  `55491427e6d0ac950d9d1576377b31d870647ae3`; parent
+  `d48a9aec5d4740374e276cd9b6228042474c9186`.
+- SOL-49-01 executor-remediated: terminal decisions require an opaque owner capability verified
+  by the configured authority; no public capability constructor/factory or DI issuer exists, and
+  only verified audit identity is persisted.
+- SOL-49-02 executor-remediated: Inbox reads without supplied current context are explicitly
+  `CurrentContextUnknown`, fail closed, and preserve historical decision fields separately.
+- SOL-49-03 executor-remediated: current policy reference is an exact evaluation binding and drift
+  returns `StalePolicy`; request content hashing already includes the immutable policy reference.
+- SOL-49-04 executor-remediated: project reads use the exact 512-event bound and reject over-capacity
+  persisted history without mutation.
+- Recovery projection maps only currently valid `Approved` and `Waived` evaluations with a
+  satisfying reference to `RecoveryGateState.Satisfied`.
+- Focused APO-49 R1 tests: `13 passed / 0 failed / 0 skipped`.
+- Canonical solution tests: `1,168 passed / 0 failed / 0 skipped` (`Domain 28`,
+  `Infrastructure 664`, `Provider 145`, `Connection 248`, `Desktop 83`).
 - Restore succeeded; build `0 warnings / 0 errors`; `git diff --check` clean.
-- `JIRA EXECUTOR ADMIN = DEFERRED TO SOL` because the executor Jira connector is unavailable;
-  no Jira state is claimed.
+- First meaningful R1 failure: initial focused compile reported CS0165 for the short-circuit Inbox
+  context variable; it was corrected before the green focused run.
+- `JIRA R1 HANDOFF = DEFERRED TO SOL`; Jira connector was unavailable to this executor, and
+  APO-49 must remain `In Progress`.
+- PR #31 remains `OPEN / DRAFT / UNMERGED / MERGEABLE`, base `main`, head
+  `feat/APO-49-human-approval-gates`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
 - `APO-63 = NOT STARTED`; no remote delivery, UI, provider, Copilot, CI, or automatic human
-  approval behavior was added.
+  approval behavior was added. The final metadata-only handoff head is reported by exact Git
+  verification and is intentionally not embedded in this file to avoid self-SHA recursion.
 
 ## APO-51 final acceptance
 
