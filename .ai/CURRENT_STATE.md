@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 7 September 2026 (APO-49 R1 executor remediation closeout)
+**Last Updated:** 7 September 2026 (APO-49 R2 executor remediation closeout)
 
 ## Canonical live snapshot
 
@@ -21,6 +21,9 @@
 - APO-49 R1 functional commit: `9ff04a0a953c6a8676808447dbc2a8f594cba4c2`; tree
   `55491427e6d0ac950d9d1576377b31d870647ae3`; parent
   `d48a9aec5d4740374e276cd9b6228042474c9186`.
+- APO-49 R2 functional commit: `72e796d6d95d0ca086aeb9614d830ed30e4144ad`; tree
+  `aaf87a55bd5a55c26fc58f66ed3bb7080ac97864`; parent
+  `f44a24943ae6e88667b1859cea8601ca340b57fc`.
 - Jira project key: `APO`. The Jira display name remains `AI Project Orchestrator`; this is a
   connector-visible display surface and is not changed by this closeout.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
@@ -117,7 +120,7 @@ APO-63, APO-50, and APO-33 product work was not started.
 
 ## APO-49 executor delivery
 
-`APO-49 R1 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL RE-REVIEW`
+`APO-49 R2 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL RE-REVIEW`
 
 - Branch: `feat/APO-49-human-approval-gates`.
 - Baseline: `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48` / tree
@@ -125,9 +128,19 @@ APO-63, APO-50, and APO-33 product work was not started.
 - R1 functional commit: `9ff04a0a953c6a8676808447dbc2a8f594cba4c2` / tree
   `55491427e6d0ac950d9d1576377b31d870647ae3`; parent
   `d48a9aec5d4740374e276cd9b6228042474c9186`.
-- SOL-49-01 executor-remediated: terminal decisions require an opaque owner capability verified
-  by the configured authority; no public capability constructor/factory or DI issuer exists, and
-  only verified audit identity is persisted.
+- R2 functional commit: `72e796d6d95d0ca086aeb9614d830ed30e4144ad` / tree
+  `aaf87a55bd5a55c26fc58f66ed3bb7080ac97864`; parent
+  `f44a24943ae6e88667b1859cea8601ca340b57fc`.
+- SOL-49-01R executor-remediated: the service derives an immutable exact decision intent from
+  authoritative request history, the invoked terminal kind, and the validated current
+  contract/target/evidence/policy binding. Infrastructure HMAC proof is bound to the canonical
+  intent hash; the owner issuer is outside Application and is not a production DI service.
+- SOL-49-02 remains closed: Inbox reads without supplied current context are explicitly
+  `CurrentContextUnknown`, fail closed, and preserve historical decision fields separately.
+- SOL-49-03 remains closed: current policy reference is an exact evaluation binding and drift
+  returns `StalePolicy`; request content hashing includes the immutable policy reference.
+- SOL-49-04 remains closed: project reads use the exact 512-event bound and reject over-capacity
+  persisted history without mutation.
 - SOL-49-02 executor-remediated: Inbox reads without supplied current context are explicitly
   `CurrentContextUnknown`, fail closed, and preserve historical decision fields separately.
 - SOL-49-03 executor-remediated: current policy reference is an exact evaluation binding and drift
@@ -136,13 +149,13 @@ APO-63, APO-50, and APO-33 product work was not started.
   persisted history without mutation.
 - Recovery projection maps only currently valid `Approved` and `Waived` evaluations with a
   satisfying reference to `RecoveryGateState.Satisfied`.
-- Focused APO-49 R1 tests: `13 passed / 0 failed / 0 skipped`.
-- Canonical solution tests: `1,168 passed / 0 failed / 0 skipped` (`Domain 28`,
-  `Infrastructure 664`, `Provider 145`, `Connection 248`, `Desktop 83`).
-- Restore succeeded; build `0 warnings / 0 errors`; `git diff --check` clean.
-- First meaningful R1 failure: initial focused compile reported CS0165 for the short-circuit Inbox
-  context variable; it was corrected before the green focused run.
-- `JIRA R1 HANDOFF = DEFERRED TO SOL`; Jira connector was unavailable to this executor, and
+- Focused APO-49 R2 tests: `17 passed / 0 failed / 0 skipped`.
+- Canonical solution tests: `1,172 passed / 0 failed / 0 skipped` (`Domain 28`,
+  `Infrastructure 668`, `Provider 145`, `Connection 248`, `Desktop 83`).
+- R2 restore succeeded; build `0 warnings / 0 errors`; `git diff --check` clean.
+- First meaningful R2 failure: initial post-refactor focused compile reported CS0246 for the moved
+  local owner authority test type; tests were corrected before the green focused run.
+- `JIRA R2 HANDOFF = DEFERRED TO SOL`; Jira connector was unavailable to this executor, and
   APO-49 must remain `In Progress`.
 - PR #31 remains `OPEN / DRAFT / UNMERGED / MERGEABLE`, base `main`, head
   `feat/APO-49-human-approval-gates`.
