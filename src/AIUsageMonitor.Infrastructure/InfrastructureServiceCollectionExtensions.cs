@@ -20,6 +20,7 @@ using AIUsageMonitor.Application.Workspaces;
 using AIUsageMonitor.Infrastructure.Persistence;
 using AIUsageMonitor.Infrastructure.Persistence.Repositories;
 using AIUsageMonitor.Infrastructure.Security;
+using AIUsageMonitor.Infrastructure.Approvals;
 using AIUsageMonitor.Infrastructure.Execution;
 using AIUsageMonitor.Infrastructure.Git;
 using AIUsageMonitor.Infrastructure.Workspaces;
@@ -130,8 +131,11 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IValidationGateService, ValidationGateService>();
 
         // APO-49 is deliberately a local single-owner boundary. The configured identity is an
-        // opaque owner reference, never a credential or persisted secret.
-        services.AddSingleton<IHumanOwnerAuthority>(new LocalSingleOwnerAuthority(Environment.UserName));
+        // opaque owner reference, never a credential or persisted secret. Only the verifier is
+        // exposed to the application graph; the concrete authority's trusted issuance seam is
+        // intentionally not registered as a general service.
+        services.AddSingleton<IHumanOwnerDecisionVerifier>(
+            new LocalSingleOwnerDecisionAuthority(Environment.UserName));
         services.AddSingleton<IHumanApprovalStore, JsonHumanApprovalStore>();
         services.AddSingleton<IHumanApprovalService, HumanApprovalService>();
 

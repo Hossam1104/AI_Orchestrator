@@ -7,19 +7,19 @@ namespace AIUsageMonitor.Application.Approvals;
 public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
 {
     private readonly IHumanApprovalStore _store;
-    private readonly IHumanOwnerAuthority _ownerAuthority;
+    private readonly IHumanOwnerDecisionVerifier _ownerVerifier;
     private readonly IHandoffRedactionService _redaction;
     private readonly IClock _clock;
     private readonly SemaphoreSlim _mutationGate = new(1, 1);
 
     public HumanApprovalService(
         IHumanApprovalStore store,
-        IHumanOwnerAuthority ownerAuthority,
+        IHumanOwnerDecisionVerifier ownerVerifier,
         IHandoffRedactionService redaction,
         IClock clock)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
-        _ownerAuthority = ownerAuthority ?? throw new ArgumentNullException(nameof(ownerAuthority));
+        _ownerVerifier = ownerVerifier ?? throw new ArgumentNullException(nameof(ownerVerifier));
         _redaction = redaction ?? throw new ArgumentNullException(nameof(redaction));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
@@ -240,9 +240,6 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
         try
         {
             ValidateSafeText(decision.Reason, nameof(decision.Reason));
-            if (!_ownerAuthority.TryVerify(decision.OwnerDecisionCapability, out var verifiedOwnerReference))
-                return new(HumanApprovalMutationStatus.Unauthorized, ErrorMessage: "The supplied authority is not the configured human owner.");
-
             var read = await _store.ReadAsync(decision.ProjectId, decision.RequestId, cancellationToken).ConfigureAwait(false);
             if (!read.IsUsable)
                 return FromReadFailure(read);
@@ -260,6 +257,10 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
                 return Invalid("A decision cannot precede the request timestamp.");
             if (now >= request.ExpiresAt)
                 return new(HumanApprovalMutationStatus.Expired, ErrorMessage: "The approval request has expired.");
+
+            var intent = BuildDecisionIntent(request, decision.CurrentContext, kind);
+            if (!_ownerVerifier.TryVerify(decision.OwnerDecisionCapability, intent, out var verifiedOwnerReference))
+                return new(HumanApprovalMutationStatus.Unauthorized, ErrorMessage: "The supplied authority is not a verified capability for this exact decision intent.");
 
             var value = new HumanApprovalEvent(
                 Guid.NewGuid(),
@@ -514,6 +515,23 @@ public sealed class HumanApprovalService : IHumanApprovalService, IDisposable
             return "policy binding is stale.";
         return null;
     }
+
+    private static HumanOwnerDecisionIntent BuildDecisionIntent(
+        HumanApprovalRequest request,
+        HumanApprovalEvaluationContext context,
+        HumanApprovalEventKind kind) =>
+        new(
+            request.ProjectId,
+            request.RequestId,
+            kind,
+            request.Reference.SchemaVersion,
+            request.Reference.ContentHash,
+            context.ContractReference,
+            context.Target.ActionKind,
+            context.Target.ContentHash,
+            context.EvidenceRevision.SchemaVersion,
+            context.EvidenceRevision.ContentHash,
+            context.CurrentPolicyReference);
 
     private static bool SameContract(
         PlanningExecutionContractReference left,

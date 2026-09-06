@@ -92,118 +92,183 @@ public enum HumanApprovalNextAction
 }
 
 /// <summary>
-/// Opaque bearer proof of an explicit owner decision. Ordinary callers can hold a capability but
-/// cannot construct one from visible owner identity values. The live material is intentionally not
-/// exposed and is never part of an approval event or persisted record.
+/// Opaque proof envelope for one explicit owner decision. The envelope has no public constructor;
+/// only the trusted Infrastructure authority can create it. Its live material is intentionally
+/// not exposed and is never part of an approval event or persisted record.
 /// </summary>
 public sealed class HumanOwnerDecisionCapability
 {
-    private readonly byte[] _material;
-    private readonly byte[] _proof;
     private readonly string _ownerReference;
     private readonly string _authorityReference;
+    private readonly string _intentHash;
+    private readonly string _material;
+    private readonly string _proof;
 
-    private HumanOwnerDecisionCapability(
+    internal HumanOwnerDecisionCapability(
         string ownerReference,
         string authorityReference,
-        byte[] material,
-        byte[] proof)
-    {
-        _ownerReference = ownerReference;
-        _authorityReference = authorityReference;
-        _material = material;
-        _proof = proof;
-    }
-
-    internal static HumanOwnerDecisionCapability Issue(
-        string ownerReference,
-        string authorityReference,
-        byte[] authorityKey)
-    {
-        ArgumentNullException.ThrowIfNull(authorityKey);
-        var material = RandomNumberGenerator.GetBytes(32);
-        var proof = ComputeProof(ownerReference, authorityReference, material, authorityKey);
-        return new(ownerReference, authorityReference, material, proof);
-    }
-
-    internal bool TryVerify(
-        string expectedOwnerReference,
-        string expectedAuthorityReference,
-        byte[] authorityKey,
-        out string verifiedOwnerReference)
-    {
-        verifiedOwnerReference = string.Empty;
-        if (!string.Equals(_ownerReference, expectedOwnerReference, StringComparison.Ordinal) ||
-            !string.Equals(_authorityReference, expectedAuthorityReference, StringComparison.Ordinal))
-            return false;
-
-        var expectedProof = ComputeProof(_ownerReference, _authorityReference, _material, authorityKey);
-        var valid = CryptographicOperations.FixedTimeEquals(_proof, expectedProof);
-        CryptographicOperations.ZeroMemory(expectedProof);
-        if (valid)
-            verifiedOwnerReference = _ownerReference;
-        return valid;
-    }
-
-    private static byte[] ComputeProof(
-        string ownerReference,
-        string authorityReference,
-        byte[] material,
-        byte[] authorityKey)
-    {
-        var binding = Encoding.UTF8.GetBytes($"{ownerReference}\u001f{authorityReference}");
-        var payload = new byte[binding.Length + material.Length];
-        Buffer.BlockCopy(binding, 0, payload, 0, binding.Length);
-        Buffer.BlockCopy(material, 0, payload, binding.Length, material.Length);
-        using var hmac = new HMACSHA256(authorityKey);
-        return hmac.ComputeHash(payload);
-    }
-}
-
-public interface IHumanOwnerAuthority
-{
-    bool TryVerify(HumanOwnerDecisionCapability capability, out string verifiedOwnerReference);
-}
-
-/// <summary>Minimum replaceable single-owner authority implementation for local V1 use.</summary>
-public sealed class LocalSingleOwnerAuthority : IHumanOwnerAuthority
-{
-    private readonly string _ownerReference;
-    private readonly string _authorityReference;
-    private readonly byte[] _authorityKey = RandomNumberGenerator.GetBytes(32);
-
-    public LocalSingleOwnerAuthority(string ownerReference, string authorityReference = "local-owner")
+        string intentHash,
+        string material,
+        string proof)
     {
         _ownerReference = Required(ownerReference, nameof(ownerReference));
         _authorityReference = Required(authorityReference, nameof(authorityReference));
+        _intentHash = RequiredSha256(intentHash, nameof(intentHash));
+        _material = RequiredBase64(material, nameof(material));
+        _proof = RequiredBase64(proof, nameof(proof));
     }
 
-    public bool TryVerify(HumanOwnerDecisionCapability capability, out string verifiedOwnerReference)
-    {
-        verifiedOwnerReference = string.Empty;
-        return capability is not null && capability.TryVerify(
-            _ownerReference,
-            _authorityReference,
-            _authorityKey,
-            out verifiedOwnerReference);
-    }
+    internal string OwnerReference => _ownerReference;
 
-    /// <summary>
-    /// Narrow trusted-owner seam for a future interactive owner-command adapter and friend tests.
-    /// It is deliberately not public and is not registered as a minting service in DI.
-    /// </summary>
-    internal HumanOwnerDecisionCapability IssueTrustedOwnerDecisionCapability() =>
-        HumanOwnerDecisionCapability.Issue(_ownerReference, _authorityReference, _authorityKey);
+    internal string AuthorityReference => _authorityReference;
+
+    internal string IntentHash => _intentHash;
+
+    internal string Material => _material;
+
+    internal string Proof => _proof;
 
     private static string Required(string value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("The configured owner reference is required.", parameterName);
+            throw new ArgumentException("A capability value is required.", parameterName);
         var normalized = value.Trim();
         if (normalized.Any(static character => char.IsControl(character)))
-            throw new ArgumentException("The configured owner reference cannot contain control characters.", parameterName);
+            throw new ArgumentException("Capability values cannot contain control characters.", parameterName);
         return normalized;
     }
+
+    private static string RequiredSha256(string value, string parameterName)
+    {
+        var normalized = Required(value, parameterName).ToLowerInvariant();
+        if (normalized.Length != 64 || !normalized.All(static character => Uri.IsHexDigit(character)))
+            throw new ArgumentException("Capability intent hash must be SHA-256.", parameterName);
+        return normalized;
+    }
+
+    private static string RequiredBase64(string value, string parameterName)
+    {
+        var normalized = Required(value, parameterName);
+        try
+        {
+            if (Convert.FromBase64String(normalized).Length == 0)
+                throw new ArgumentException("Capability material cannot be empty.", parameterName);
+        }
+        catch (FormatException exception)
+        {
+            throw new ArgumentException("Capability material must be base64.", parameterName, exception);
+        }
+
+        return normalized;
+    }
+}
+
+/// <summary>
+/// Canonical authorization target for one exact terminal owner decision. The service constructs
+/// this value from authoritative persisted request data and the validated current context; callers
+/// must not be trusted merely because they supplied a matching-looking intent.
+/// </summary>
+public sealed class HumanOwnerDecisionIntent
+{
+    public HumanOwnerDecisionIntent(
+        Guid projectId,
+        Guid requestId,
+        HumanApprovalEventKind decisionKind,
+        int requestSchemaVersion,
+        string requestContentHash,
+        PlanningExecutionContractReference contractReference,
+        HumanApprovalActionKind actionKind,
+        string targetContentHash,
+        int evidenceSchemaVersion,
+        string evidenceContentHash,
+        string currentPolicyReference)
+    {
+        if (projectId == Guid.Empty)
+            throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
+        if (requestId == Guid.Empty)
+            throw new ArgumentException("Request id cannot be empty.", nameof(requestId));
+        if (decisionKind is not (HumanApprovalEventKind.Approved or HumanApprovalEventKind.Rejected or HumanApprovalEventKind.Waived))
+            throw new ArgumentException("Decision intent must be terminal.", nameof(decisionKind));
+        if (requestSchemaVersion <= 0)
+            throw new ArgumentOutOfRangeException(nameof(requestSchemaVersion));
+        if (!IsSha256(requestContentHash))
+            throw new ArgumentException("Request content hash must be SHA-256.", nameof(requestContentHash));
+        ContractReference = contractReference ?? throw new ArgumentNullException(nameof(contractReference));
+        if (!Enum.IsDefined(actionKind))
+            throw new ArgumentException("Approval action kind is undefined.", nameof(actionKind));
+        if (!IsSha256(targetContentHash))
+            throw new ArgumentException("Target content hash must be SHA-256.", nameof(targetContentHash));
+        if (evidenceSchemaVersion <= 0)
+            throw new ArgumentOutOfRangeException(nameof(evidenceSchemaVersion));
+        if (!IsSha256(evidenceContentHash))
+            throw new ArgumentException("Evidence content hash must be SHA-256.", nameof(evidenceContentHash));
+        if (string.IsNullOrWhiteSpace(currentPolicyReference))
+            throw new ArgumentException("The current approval policy reference is required.", nameof(currentPolicyReference));
+        var normalizedPolicyReference = currentPolicyReference.Trim();
+        if (normalizedPolicyReference.Length > HumanApprovalLimits.MaxPolicyIdentityLength)
+            throw new ArgumentException($"The value cannot exceed {HumanApprovalLimits.MaxPolicyIdentityLength} characters.", nameof(currentPolicyReference));
+        if (normalizedPolicyReference.Any(static character => char.IsControl(character)))
+            throw new ArgumentException("The current approval policy reference cannot contain control characters.", nameof(currentPolicyReference));
+
+        ProjectId = projectId;
+        RequestId = requestId;
+        DecisionKind = decisionKind;
+        RequestSchemaVersion = requestSchemaVersion;
+        RequestContentHash = requestContentHash.ToLowerInvariant();
+        ActionKind = actionKind;
+        TargetContentHash = targetContentHash.ToLowerInvariant();
+        EvidenceSchemaVersion = evidenceSchemaVersion;
+        EvidenceContentHash = evidenceContentHash.ToLowerInvariant();
+        CurrentPolicyReference = normalizedPolicyReference;
+        IntentHash = HumanApprovalIntegrity.Hash(new
+        {
+            ProjectId,
+            RequestId,
+            DecisionKind,
+            RequestSchemaVersion,
+            RequestContentHash,
+            Contract = new
+            {
+                ContractReference.ContractId,
+                ContractReference.Revision,
+                ContractReference.SchemaVersion,
+                ContractReference.ContentHash
+            },
+            ActionKind,
+            TargetContentHash,
+            EvidenceSchemaVersion,
+            EvidenceContentHash,
+            CurrentPolicyReference
+        });
+    }
+
+    public Guid ProjectId { get; }
+    public Guid RequestId { get; }
+    public HumanApprovalEventKind DecisionKind { get; }
+    public int RequestSchemaVersion { get; }
+    public string RequestContentHash { get; }
+    public PlanningExecutionContractReference ContractReference { get; }
+    public Guid ContractId => ContractReference.ContractId;
+    public int ContractRevision => ContractReference.Revision;
+    public int ContractSchemaVersion => ContractReference.SchemaVersion;
+    public string ContractContentHash => ContractReference.ContentHash;
+    public HumanApprovalActionKind ActionKind { get; }
+    public string TargetContentHash { get; }
+    public int EvidenceSchemaVersion { get; }
+    public string EvidenceContentHash { get; }
+    public string CurrentPolicyReference { get; }
+    public string IntentHash { get; }
+
+    private static bool IsSha256(string value) =>
+        value.Length == 64 && value.All(static character => Uri.IsHexDigit(character));
+}
+
+public interface IHumanOwnerDecisionVerifier
+{
+    bool TryVerify(
+        HumanOwnerDecisionCapability capability,
+        HumanOwnerDecisionIntent intent,
+        out string verifiedOwnerReference);
 }
 
 public sealed class HumanApprovalEvidenceReference

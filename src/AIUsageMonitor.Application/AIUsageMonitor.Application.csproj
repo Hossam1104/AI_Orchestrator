@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="AIUsageMonitor.Infrastructure" />
     <InternalsVisibleTo Include="AIUsageMonitor.Infrastructure.Tests" />
   </ItemGroup>
 

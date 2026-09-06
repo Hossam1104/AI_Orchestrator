@@ -3,7 +3,10 @@ using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Planning;
 using AIUsageMonitor.Application.Time;
+using AIUsageMonitor.Infrastructure;
+using AIUsageMonitor.Infrastructure.Approvals;
 using AIUsageMonitor.Infrastructure.Persistence;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Reflection;
 
@@ -29,7 +32,7 @@ public sealed class HumanApprovalTests
             new HumanApprovalDecisionRequest(
                 request.ProjectId,
                 request.RequestId,
-                scope.OwnerCapability,
+                scope.IssueCapability(request, context),
                 "Owner approved the exact protected merge target.",
                 context));
         Assert.True(approved.Succeeded);
@@ -45,7 +48,7 @@ public sealed class HumanApprovalTests
         using var restartedStore = CreateStore(scope);
         using var restartedService = new HumanApprovalService(
             restartedStore,
-            new LocalSingleOwnerAuthority("owner-1"),
+            new LocalSingleOwnerDecisionAuthority("owner-1"),
             new HandoffRedactionService(),
             scope.Clock);
 
@@ -91,7 +94,7 @@ public sealed class HumanApprovalTests
         var context = CreateContext(request);
         Assert.True((await scope.Service.RequestAsync(request)).Succeeded);
         Assert.True((await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
-            request.ProjectId, request.RequestId, scope.OwnerCapability, "Approved exact bindings.", context))).Succeeded);
+            request.ProjectId, request.RequestId, scope.IssueCapability(request, context), "Approved exact bindings.", context))).Succeeded);
 
         var changedContract = new PlanningExecutionContractReference(
             request.ContractReference.ContractId,
@@ -134,18 +137,21 @@ public sealed class HumanApprovalTests
         var unauthorized = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
             request.ProjectId,
             request.RequestId,
-            new LocalSingleOwnerAuthority("planner").IssueTrustedOwnerDecisionCapability(),
+            new LocalSingleOwnerDecisionAuthority("planner").IssueTrustedOwnerDecisionCapability(
+                CreateIntent(request, context, HumanApprovalEventKind.Approved)),
             "This is not an owner decision.",
             context));
         Assert.Equal(HumanApprovalMutationStatus.Unauthorized, unauthorized.Status);
 
         var rejected = await scope.Service.RejectAsync(new HumanApprovalDecisionRequest(
-            request.ProjectId, request.RequestId, scope.OwnerCapability, "Owner rejected this exact operation.", context));
+            request.ProjectId, request.RequestId,
+            scope.IssueCapability(request, context, HumanApprovalEventKind.Rejected),
+            "Owner rejected this exact operation.", context));
         Assert.True(rejected.Succeeded);
         var approveAfterReject = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
-            request.ProjectId, request.RequestId, scope.OwnerCapability, "Attempted reversal.", context));
+            request.ProjectId, request.RequestId, scope.IssueCapability(request, context, HumanApprovalEventKind.Approved), "Attempted reversal.", context));
         var waiveAfterReject = await scope.Service.WaiveAsync(new HumanApprovalDecisionRequest(
-            request.ProjectId, request.RequestId, scope.OwnerCapability, "Attempted waiver after rejection.", context));
+            request.ProjectId, request.RequestId, scope.IssueCapability(request, context, HumanApprovalEventKind.Waived), "Attempted waiver after rejection.", context));
         Assert.Equal(HumanApprovalMutationStatus.AlreadyTerminal, approveAfterReject.Status);
         Assert.Equal(HumanApprovalMutationStatus.AlreadyTerminal, waiveAfterReject.Status);
 
@@ -185,7 +191,7 @@ public sealed class HumanApprovalTests
         Assert.Equal(HumanApprovalMutationStatus.Duplicate, duplicateEscalation.Status);
 
         var waived = await scope.Service.WaiveAsync(new HumanApprovalDecisionRequest(
-            request.ProjectId, request.RequestId, scope.OwnerCapability, "Owner waived this exact bounded risk.", context));
+            request.ProjectId, request.RequestId, scope.IssueCapability(request, context, HumanApprovalEventKind.Waived), "Owner waived this exact bounded risk.", context));
         Assert.True(waived.Succeeded);
         var evaluation = await scope.Service.EvaluateAsync(context, request.RequestId);
         Assert.Equal(HumanApprovalState.Waived, evaluation.EffectiveState);
@@ -210,7 +216,7 @@ public sealed class HumanApprovalTests
         var approvedContext = CreateContext(approvedRequest);
         Assert.True((await approvedScope.Service.RequestAsync(approvedRequest)).Succeeded);
         Assert.True((await approvedScope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
-            approvedRequest.ProjectId, approvedRequest.RequestId, approvedScope.OwnerCapability, "Approved before expiry.", approvedContext))).Succeeded);
+            approvedRequest.ProjectId, approvedRequest.RequestId, approvedScope.IssueCapability(approvedRequest, approvedContext), "Approved before expiry.", approvedContext))).Succeeded);
         approvedScope.Clock.UtcNow = approvedRequest.ExpiresAt;
         var expired = await approvedScope.Service.EvaluateAsync(approvedContext, approvedRequest.RequestId);
         Assert.Equal(HumanApprovalState.Expired, expired.EffectiveState);
@@ -331,7 +337,7 @@ public sealed class HumanApprovalTests
         var context = CreateContext(request);
         Assert.True((await scope.Service.RequestAsync(request)).Succeeded);
         Assert.True((await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
-            request.ProjectId, request.RequestId, scope.OwnerCapability, "Approved project A exact target.", context))).Succeeded);
+            request.ProjectId, request.RequestId, scope.IssueCapability(request, context), "Approved project A exact target.", context))).Succeeded);
 
         var projectBContext = new HumanApprovalEvaluationContext(
             Guid.NewGuid(),
@@ -372,7 +378,7 @@ public sealed class HumanApprovalTests
 
         Assert.True((await scope.Service.RequestAsync(request)).Succeeded);
         Assert.True((await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
-            request.ProjectId, request.RequestId, scope.OwnerCapability, "Approved the opaque operation fingerprint.", context))).Succeeded);
+            request.ProjectId, request.RequestId, scope.IssueCapability(request, context), "Approved the opaque operation fingerprint.", context))).Succeeded);
         var exact = await scope.Service.EvaluateAsync(context, request.RequestId);
         Assert.Equal(HumanApprovalState.Approved, exact.EffectiveState);
         Assert.True(exact.CanProceed);
@@ -401,8 +407,8 @@ public sealed class HumanApprovalTests
             typeof(HumanOwnerDecisionCapability).GetMethods(BindingFlags.Static | BindingFlags.Public),
             method => method.Name.Contains("Issue", StringComparison.OrdinalIgnoreCase));
 
-        var sameVisibleIdentityCapability = new LocalSingleOwnerAuthority("owner-1", "local-owner")
-            .IssueTrustedOwnerDecisionCapability();
+        var sameVisibleIdentityCapability = new LocalSingleOwnerDecisionAuthority("owner-1", "local-owner")
+            .IssueTrustedOwnerDecisionCapability(CreateIntent(request, context, HumanApprovalEventKind.Approved));
         var forged = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
             request.ProjectId,
             request.RequestId,
@@ -413,8 +419,8 @@ public sealed class HumanApprovalTests
 
         foreach (var impersonatedReference in new[] { "planner", "executor", "reviewer", "automation" })
         {
-            var capability = new LocalSingleOwnerAuthority(impersonatedReference)
-                .IssueTrustedOwnerDecisionCapability();
+            var capability = new LocalSingleOwnerDecisionAuthority(impersonatedReference)
+                .IssueTrustedOwnerDecisionCapability(CreateIntent(request, context, HumanApprovalEventKind.Approved));
             var unauthorized = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
                 request.ProjectId,
                 request.RequestId,
@@ -427,7 +433,7 @@ public sealed class HumanApprovalTests
         var approved = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
             request.ProjectId,
             request.RequestId,
-            scope.OwnerCapability,
+            scope.IssueCapability(request, context),
             "The verified owner approved the exact request.",
             context));
         Assert.True(approved.Succeeded);
@@ -454,13 +460,13 @@ public sealed class HumanApprovalTests
         Assert.True((await scope.Service.RequestAsync(rejectedRequest)).Succeeded);
 
         Assert.True((await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
-            approvedRequest.ProjectId, approvedRequest.RequestId, scope.OwnerCapability,
+            approvedRequest.ProjectId, approvedRequest.RequestId, scope.IssueCapability(approvedRequest, CreateContext(approvedRequest), HumanApprovalEventKind.Approved),
             "Approved for unknown-context inbox coverage.", CreateContext(approvedRequest)))).Succeeded);
         Assert.True((await scope.Service.WaiveAsync(new HumanApprovalDecisionRequest(
-            waivedRequest.ProjectId, waivedRequest.RequestId, scope.OwnerCapability,
+            waivedRequest.ProjectId, waivedRequest.RequestId, scope.IssueCapability(waivedRequest, CreateContext(waivedRequest), HumanApprovalEventKind.Waived),
             "Waived for unknown-context inbox coverage.", CreateContext(waivedRequest)))).Succeeded);
         Assert.True((await scope.Service.RejectAsync(new HumanApprovalDecisionRequest(
-            rejectedRequest.ProjectId, rejectedRequest.RequestId, scope.OwnerCapability,
+            rejectedRequest.ProjectId, rejectedRequest.RequestId, scope.IssueCapability(rejectedRequest, CreateContext(rejectedRequest), HumanApprovalEventKind.Rejected),
             "Rejected for unknown-context inbox coverage.", CreateContext(rejectedRequest)))).Succeeded);
 
         var inbox = await scope.Service.ReadInboxAsync(scope.ProjectId);
@@ -498,7 +504,7 @@ public sealed class HumanApprovalTests
         var policyV1 = CreateContext(request, "apo-49/v1");
         Assert.True((await scope.Service.RequestAsync(request)).Succeeded);
         Assert.True((await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
-            request.ProjectId, request.RequestId, scope.OwnerCapability,
+            request.ProjectId, request.RequestId, scope.IssueCapability(request, policyV1),
             "Approved under policy v1.", policyV1))).Succeeded);
 
         var exact = await scope.Service.EvaluateAsync(policyV1, request.RequestId);
@@ -524,7 +530,7 @@ public sealed class HumanApprovalTests
         var driftedDecision = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
             decisionRequest.ProjectId,
             decisionRequest.RequestId,
-            scope.OwnerCapability,
+            scope.IssueCapability(decisionRequest, CreateContext(decisionRequest, "apo-49/v1")),
             "Decision-time policy drift must fail closed.",
             CreateContext(decisionRequest, "apo-49/v2")));
         Assert.Equal(HumanApprovalMutationStatus.Stale, driftedDecision.Status);
@@ -536,7 +542,7 @@ public sealed class HumanApprovalTests
         using var restartedStore = CreateStore(scope);
         using var restartedService = new HumanApprovalService(
             restartedStore,
-            new LocalSingleOwnerAuthority("owner-1"),
+            new LocalSingleOwnerDecisionAuthority("owner-1"),
             new HandoffRedactionService(),
             scope.Clock);
         var afterRestart = await restartedService.EvaluateAsync(policyV2, request.RequestId);
@@ -571,6 +577,167 @@ public sealed class HumanApprovalTests
         Assert.Equal(
             RecoveryGateState.Failed,
             HumanApprovalRecoveryProjection.ToRecoveryGateSnapshot(incompleteApprovedEvaluation).State);
+    }
+
+    [Fact]
+    public async Task ExactCapability_CannotReplayAcrossTerminalDecisionKinds()
+    {
+        using var scope = new ApprovalScope();
+        var request = CreateRequest(scope);
+        var context = CreateContext(request);
+        Assert.True((await scope.Service.RequestAsync(request)).Succeeded);
+
+        var approveCapability = scope.IssueCapability(request, context, HumanApprovalEventKind.Approved);
+        var waived = await scope.Service.WaiveAsync(new HumanApprovalDecisionRequest(
+            request.ProjectId,
+            request.RequestId,
+            approveCapability,
+            "A capability for approval cannot waive.",
+            context));
+        var rejected = await scope.Service.RejectAsync(new HumanApprovalDecisionRequest(
+            request.ProjectId,
+            request.RequestId,
+            approveCapability,
+            "A capability for approval cannot reject.",
+            context));
+
+        Assert.Equal(HumanApprovalMutationStatus.Unauthorized, waived.Status);
+        Assert.Equal(HumanApprovalMutationStatus.Unauthorized, rejected.Status);
+        var undecided = await scope.Store.ReadAsync(request.ProjectId, request.RequestId);
+        Assert.Single(undecided.Histories.Single().Events);
+
+        var approved = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
+            request.ProjectId,
+            request.RequestId,
+            approveCapability,
+            "The exact approval capability was used for approval.",
+            context));
+        Assert.True(approved.Succeeded);
+    }
+
+    [Fact]
+    public async Task ExactCapability_CannotReplayAcrossRequestsOrProjects()
+    {
+        using var scope = new ApprovalScope();
+        var requestA = CreateRequest(scope);
+        var requestB = CreateRequest(scope, projectId: scope.ProjectId);
+        var requestProjectB = CreateRequest(scope, projectId: Guid.NewGuid());
+        Assert.True((await scope.Service.RequestAsync(requestA)).Succeeded);
+        Assert.True((await scope.Service.RequestAsync(requestB)).Succeeded);
+        Assert.True((await scope.Service.RequestAsync(requestProjectB)).Succeeded);
+
+        var capabilityForA = scope.IssueCapability(requestA, CreateContext(requestA));
+        var replayedOnB = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
+            requestB.ProjectId,
+            requestB.RequestId,
+            capabilityForA,
+            "Request A capability must not approve Request B.",
+            CreateContext(requestB)));
+        var replayedOnProjectB = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
+            requestProjectB.ProjectId,
+            requestProjectB.RequestId,
+            capabilityForA,
+            "Project A capability must not approve Project B.",
+            CreateContext(requestProjectB)));
+
+        Assert.Equal(HumanApprovalMutationStatus.Unauthorized, replayedOnB.Status);
+        Assert.Equal(HumanApprovalMutationStatus.Unauthorized, replayedOnProjectB.Status);
+        Assert.Single((await scope.Store.ReadAsync(requestB.ProjectId, requestB.RequestId)).Histories.Single().Events);
+        Assert.Single((await scope.Store.ReadAsync(requestProjectB.ProjectId, requestProjectB.RequestId)).Histories.Single().Events);
+    }
+
+    [Fact]
+    public async Task ExactCapability_RejectsTargetContractEvidenceAndPolicyDriftBeforeWriting()
+    {
+        using var scope = new ApprovalScope();
+        var request = CreateRequest(scope);
+        var exactContext = CreateContext(request);
+        Assert.True((await scope.Service.RequestAsync(request)).Succeeded);
+        var capability = scope.IssueCapability(request, exactContext);
+
+        var movedTarget = HumanApprovalTarget.ProtectedBranchMerge(
+            "github.com/example/repository",
+            "main",
+            new string('a', 40),
+            "feature/x",
+            new string('c', 40),
+            "merge feature x into main");
+        var changedContract = new PlanningExecutionContractReference(
+            request.ContractReference.ContractId,
+            request.ContractReference.Revision + 1,
+            request.ContractReference.SchemaVersion,
+            new string('f', 64));
+        var changedEvidence = new HumanApprovalEvidenceRevision([
+            new HumanApprovalEvidenceReference("validation-decision", "validation:decision-2", Guid.NewGuid(), 1, new string('1', 64))
+        ]);
+
+        var driftedContexts = new[]
+        {
+            new HumanApprovalEvaluationContext(request.ProjectId, request.ContractReference, movedTarget, request.EvidenceRevision, request.PolicyReference),
+            new HumanApprovalEvaluationContext(request.ProjectId, changedContract, request.Target, request.EvidenceRevision, request.PolicyReference),
+            new HumanApprovalEvaluationContext(request.ProjectId, request.ContractReference, request.Target, changedEvidence, request.PolicyReference),
+            CreateContext(request, "apo-49/v2")
+        };
+        foreach (var driftedContext in driftedContexts)
+        {
+            var result = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
+                request.ProjectId,
+                request.RequestId,
+                capability,
+                "A stale current binding must not consume the exact capability.",
+                driftedContext));
+            Assert.Equal(HumanApprovalMutationStatus.Stale, result.Status);
+        }
+
+        var history = await scope.Store.ReadAsync(request.ProjectId, request.RequestId);
+        Assert.Single(history.Histories.Single().Events);
+
+        var approved = await scope.Service.ApproveAsync(new HumanApprovalDecisionRequest(
+            request.ProjectId,
+            request.RequestId,
+            capability,
+            "The capability remains valid for the still-current exact intent.",
+            exactContext));
+        Assert.True(approved.Succeeded);
+    }
+
+    [Fact]
+    public void DecisionCapabilitiesHaveDistinctIntentHashes_AndApplicationCannotMint()
+    {
+        using var scope = new ApprovalScope();
+        var request = CreateRequest(scope);
+        var context = CreateContext(request);
+        var approved = scope.IssueCapability(request, context, HumanApprovalEventKind.Approved);
+        var rejected = scope.IssueCapability(request, context, HumanApprovalEventKind.Rejected);
+        var waived = scope.IssueCapability(request, context, HumanApprovalEventKind.Waived);
+
+        Assert.NotEqual(approved.IntentHash, rejected.IntentHash);
+        Assert.NotEqual(approved.IntentHash, waived.IntentHash);
+        Assert.NotEqual(rejected.IntentHash, waived.IntentHash);
+
+        var applicationAssembly = typeof(HumanApprovalService).Assembly;
+        Assert.Null(applicationAssembly.GetType(
+            "AIUsageMonitor.Infrastructure.Approvals.LocalSingleOwnerDecisionAuthority",
+            throwOnError: false));
+        Assert.DoesNotContain(
+            applicationAssembly.GetTypes(),
+            type => type.Name.Contains("Issuer", StringComparison.OrdinalIgnoreCase) ||
+                    type.Name.Contains("CapabilityFactory", StringComparison.OrdinalIgnoreCase));
+
+        var services = new ServiceCollection();
+        var root = Path.Combine(Path.GetTempPath(), "AIUsageMonitorCompositionTests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            services.AddInfrastructure(root);
+            Assert.Contains(services, descriptor => descriptor.ServiceType == typeof(IHumanOwnerDecisionVerifier));
+            Assert.DoesNotContain(services, descriptor => descriptor.ServiceType == typeof(LocalSingleOwnerDecisionAuthority));
+            Assert.DoesNotContain(services, descriptor => descriptor.ServiceType.Name.Contains("Issuer", StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
     }
 
     private static HumanApprovalRequest CreateRequest(
@@ -612,6 +779,23 @@ public sealed class HumanApprovalTests
     private static HumanApprovalEvaluationContext CreateContext(HumanApprovalRequest request, string? currentPolicyReference = null) =>
         new(request.ProjectId, request.ContractReference, request.Target, request.EvidenceRevision, currentPolicyReference ?? request.PolicyReference);
 
+    private static HumanOwnerDecisionIntent CreateIntent(
+        HumanApprovalRequest request,
+        HumanApprovalEvaluationContext context,
+        HumanApprovalEventKind kind) =>
+        new(
+            request.ProjectId,
+            request.RequestId,
+            kind,
+            request.Reference.SchemaVersion,
+            request.Reference.ContentHash,
+            context.ContractReference,
+            context.Target.ActionKind,
+            context.Target.ContentHash,
+            context.EvidenceRevision.SchemaVersion,
+            context.EvidenceRevision.ContentHash,
+            context.CurrentPolicyReference);
+
     private static JsonHumanApprovalStore CreateStore(ApprovalScope scope) => new(
         scope.Paths,
         scope.Events,
@@ -627,8 +811,7 @@ public sealed class HumanApprovalTests
             Paths.EnsureDirectories();
             Clock = new TestClock(DateTimeOffset.Parse("2026-09-06T10:00:00+00:00"));
             ProjectId = Guid.NewGuid();
-            OwnerAuthority = new LocalSingleOwnerAuthority("owner-1");
-            OwnerCapability = OwnerAuthority.IssueTrustedOwnerDecisionCapability();
+            OwnerAuthority = new LocalSingleOwnerDecisionAuthority("owner-1");
             Events = new JsonlEventStore<HumanApprovalEventRecord>(
                 Paths,
                 Files,
@@ -642,8 +825,12 @@ public sealed class HumanApprovalTests
         public JsonFileStore Files { get; }
         public TestClock Clock { get; }
         public Guid ProjectId { get; }
-        public LocalSingleOwnerAuthority OwnerAuthority { get; }
-        public HumanOwnerDecisionCapability OwnerCapability { get; }
+        public LocalSingleOwnerDecisionAuthority OwnerAuthority { get; }
+        public HumanOwnerDecisionCapability IssueCapability(
+            HumanApprovalRequest request,
+            HumanApprovalEvaluationContext context,
+            HumanApprovalEventKind kind = HumanApprovalEventKind.Approved) =>
+            OwnerAuthority.IssueTrustedOwnerDecisionCapability(CreateIntent(request, context, kind));
         public JsonlEventStore<HumanApprovalEventRecord> Events { get; }
         public JsonHumanApprovalStore Store { get; }
         public HumanApprovalService Service { get; }
