@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 7 September 2026 (APO-63 final validation handoff)
+**Last Updated:** 8 September 2026 (APO-63 R1 executor remediation handoff)
 
 ## Canonical live snapshot
 
@@ -37,15 +37,14 @@
 - Jira project key: `APO`. The Jira display name remains `AI Project Orchestrator`; this is a
   connector-visible display surface and is not changed by this closeout.
 - APO-63 executor branch: `feat/APO-63-controlled-remote-delivery`.
-- APO-63 required baseline: `origin/main` `fc8a2d7c79772d716d2c3d17ce729844c539dbd9`; tree
-  `e7a7156931931716d6ae80c5bea7331ee72e90ec`.
-- APO-63 primary functional commit: `7e3bf8574d3a56c1acd92f4c8a31a6c3d3d83b7f`; tree
-  `f3289bd211490ccd5d33c21a59d948601475e02e`; parent
+- APO-63 R1 required starting baseline: branch `feat/APO-63-controlled-remote-delivery`, HEAD
+  `567d8e128c40082f9614da567c35c6af1395a08d`; tree
+  `446bbc0c48f61b897c87d4ce36ca2ffa35b07a55`; `origin/main`
   `fc8a2d7c79772d716d2c3d17ce729844c539dbd9`.
-- APO-63 bounded post-push evidence fix: `bbc18bfef6ed537017cd39ec16c058cee8dfd6ea`; tree
-  `91def3705414dfc8ad0d6cc17a79af9ea118b7ad`; parent
-  `76611a71ba5df7fbd80e9f5bbba1493b6c7f5a55`.
-- APO-63 functional delivery head: `bbc18bfef6ed537017cd39ec16c058cee8dfd6ea`.
+- APO-63 R1 primary functional commit: `b4b6df215de98dfa14d40d718f1d55a6997ce272`; tree
+  `f26b321c2a571a4aa77c75d606384aa43d144280`; parent
+  `567d8e128c40082f9614da567c35c6af1395a08d`.
+- APO-63 R1 final branch head and tree will be recorded after the metadata handoff commit below.
 - APO-63 Draft PR: `#33`, base `main`, head
   `feat/APO-63-controlled-remote-delivery`, `OPEN / DRAFT / UNMERGED`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
@@ -107,10 +106,26 @@ V1 is intentionally optimized around the currently available resource groups:
 Existing optional provider adapters and provider-independent architecture remain in the repository;
 provider cleanup/removal is deferred and is not part of this closeout.
 
-## APO-63 executor delivery
+## APO-63 R1 executor delivery
 
-`APO-63 executor delivery = COMPLETE / PENDING SOL REVIEW`; executor completion is not Sol
-acceptance.
+`APO-63 R1 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL RE-REVIEW`; executor completion is not
+Sol acceptance.
+
+- `SOL-63-01 = REMEDIATED / PENDING SOL RE-REVIEW` — authoritative managed-workspace plan,
+  receipt, approval, discovery, and prepared-workspace verification are required; raw paths and
+  reparse aliases are rejected.
+- `SOL-63-02 = REMEDIATED / PENDING SOL RE-REVIEW` — exact immutable command intent is hashed and
+  bound to project, work item, contract, repository, refs, evidence, authority, and paths.
+- `SOL-63-03 = REMEDIATED / PENDING SOL RE-REVIEW` — GitHub Ready uses bounded official GraphQL
+  mutation plus exact readback; REST `draft=false` is not used.
+- `SOL-63-04 = REMEDIATED / PENDING SOL RE-REVIEW` — remote postconditions prove exact PR identity,
+  refs, SHAs, metadata, comments, reviewers, ready state, and concrete merge SHA.
+- `SOL-63-05 = REMEDIATED / PENDING SOL RE-REVIEW` — durable Attempted audit precedes mutation;
+  restart reconciliation is read-only and does not automatically resend mutations.
+- `SOL-63-06 = REMEDIATED / PENDING SOL RE-REVIEW` — explicit partial, unavailable, failing,
+  pending, cancelled, unknown, or negative CI/status/check evidence blocks high-risk operations.
+- `SOL-63-07 = REMEDIATED / PENDING SOL RE-REVIEW` — remote delivery verification is distinct from
+  tracker synchronization, with tracker-only retry bound to the original authority.
 
 - Typed provider-independent operations: `CommitExactChanges`, `PushExactHead`,
   `CreateDraftPullRequest`, `UpdatePullRequestMetadata`, `AddDeliveryComment`, `RequestReviewers`,
@@ -127,12 +142,14 @@ acceptance.
   and truthful remote CI handling. No approval boolean shortcut is accepted.
 - Audit is append-only project JSONL with bounded records, event identity/kind, SHA-256 content
   integrity, reference-only authorities, capacity enforcement, and fail-closed corrupt-history reads.
-- Focused tests: local Git `3 passed / 0 failed / 0 skipped`; provider adapters `2 passed / 0 failed /
-  0 skipped`; delivery service `3 passed / 0 failed / 0 skipped`.
-- Canonical validation: `1,180 passed / 0 failed / 0 skipped`; restore PASS; build `0 warnings / 0
-  errors`; `git diff --check` clean.
+- Focused R1 tests: delivery service `11 passed / 0 failed / 0 skipped`; provider adapters `4
+  passed / 0 failed / 0 skipped`; local Git `4 passed / 0 failed / 0 skipped`; total `19 passed / 0
+  failed / 0 skipped`.
+- Canonical R1 validation: serial solution run `1,191 passed / 0 failed / 0 skipped`; restore PASS;
+  build `0 warnings / 0 errors`; `git diff --check` clean; changed-scope secret scan clean.
 - `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
-- `JIRA EXECUTOR ADMIN = DEFERRED TO SOL`; Jira transition/comment were not performed by this
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `JIRA R1 HANDOFF = DEFERRED TO SOL`; Jira transition/comment were not performed by this
   executor. APO-50 and APO-33 remain not started.
 
 ## FAST V1 gate
