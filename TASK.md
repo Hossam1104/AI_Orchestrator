@@ -13,9 +13,13 @@ This file is a short authority boundary, not an executable executor prompt.
 - `CURRENT NEXT GATE = APO-63`.
 - `APO-63 = EXECUTOR IMPLEMENTATION COMPLETE / PENDING SOL EXACT-HEAD REVIEW`.
 - Executor branch: `feat/APO-63-controlled-remote-delivery`.
-- APO-63 functional commit: `7e3bf8574d3a56c1acd92f4c8a31a6c3d3d83b7f`; tree
+- APO-63 primary functional commit: `7e3bf8574d3a56c1acd92f4c8a31a6c3d3d83b7f`; tree
   `f3289bd211490ccd5d33c21a59d948601475e02e`; parent
   `fc8a2d7c79772d716d2c3d17ce729844c539dbd9`.
+- APO-63 bounded post-push evidence fix: `bbc18bfef6ed537017cd39ec16c058cee8dfd6ea`; tree
+  `91def3705414dfc8ad0d6cc17a79af9ea118b7ad`; parent
+  `76611a71ba5df7fbd80e9f5bbba1493b6c7f5a55`.
+- APO-63 functional delivery head: `bbc18bfef6ed537017cd39ec16c058cee8dfd6ea`.
 - APO-63 PR #33: `OPEN / DRAFT / UNMERGED`, base `main`, exact head branch above.
 - R1 functional commit: `9ff04a0a953c6a8676808447dbc2a8f594cba4c2`; tree
   `55491427e6d0ac950d9d1576377b31d870647ae3`.
