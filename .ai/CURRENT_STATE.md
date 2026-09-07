@@ -44,9 +44,9 @@
 - APO-63 R1 primary functional commit: `b4b6df215de98dfa14d40d718f1d55a6997ce272`; tree
   `f26b321c2a571a4aa77c75d606384aa43d144280`; parent
   `567d8e128c40082f9614da567c35c6af1395a08d`.
-- APO-63 R1 final branch head: `a67445b4dae1eac88edd7587cd39ff306a39018b`; tree
-  `e6472c579d6448ebfaa659afb53c083faf6f0947`; metadata handoff commits are separate from the
-  functional commit.
+- APO-63 R1 pre-current-state metadata handoff: `a67445b4dae1eac88edd7587cd39ff306a39018b`;
+  tree `e6472c579d6448ebfaa659afb53c083faf6f0947`; later metadata-only alignment is recorded
+  in the pushed branch and PR #33.
 - APO-63 Draft PR: `#33`, base `main`, head
   `feat/APO-63-controlled-remote-delivery`, `OPEN / DRAFT / UNMERGED`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
