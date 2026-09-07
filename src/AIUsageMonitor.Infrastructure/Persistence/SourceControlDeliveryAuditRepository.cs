@@ -1,0 +1,155 @@
+using AIUsageMonitor.Application.Delivery;
+
+namespace AIUsageMonitor.Infrastructure.Persistence;
+
+public sealed class SourceControlDeliveryAuditRecord
+{
+    public string RecordType { get; set; } = "source-control-delivery";
+    public int SchemaVersion { get; set; } = 1;
+    public Guid CommandId { get; set; }
+    public Guid ProjectId { get; set; }
+    public string OperationKind { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTimeOffset OccurredAt { get; set; }
+    public string WorkItemIdentity { get; set; } = string.Empty;
+    public string ContractReference { get; set; } = string.Empty;
+    public string RepositoryIdentity { get; set; } = string.Empty;
+    public string BaseRef { get; set; } = string.Empty;
+    public string BaseSha { get; set; } = string.Empty;
+    public string HeadRef { get; set; } = string.Empty;
+    public string ExpectedHeadSha { get; set; } = string.Empty;
+    public string ActorReference { get; set; } = string.Empty;
+    public string AuditIdentity { get; set; } = string.Empty;
+    public string EvidenceRevision { get; set; } = string.Empty;
+    public string RemoteEvidenceFingerprint { get; set; } = string.Empty;
+    public string? ActualHeadSha { get; set; }
+    public string? PullRequestId { get; set; }
+    public string? MergeCommitSha { get; set; }
+    public string? ErrorMessage { get; set; }
+    public bool MutationSent { get; set; }
+    public bool MayHaveModifiedRemote { get; set; }
+    public Guid EventId { get; set; }
+    public string EventKind { get; set; } = string.Empty;
+    public string? ValidationDecisionReference { get; set; }
+    public string? HumanApprovalReference { get; set; }
+    public string? PostEvidenceFingerprint { get; set; }
+    public string ContentHash { get; set; } = string.Empty;
+
+    public static SourceControlDeliveryAuditRecord FromApplication(SourceControlDeliveryAuditEvent value) => new()
+    {
+        CommandId = value.CommandId,
+        ProjectId = value.ProjectId,
+        OperationKind = value.OperationKind.ToString(),
+        Status = value.Status.ToString(),
+        OccurredAt = value.OccurredAt,
+        WorkItemIdentity = value.WorkItemIdentity,
+        ContractReference = value.ContractReference,
+        RepositoryIdentity = value.RepositoryIdentity,
+        BaseRef = value.BaseRef,
+        BaseSha = value.BaseSha,
+        HeadRef = value.HeadRef,
+        ExpectedHeadSha = value.ExpectedHeadSha,
+        ActorReference = value.ActorReference,
+        AuditIdentity = value.AuditIdentity,
+        EvidenceRevision = value.EvidenceRevision,
+        RemoteEvidenceFingerprint = value.RemoteEvidenceFingerprint,
+        ActualHeadSha = value.ActualHeadSha,
+        PullRequestId = value.PullRequestId,
+        MergeCommitSha = value.MergeCommitSha,
+        ErrorMessage = value.ErrorMessage,
+        MutationSent = value.MutationSent,
+        MayHaveModifiedRemote = value.MayHaveModifiedRemote
+        ,EventId = value.EventId,
+        EventKind = value.EventKind.ToString(),
+        ValidationDecisionReference = value.ValidationDecisionReference,
+        HumanApprovalReference = value.HumanApprovalReference,
+        PostEvidenceFingerprint = value.PostEvidenceFingerprint,
+        ContentHash = value.ContentHash
+    };
+
+    public bool TryToApplication(out SourceControlDeliveryAuditEvent? value)
+    {
+        value = null;
+        if (RecordType != "source-control-delivery" || SchemaVersion != 1 || EventId == Guid.Empty ||
+            !Enum.TryParse<SourceControlDeliveryOperationKind>(OperationKind, out var operation) ||
+            !Enum.TryParse<SourceControlDeliveryStatus>(Status, out var status) ||
+            CommandId == Guid.Empty || ProjectId == Guid.Empty || OccurredAt == default)
+            return false;
+        var candidate = new SourceControlDeliveryAuditEvent(
+            CommandId, ProjectId, operation, status, OccurredAt, WorkItemIdentity, ContractReference,
+            RepositoryIdentity, BaseRef, BaseSha, HeadRef, ExpectedHeadSha, ActorReference, AuditIdentity,
+            EvidenceRevision, RemoteEvidenceFingerprint, ActualHeadSha, PullRequestId, MergeCommitSha,
+            ErrorMessage, MutationSent, MayHaveModifiedRemote);
+        value = candidate with
+        {
+            EventId = EventId,
+            ValidationDecisionReference = ValidationDecisionReference,
+            HumanApprovalReference = HumanApprovalReference,
+            PostEvidenceFingerprint = PostEvidenceFingerprint
+        };
+        return string.Equals(value.ContentHash, ContentHash, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(EventKind, value.EventKind.ToString(), StringComparison.Ordinal);
+    }
+}
+
+public sealed class JsonSourceControlDeliveryAuditStore : ISourceControlDeliveryAuditStore
+{
+    private readonly ApplicationDataPaths _paths;
+    private readonly JsonlEventStore<SourceControlDeliveryAuditRecord> _events;
+
+    public JsonSourceControlDeliveryAuditStore(
+        ApplicationDataPaths paths,
+        JsonlEventStore<SourceControlDeliveryAuditRecord> events)
+    {
+        _paths = paths ?? throw new ArgumentNullException(nameof(paths));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
+    }
+
+    public async Task<SourceControlDeliveryAuditReadResult> FindAsync(Guid projectId, Guid commandId, CancellationToken cancellationToken = default)
+    {
+        if (projectId == Guid.Empty || commandId == Guid.Empty)
+            return new(SourceControlDeliveryAuditReadState.Corrupt, ErrorMessage: "Delivery audit identity is invalid.");
+        var history = await _events.ReadAllWithStatusAsync(
+            _paths.GetProjectDeliveryAuditDirectory(projectId),
+            static value => value.OccurredAt,
+            SourceControlDeliveryLimits.MaxAuditRecords,
+            cancellationToken).ConfigureAwait(false);
+        if (history.Status != Application.Orchestration.HistoryReadStatus.Success || history.Issues.Count > 0)
+            return new(SourceControlDeliveryAuditReadState.Corrupt, ErrorMessage: "Delivery audit history is incomplete or corrupt.");
+
+        SourceControlDeliveryAuditEvent? latest = null;
+        foreach (var record in history.Records)
+        {
+            if (!record.TryToApplication(out var mapped) || mapped is null || mapped.ProjectId != projectId)
+                return new(SourceControlDeliveryAuditReadState.Corrupt, ErrorMessage: "Delivery audit record failed integrity validation.");
+            if (mapped.CommandId == commandId && (latest is null || mapped.OccurredAt >= latest.OccurredAt)) latest = mapped;
+        }
+        return latest is null
+            ? new(SourceControlDeliveryAuditReadState.Missing)
+            : new(SourceControlDeliveryAuditReadState.Found, latest);
+    }
+
+    public async Task AppendAsync(SourceControlDeliveryAuditEvent value, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        if (value.ProjectId == Guid.Empty || value.CommandId == Guid.Empty)
+            throw new ArgumentException("Delivery audit identity is required.", nameof(value));
+        var history = await _events.ReadAllWithStatusAsync(
+            _paths.GetProjectDeliveryAuditDirectory(value.ProjectId),
+            static record => record.OccurredAt,
+            SourceControlDeliveryLimits.MaxAuditRecords,
+            cancellationToken).ConfigureAwait(false);
+        if (history.Status != Application.Orchestration.HistoryReadStatus.Success || history.Issues.Count > 0)
+            throw new InvalidOperationException("Delivery audit history is corrupt or unavailable; append was rejected.");
+        if (history.Records.Count >= SourceControlDeliveryLimits.MaxAuditRecords)
+            throw new InvalidOperationException("Delivery audit capacity has been exhausted.");
+        if (history.Records.Any(record => record.EventId == value.EventId))
+            throw new InvalidOperationException("Duplicate delivery audit event identity was rejected.");
+        await _paths.EnsureProjectDirectoriesAsync(value.ProjectId, cancellationToken).ConfigureAwait(false);
+        await _events.AppendAsync(
+            _paths.GetProjectDeliveryAuditDirectory(value.ProjectId),
+            value.OccurredAt,
+            SourceControlDeliveryAuditRecord.FromApplication(value),
+            cancellationToken).ConfigureAwait(false);
+    }
+}
