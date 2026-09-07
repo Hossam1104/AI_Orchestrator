@@ -1,5 +1,6 @@
 using AIUsageMonitor.Application.Alerts;
 using AIUsageMonitor.Application.Agents;
+using AIUsageMonitor.Application.Approvals;
 using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Providers;
@@ -19,6 +20,7 @@ using AIUsageMonitor.Application.Workspaces;
 using AIUsageMonitor.Infrastructure.Persistence;
 using AIUsageMonitor.Infrastructure.Persistence.Repositories;
 using AIUsageMonitor.Infrastructure.Security;
+using AIUsageMonitor.Infrastructure.Approvals;
 using AIUsageMonitor.Infrastructure.Execution;
 using AIUsageMonitor.Infrastructure.Git;
 using AIUsageMonitor.Infrastructure.Workspaces;
@@ -50,6 +52,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<JsonlEventStore<ReviewWorkflowEventRecord>>();
         services.AddSingleton<JsonlEventStore<ActivityAuditRecordFile>>();
         services.AddSingleton<JsonlEventStore<TrackerMutationAuditRecord>>();
+        services.AddSingleton<JsonlEventStore<HumanApprovalEventRecord>>();
 
         services.AddSingleton<IUsageSnapshotRepository, JsonUsageSnapshotRepository>();
         services.AddSingleton<IProviderRepository, JsonProviderRepository>();
@@ -126,6 +129,15 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IValidationEvidenceCollectorResolver, ValidationEvidenceCollectorResolver>();
         services.AddSingleton<IValidationEvidenceService, ValidationEvidenceService>();
         services.AddSingleton<IValidationGateService, ValidationGateService>();
+
+        // APO-49 is deliberately a local single-owner boundary. The configured identity is an
+        // opaque owner reference, never a credential or persisted secret. Only the verifier is
+        // exposed to the application graph; the concrete authority's trusted issuance seam is
+        // intentionally not registered as a general service.
+        services.AddSingleton<IHumanOwnerDecisionVerifier>(
+            new LocalSingleOwnerDecisionAuthority(Environment.UserName));
+        services.AddSingleton<IHumanApprovalStore, JsonHumanApprovalStore>();
+        services.AddSingleton<IHumanApprovalService, HumanApprovalService>();
 
         // Stateless native-call wrapper; singleton avoids re-allocating it per resolution while
         // matching the lifetime of every other adapter registered here.
