@@ -8,7 +8,7 @@ namespace AIUsageMonitor.Infrastructure.Git;
 /// The only Infrastructure seam allowed to mutate a managed repository for APO-63. Every Git
 /// invocation is an argument-list call; the service never constructs a shell command string.
 /// </summary>
-public sealed class LocalDeliveryGitService : ILocalDeliveryGitService
+public sealed class LocalDeliveryGitService : ILocalDeliveryGitService, ILocalDeliveryGitReconciliation
 {
     private readonly IGitCommandRunner _runner;
 
@@ -123,6 +123,40 @@ public sealed class LocalDeliveryGitService : ILocalDeliveryGitService
             : new(SourceControlDeliveryStatus.ReconciliationRequired, "The pushed remote head does not match the exact local head.", command.Target.HeadSha, true);
     }
 
+    public async Task<LocalDeliveryGitResult> ReconcileAsync(
+        SourceControlDeliveryCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (string.IsNullOrWhiteSpace(command.WorkspacePath))
+            return new(SourceControlDeliveryStatus.ReconciliationRequired, "The attempted local operation has no authoritative workspace.");
+
+        var workspace = NormalizeWorkspace(command.WorkspacePath);
+        var branch = await ReadAsync(workspace, ["symbolic-ref", "--quiet", "--short", "HEAD"], cancellationToken).ConfigureAwait(false);
+        var head = await ReadAsync(workspace, ["rev-parse", "--verify", "HEAD"], cancellationToken).ConfigureAwait(false);
+        if (!Succeeded(branch) || !Succeeded(head) || !string.Equals(branch.StandardOutput.Trim(), command.Target.HeadRef, StringComparison.Ordinal) ||
+            !string.Equals(head.StandardOutput.Trim(), command.Target.HeadSha, StringComparison.OrdinalIgnoreCase))
+            return new(SourceControlDeliveryStatus.ReconciliationRequired, "Read-only local evidence cannot prove the attempted local mutation was applied.", MutationSent: true);
+
+        if (command.OperationKind == SourceControlDeliveryOperationKind.CommitExactChanges)
+            return new(SourceControlDeliveryStatus.AlreadyApplied, NewHeadSha: command.Target.HeadSha, MutationSent: true);
+
+        var status = await ReadAsync(workspace, ["status", "--porcelain=v1", "-z", "--untracked-files=all"], cancellationToken).ConfigureAwait(false);
+        var remote = await ReadAsync(workspace, ["remote", "get-url", "origin"], cancellationToken).ConfigureAwait(false);
+        if (!Succeeded(status) || !string.IsNullOrEmpty(status.StandardOutput) || !Succeeded(remote) || !RemoteMatches(remote.StandardOutput.Trim(), command.Target.RepositoryUrl))
+            return new(SourceControlDeliveryStatus.ReconciliationRequired, "Read-only local evidence cannot prove the attempted push target.", MutationSent: true);
+        var remoteHead = await ReadAsync(workspace, ["ls-remote", "--heads", "origin", $"refs/heads/{command.Target.HeadRef}"], cancellationToken).ConfigureAwait(false);
+        if (!Succeeded(remoteHead))
+            return new(SourceControlDeliveryStatus.ReconciliationRequired, "The attempted push cannot be reconciled because remote-head evidence is unavailable.", MutationSent: true);
+        var remoteSha = remoteHead.StandardOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Split('\t', StringSplitOptions.RemoveEmptyEntries))
+            .Where(parts => parts.Length == 2 && string.Equals(parts[1], $"refs/heads/{command.Target.HeadRef}", StringComparison.Ordinal))
+            .Select(parts => parts[0]).FirstOrDefault();
+        return string.Equals(remoteSha, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase)
+            ? new(SourceControlDeliveryStatus.AlreadyApplied, NewHeadSha: command.Target.HeadSha, MutationSent: true)
+            : new(SourceControlDeliveryStatus.ReconciliationRequired, "Remote read-only evidence does not prove the attempted push was applied.", MutationSent: true);
+    }
+
     private Task<GitCommandResult> ReadAsync(string workspace, IReadOnlyList<string> arguments, CancellationToken cancellationToken) =>
         _runner.RunAsync(BuildArguments(workspace, arguments), GitCommandExecutionProfile.ReadOnly, cancellationToken);
 
@@ -163,7 +197,13 @@ public sealed class LocalDeliveryGitService : ILocalDeliveryGitService
             conflicted |= indexStatus == 'U' || worktreeStatus == 'U' || indexStatus == worktreeStatus && indexStatus is 'A' or 'D';
             var path = token[3..].Replace('\\', '/');
             paths.Add(path);
-            if (indexStatus is 'R' or 'C' || worktreeStatus is 'R' or 'C') index++;
+            if (indexStatus is 'R' or 'C' || worktreeStatus is 'R' or 'C')
+            {
+                if (index + 1 < tokens.Length && !string.IsNullOrWhiteSpace(tokens[index + 1]))
+                    paths.Add(tokens[++index].Replace('\\', '/'));
+                else
+                    conflicted = true;
+            }
         }
         return paths.Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray();
     }

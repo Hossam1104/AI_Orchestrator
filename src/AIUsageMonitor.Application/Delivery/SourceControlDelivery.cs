@@ -6,6 +6,7 @@ using AIUsageMonitor.Application.Planning;
 using AIUsageMonitor.Application.RemoteEvidence;
 using AIUsageMonitor.Application.Trackers;
 using AIUsageMonitor.Application.Validation;
+using AIUsageMonitor.Application.Workspaces;
 
 namespace AIUsageMonitor.Application.Delivery;
 
@@ -151,7 +152,7 @@ public sealed class SourceControlDeliveryEvidence
         Guid? humanApprovalRequestId = null,
         HumanApprovalEvidenceRevision? humanApprovalEvidenceRevision = null,
         string? currentPolicyReference = null,
-        string? executionRunAuthorityReference = null)
+        ExecutionRunAuthorityReference? executionRunAuthorityReference = null)
     {
         RemoteEvidenceFingerprint = Sha256(remoteEvidenceFingerprint, nameof(remoteEvidenceFingerprint));
         ExpectedHeadSha = Sha(expectedHeadSha, nameof(expectedHeadSha));
@@ -166,7 +167,7 @@ public sealed class SourceControlDeliveryEvidence
         HumanApprovalRequestId = humanApprovalRequestId;
         HumanApprovalEvidenceRevision = humanApprovalEvidenceRevision;
         CurrentPolicyReference = Optional(currentPolicyReference, nameof(currentPolicyReference), 200);
-        ExecutionRunAuthorityReference = Optional(executionRunAuthorityReference, nameof(executionRunAuthorityReference), 500);
+        ExecutionRunAuthorityReference = executionRunAuthorityReference;
     }
 
     public string RemoteEvidenceFingerprint { get; }
@@ -178,7 +179,7 @@ public sealed class SourceControlDeliveryEvidence
     public Guid? HumanApprovalRequestId { get; }
     public HumanApprovalEvidenceRevision? HumanApprovalEvidenceRevision { get; }
     public string? CurrentPolicyReference { get; }
-    public string? ExecutionRunAuthorityReference { get; }
+    public ExecutionRunAuthorityReference? ExecutionRunAuthorityReference { get; }
 
     private static string Sha(string value, string parameterName) =>
         string.IsNullOrWhiteSpace(value) || value.Trim().Length is < 7 or > 128 || !value.Trim().All(Uri.IsHexDigit)
@@ -221,7 +222,8 @@ public sealed class SourceControlDeliveryCommand
         TrackerSynchronizationRequest? trackerRequest = null,
         TrackerSynchronizationPlan? trackerPlan = null,
         TrackerSynchronizationOperation? trackerOperation = null,
-        TrackerMutationAuthority? trackerAuthority = null)
+        TrackerMutationAuthority? trackerAuthority = null,
+        WorkspacePreparationPlanReference? workspaceReference = null)
     {
         if (commandId == Guid.Empty || projectId == Guid.Empty) throw new ArgumentException("Command and project identities are required.");
         if (!Enum.IsDefined(operationKind)) throw new ArgumentException("Delivery operation is undefined.", nameof(operationKind));
@@ -248,6 +250,7 @@ public sealed class SourceControlDeliveryCommand
         TrackerPlan = trackerPlan;
         TrackerOperation = trackerOperation;
         TrackerAuthority = trackerAuthority;
+        WorkspaceReference = workspaceReference;
 
         if (operationKind is SourceControlDeliveryOperationKind.CommitExactChanges or SourceControlDeliveryOperationKind.PushExactHead && string.IsNullOrWhiteSpace(WorkspacePath))
             throw new ArgumentException("Local Git operations require a registered workspace path.", nameof(workspacePath));
@@ -293,12 +296,20 @@ public sealed class SourceControlDeliveryCommand
     public TrackerSynchronizationPlan? TrackerPlan { get; }
     public TrackerSynchronizationOperation? TrackerOperation { get; }
     public TrackerMutationAuthority? TrackerAuthority { get; }
+    public WorkspacePreparationPlanReference? WorkspaceReference { get; }
+    public string CommandContentHash => SourceControlDeliveryIntent.Compute(this);
 
     public SourceControlDeliveryCommand WithTarget(SourceControlDeliveryTarget target) => new(
         CommandId, ProjectId, WorkItemIdentity, ContractReference, OperationKind, target, ActorReference,
         EvidenceRevision, AuditIdentity, Evidence, CredentialReference, WorkspacePath, ExpectedParentHeadSha,
         AllowedChangedPaths, CommitMessage, PullRequestTitle, PullRequestBody, DeliveryComment, Reviewers,
-        TrackerRequest, TrackerPlan, TrackerOperation, TrackerAuthority);
+        TrackerRequest, TrackerPlan, TrackerOperation, TrackerAuthority, WorkspaceReference);
+
+    public SourceControlDeliveryCommand WithWorkspacePath(string workspacePath) => new(
+        CommandId, ProjectId, WorkItemIdentity, ContractReference, OperationKind, Target, ActorReference,
+        EvidenceRevision, AuditIdentity, Evidence, CredentialReference, workspacePath, ExpectedParentHeadSha,
+        AllowedChangedPaths, CommitMessage, PullRequestTitle, PullRequestBody, DeliveryComment, Reviewers,
+        TrackerRequest, TrackerPlan, TrackerOperation, TrackerAuthority, WorkspaceReference);
 
     private static string Required(string value, string parameterName, int max) =>
         string.IsNullOrWhiteSpace(value) || value.Trim().Length > max || value.Any(char.IsControl)
@@ -339,6 +350,61 @@ public sealed class SourceControlDeliveryCommand
     }
 }
 
+internal static class SourceControlDeliveryIntent
+{
+    public static string Compute(SourceControlDeliveryCommand command)
+    {
+        var payload = string.Join("\u001f", [
+            command.ProjectId.ToString("D"),
+            command.WorkItemIdentity,
+            command.ContractReference.ToString(),
+            command.OperationKind.ToString(),
+            command.Target.Provider.ToString(),
+            command.Target.RepositoryUrl,
+            command.Target.ProviderRepositoryId,
+            command.Target.CanonicalRepositoryIdentity,
+            command.Target.BaseRef,
+            command.Target.BaseSha,
+            command.Target.HeadRef,
+            command.Target.HeadSha,
+            command.Target.PullRequestId ?? string.Empty,
+            command.Evidence.ExecutionRunAuthorityReference?.ToString() ?? string.Empty,
+            command.Evidence.ValidationDecisionReference?.ToString() ?? string.Empty,
+            command.Evidence.ReviewRootId?.ToString("D") ?? string.Empty,
+            command.Evidence.CurrentReviewId?.ToString("D") ?? string.Empty,
+            command.Evidence.HumanApprovalRequestId?.ToString("D") ?? string.Empty,
+            command.Evidence.HumanApprovalEvidenceRevision?.ContentHash ?? string.Empty,
+            command.Evidence.CurrentPolicyReference ?? string.Empty,
+            command.EvidenceRevision,
+            command.AuditIdentity,
+            command.WorkspaceReference is null ? string.Empty : $"{command.WorkspaceReference.ProjectId:D}/{command.WorkspaceReference.PlanId:D}/{command.WorkspaceReference.SchemaVersion}/{command.WorkspaceReference.ContentHash}",
+            command.ExpectedParentHeadSha ?? string.Empty,
+            string.Join("\u001e", command.AllowedChangedPaths),
+            command.CommitMessage ?? string.Empty,
+            command.PullRequestTitle ?? string.Empty,
+            command.PullRequestBody ?? string.Empty,
+            command.DeliveryComment ?? string.Empty,
+            string.Join("\u001e", command.Reviewers),
+            TrackerPlanIdentity(command.TrackerPlan),
+            TrackerOperationIdentity(command.TrackerOperation),
+            command.TrackerAuthority?.ContentHash ?? string.Empty,
+            command.TrackerRequest?.ProjectId.ToString("D") ?? string.Empty
+        ]);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
+    }
+
+    public static string TrackerPlanIdentity(TrackerSynchronizationPlan? plan) => plan is null
+        ? string.Empty
+        : string.Join("\u001e", plan.ProjectId, plan.EvidenceState, plan.EvidenceFingerprint ?? string.Empty,
+            string.Join("\u001f", plan.Operations.Select(TrackerOperationIdentity)),
+            string.Join("\u001f", plan.Conflicts), string.Join("\u001f", plan.UnsupportedChanges), string.Join("\u001f", plan.Blockers));
+
+    public static string TrackerOperationIdentity(TrackerSynchronizationOperation? operation) => operation is null
+        ? string.Empty
+        : string.Join("\u001e", operation.Kind, operation.Target.CanonicalIdentity, operation.ExpectedStateIdentity,
+            operation.CommentBody ?? string.Empty, operation.StatusId ?? string.Empty);
+}
+
 public sealed class SourceControlRemoteEvidence
 {
     public SourceControlRemoteEvidence(
@@ -369,7 +435,11 @@ public sealed class SourceControlRemoteEvidence
         PullRequest?.State,
         PullRequest?.IsDraft,
         PullRequest?.HeadCommitId,
-        PullRequest?.BaseCommitId)))).ToLowerInvariant();
+        PullRequest?.BaseCommitId,
+        PullRequest?.Title,
+        PullRequest?.Body,
+        PullRequest?.MergeCommitId,
+        PullRequest?.ProviderNodeId)))).ToLowerInvariant();
 }
 
 public sealed record SourceControlRemoteMutationResult(
@@ -396,10 +466,22 @@ public interface IRemoteSourceControlDeliveryAdapter
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>Optional read-only operation-specific reconciliation implemented by trusted adapters.</summary>
+public interface IRemoteSourceControlDeliveryReconciliation
+{
+    Task<SourceControlRemoteMutationResult> ReconcileAsync(SourceControlDeliveryCommand command, CancellationToken cancellationToken = default);
+}
+
 public interface ILocalDeliveryGitService
 {
     Task<LocalDeliveryGitResult> CommitExactChangesAsync(SourceControlDeliveryCommand command, CancellationToken cancellationToken = default);
     Task<LocalDeliveryGitResult> PushExactHeadAsync(SourceControlDeliveryCommand command, CancellationToken cancellationToken = default);
+}
+
+/// <summary>Read-only recovery seam for an already-attempted local delivery.</summary>
+public interface ILocalDeliveryGitReconciliation
+{
+    Task<LocalDeliveryGitResult> ReconcileAsync(SourceControlDeliveryCommand command, CancellationToken cancellationToken = default);
 }
 
 public sealed record LocalDeliveryGitResult(
@@ -433,16 +515,23 @@ public sealed record SourceControlDeliveryAuditEvent(
     string? MergeCommitSha = null,
     string? ErrorMessage = null,
     bool MutationSent = false,
-    bool MayHaveModifiedRemote = false)
+    bool MayHaveModifiedRemote = false,
+    string? CommandContentHash = null,
+    bool RemoteDeliveryVerified = false,
+    string? TrackerPlanIdentity = null,
+    string? TrackerOperationIdentity = null,
+    string? TrackerAuthorityContentHash = null,
+    TrackerMutationOutcome? TrackerOutcome = null)
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
-    public SourceControlDeliveryAuditEventKind EventKind => Status switch
+    public SourceControlDeliveryAuditEventKind? EventKindOverride { get; init; }
+    public SourceControlDeliveryAuditEventKind EventKind => EventKindOverride ?? (Status switch
     {
         SourceControlDeliveryStatus.Verified or SourceControlDeliveryStatus.AlreadyApplied => SourceControlDeliveryAuditEventKind.Succeeded,
         SourceControlDeliveryStatus.ReconciliationRequired => SourceControlDeliveryAuditEventKind.ReconciliationRequired,
         SourceControlDeliveryStatus.Failed or SourceControlDeliveryStatus.Unsupported => SourceControlDeliveryAuditEventKind.VerificationFailed,
         _ => SourceControlDeliveryAuditEventKind.Rejected
-    };
+    });
     public string? ValidationDecisionReference { get; init; }
     public string? HumanApprovalReference { get; init; }
     public string? PostEvidenceFingerprint { get; init; }
@@ -453,8 +542,9 @@ public sealed record SourceControlDeliveryAuditEvent(
         var payload = string.Join("\u001f", EventId, CommandId, ProjectId, OperationKind, Status, OccurredAt.ToUniversalTime().ToString("O"),
             WorkItemIdentity, ContractReference, RepositoryIdentity, BaseRef, BaseSha, HeadRef, ExpectedHeadSha,
             ActorReference, AuditIdentity, EvidenceRevision, RemoteEvidenceFingerprint, ActualHeadSha, PullRequestId,
-            MergeCommitSha, ErrorMessage, MutationSent, MayHaveModifiedRemote, ValidationDecisionReference,
-            HumanApprovalReference, PostEvidenceFingerprint);
+            MergeCommitSha, ErrorMessage, MutationSent, MayHaveModifiedRemote, CommandContentHash,
+            RemoteDeliveryVerified, TrackerPlanIdentity, TrackerOperationIdentity, TrackerAuthorityContentHash,
+            TrackerOutcome, EventKindOverride, ValidationDecisionReference, HumanApprovalReference, PostEvidenceFingerprint);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
     }
 }
@@ -484,7 +574,8 @@ public sealed record SourceControlDeliveryResult(
     bool MutationSent = false,
     bool MayHaveModifiedRemote = false,
     SourceControlRemoteEvidence? Evidence = null,
-    TrackerMutationResult? TrackerSynchronization = null)
+    TrackerMutationResult? TrackerSynchronization = null,
+    bool RemoteDeliveryVerified = false)
 {
     public bool Succeeded => Status is SourceControlDeliveryStatus.Verified or SourceControlDeliveryStatus.AlreadyApplied;
 }
@@ -499,6 +590,12 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
     private readonly ILocalDeliveryGitService _localGit;
     private readonly ISourceControlDeliveryAuditStore _audit;
     private readonly ITrackerSynchronizationService? _tracker;
+    private readonly IWorkspacePreparationPlanRepository? _workspacePlans;
+    private readonly IWorkspacePreparationReceiptRepository? _workspaceReceipts;
+    private readonly IWorkspacePreparationApprovalEvidenceRepository? _workspaceApprovalEvidence;
+    private readonly IWorkspaceRepository? _workspaceRepositories;
+    private readonly IWorkspacePreparedWorkspaceVerifier? _workspaceVerifier;
+    private readonly ILocalDeliveryGitReconciliation? _localReconciliation;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public SourceControlDeliveryService(
@@ -509,7 +606,12 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
         IEnumerable<IRemoteSourceControlDeliveryAdapter> adapters,
         ILocalDeliveryGitService localGit,
         ISourceControlDeliveryAuditStore audit,
-        ITrackerSynchronizationService? tracker = null)
+        ITrackerSynchronizationService? tracker = null,
+        IWorkspacePreparationPlanRepository? workspacePlans = null,
+        IWorkspacePreparationReceiptRepository? workspaceReceipts = null,
+        IWorkspacePreparationApprovalEvidenceRepository? workspaceApprovalEvidence = null,
+        IWorkspaceRepository? workspaceRepositories = null,
+        IWorkspacePreparedWorkspaceVerifier? workspaceVerifier = null)
     {
         _contracts = contracts ?? throw new ArgumentNullException(nameof(contracts));
         _validationDecisions = validationDecisions ?? throw new ArgumentNullException(nameof(validationDecisions));
@@ -519,6 +621,12 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
         _localGit = localGit ?? throw new ArgumentNullException(nameof(localGit));
         _audit = audit ?? throw new ArgumentNullException(nameof(audit));
         _tracker = tracker;
+        _workspacePlans = workspacePlans;
+        _workspaceReceipts = workspaceReceipts;
+        _workspaceApprovalEvidence = workspaceApprovalEvidence;
+        _workspaceRepositories = workspaceRepositories;
+        _workspaceVerifier = workspaceVerifier;
+        _localReconciliation = localGit as ILocalDeliveryGitReconciliation;
     }
 
     public async Task<SourceControlDeliveryResult> ExecuteAsync(SourceControlDeliveryCommand command, CancellationToken cancellationToken = default)
@@ -536,7 +644,8 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
                     return new(SourceControlDeliveryStatus.InvalidAuthority, "The command identity conflicts with existing delivery audit evidence.");
                 if (previous.Event.Status is SourceControlDeliveryStatus.Verified or SourceControlDeliveryStatus.AlreadyApplied)
                     return FromAudit(previous.Event, SourceControlDeliveryStatus.AlreadyApplied);
-                if (previous.Event.Status == SourceControlDeliveryStatus.ReconciliationRequired)
+                if (previous.Event.EventKind is SourceControlDeliveryAuditEventKind.Attempted or SourceControlDeliveryAuditEventKind.ReconciliationRequired ||
+                    previous.Event.Status == SourceControlDeliveryStatus.ReconciliationRequired)
                     return await ReconcileAsync(command, previous.Event, cancellationToken).ConfigureAwait(false);
             }
 
@@ -544,7 +653,19 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
             if (!contract.IsValid || contract.Contract is null || !Same(command.ContractReference, contract.Contract.Reference) || contract.Contract.ProjectId != command.ProjectId)
                 return await RecordAsync(command, new(SourceControlDeliveryStatus.InvalidAuthority, "The planning/execution contract is missing, stale, or mismatched."), cancellationToken).ConfigureAwait(false);
 
+            if (command.OperationKind is SourceControlDeliveryOperationKind.CommitExactChanges or SourceControlDeliveryOperationKind.PushExactHead)
+            {
+                var workspace = await ResolveManagedWorkspaceAsync(command, cancellationToken).ConfigureAwait(false);
+                if (workspace.Failure is not null)
+                    return await RecordAsync(command, workspace.Failure, cancellationToken).ConfigureAwait(false);
+                command = workspace.Command!;
+            }
+
             SourceControlDeliveryResult result;
+            var attempted = await AppendAttemptedAsync(command, cancellationToken).ConfigureAwait(false);
+            if (!attempted)
+                return new(SourceControlDeliveryStatus.InvalidAuthority, "The durable delivery Attempted record could not be persisted; no mutation was sent.");
+
             if (command.OperationKind == SourceControlDeliveryOperationKind.CommitExactChanges)
             {
                 var local = await _localGit.CommitExactChangesAsync(command, cancellationToken).ConfigureAwait(false);
@@ -598,14 +719,15 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
                 var remote = await adapter.MutateAsync(command, evidence, cancellationToken).ConfigureAwait(false);
                 result = new(remote.Status, remote.ErrorMessage, PullRequestId: remote.PullRequestId ?? command.Target.PullRequestId,
                     MergeCommitSha: remote.MergeCommitSha, MutationSent: remote.MutationSent,
-                    MayHaveModifiedRemote: remote.MayHaveModifiedRemote, Evidence: remote.Evidence);
+                    MayHaveModifiedRemote: remote.MayHaveModifiedRemote, Evidence: remote.Evidence,
+                    RemoteDeliveryVerified: remote.Status is SourceControlDeliveryStatus.Verified or SourceControlDeliveryStatus.AlreadyApplied);
                 if (remote.Status == SourceControlDeliveryStatus.ReconciliationRequired)
                     return await RecordAsync(command, result, cancellationToken).ConfigureAwait(false);
                 if (remote.Succeeded && remote.Evidence is null)
                 {
                     var verified = await adapter.ReadAsync(command, cancellationToken).ConfigureAwait(false);
                     var verificationFailure = VerifyPostState(command, verified);
-                    result = verificationFailure ?? result with { Evidence = verified };
+                    result = verificationFailure ?? result with { Evidence = verified, RemoteDeliveryVerified = true };
                 }
             }
 
@@ -628,13 +750,58 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
 
     private async Task<SourceControlDeliveryResult> ReconcileAsync(SourceControlDeliveryCommand command, SourceControlDeliveryAuditEvent previous, CancellationToken cancellationToken)
     {
+        if (command.OperationKind is SourceControlDeliveryOperationKind.CommitExactChanges or SourceControlDeliveryOperationKind.PushExactHead)
+        {
+            var workspace = await ResolveManagedWorkspaceAsync(command, cancellationToken).ConfigureAwait(false);
+            if (workspace.Failure is not null)
+                return await RecordAsync(command, workspace.Failure, cancellationToken).ConfigureAwait(false);
+            if (_localReconciliation is null)
+                return new(SourceControlDeliveryStatus.ReconciliationRequired, "The attempted local mutation has no read-only reconciliation implementation.");
+            var local = await _localReconciliation.ReconcileAsync(workspace.Command!, cancellationToken).ConfigureAwait(false);
+            var localResult = new SourceControlDeliveryResult(local.Status, local.ErrorMessage, local.NewHeadSha, MutationSent: previous.MutationSent || previous.EventKind == SourceControlDeliveryAuditEventKind.Attempted);
+            return await RecordAsync(workspace.Command!, localResult, cancellationToken).ConfigureAwait(false);
+        }
+
         if (!_adapters.TryGetValue(command.Target.Provider, out var adapter))
             return new(SourceControlDeliveryStatus.ReconciliationRequired, "The ambiguous operation cannot be reconciled without its provider adapter.");
+        if (adapter is IRemoteSourceControlDeliveryReconciliation reconciler)
+        {
+            var reconciled = await reconciler.ReconcileAsync(command, cancellationToken).ConfigureAwait(false);
+            var reconciledResult = new SourceControlDeliveryResult(
+                reconciled.Status, reconciled.ErrorMessage, PullRequestId: reconciled.PullRequestId ?? command.Target.PullRequestId,
+                MergeCommitSha: reconciled.MergeCommitSha, MutationSent: true,
+                MayHaveModifiedRemote: reconciled.MayHaveModifiedRemote, Evidence: reconciled.Evidence,
+                RemoteDeliveryVerified: reconciled.Succeeded);
+            if (previous.RemoteDeliveryVerified && command.OperationKind == SourceControlDeliveryOperationKind.MergePullRequest)
+                reconciledResult = reconciledResult with { RemoteDeliveryVerified = reconciledResult.Succeeded };
+            if (reconciledResult.Succeeded && command.OperationKind == SourceControlDeliveryOperationKind.MergePullRequest &&
+                _tracker is not null && command.TrackerPlan is not null && command.TrackerOperation is not null && command.TrackerAuthority is not null)
+            {
+                if (!TrackerAuthorityMatches(previous, command))
+                    return new(SourceControlDeliveryStatus.InvalidAuthority, "Tracker synchronization authority conflicts with the attempted command.");
+                var sync = await _tracker.ExecuteAsync(command.TrackerPlan, command.TrackerOperation, command.TrackerAuthority, cancellationToken).ConfigureAwait(false);
+                reconciledResult = reconciledResult with { TrackerSynchronization = sync };
+                if (sync.Outcome != TrackerMutationOutcome.Succeeded)
+                    reconciledResult = reconciledResult with { Status = SourceControlDeliveryStatus.ReconciliationRequired, ErrorMessage = "Remote delivery is verified but tracker synchronization remains unresolved." };
+            }
+            return await RecordAsync(command, reconciledResult, cancellationToken).ConfigureAwait(false);
+        }
         var evidence = await adapter.ReadAsync(command, cancellationToken).ConfigureAwait(false);
-        var postState = VerifyPostState(command, evidence);
+        var postState = VerifyPostState(command, evidence, previous.MergeCommitSha);
         var result = postState ?? new(SourceControlDeliveryStatus.ReconciliationRequired, "Remote evidence cannot determine whether the previous mutation was applied.", MutationSent: true, MayHaveModifiedRemote: true, Evidence: evidence);
         if (postState is not null && postState.Succeeded)
-            result = result with { Status = SourceControlDeliveryStatus.AlreadyApplied, Evidence = evidence, MutationSent = true, MayHaveModifiedRemote = true };
+            result = result with { Status = SourceControlDeliveryStatus.AlreadyApplied, Evidence = evidence, MutationSent = true, MayHaveModifiedRemote = true, RemoteDeliveryVerified = true };
+
+        if (previous.RemoteDeliveryVerified && command.OperationKind == SourceControlDeliveryOperationKind.MergePullRequest &&
+            result.RemoteDeliveryVerified && _tracker is not null && command.TrackerPlan is not null && command.TrackerOperation is not null && command.TrackerAuthority is not null)
+        {
+            if (!TrackerAuthorityMatches(previous, command))
+                return new(SourceControlDeliveryStatus.InvalidAuthority, "Tracker synchronization authority conflicts with the attempted command.");
+            var sync = await _tracker.ExecuteAsync(command.TrackerPlan, command.TrackerOperation, command.TrackerAuthority, cancellationToken).ConfigureAwait(false);
+            result = result with { TrackerSynchronization = sync };
+            if (sync.Outcome != TrackerMutationOutcome.Succeeded)
+                result = result with { Status = SourceControlDeliveryStatus.ReconciliationRequired, ErrorMessage = "Remote delivery is verified but tracker synchronization remains unresolved." };
+        }
         return await RecordAsync(command, result, cancellationToken).ConfigureAwait(false);
     }
 
@@ -645,7 +812,12 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
             command.WorkItemIdentity, command.ContractReference.ToString(), command.Target.CanonicalRepositoryIdentity,
             command.Target.BaseRef, command.Target.BaseSha, command.Target.HeadRef, command.Target.HeadSha,
             command.ActorReference, command.AuditIdentity, command.EvidenceRevision, result.Evidence?.Fingerprint ?? command.Evidence.RemoteEvidenceFingerprint,
-            result.NewHeadSha, result.PullRequestId, result.MergeCommitSha, result.ErrorMessage, result.MutationSent, result.MayHaveModifiedRemote)
+            result.NewHeadSha, result.PullRequestId, result.MergeCommitSha, result.ErrorMessage, result.MutationSent, result.MayHaveModifiedRemote,
+            command.CommandContentHash, result.RemoteDeliveryVerified,
+            SourceControlDeliveryIntent.TrackerPlanIdentity(command.TrackerPlan),
+            SourceControlDeliveryIntent.TrackerOperationIdentity(command.TrackerOperation),
+            command.TrackerAuthority?.ContentHash,
+            result.TrackerSynchronization?.Outcome)
         {
             ValidationDecisionReference = command.Evidence.ValidationDecisionReference?.ToString(),
             HumanApprovalReference = command.Evidence.HumanApprovalRequestId?.ToString("D"),
@@ -654,6 +826,100 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
         return result;
     }
 
+    private async Task<bool> AppendAttemptedAsync(SourceControlDeliveryCommand command, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _audit.AppendAsync(new SourceControlDeliveryAuditEvent(
+                command.CommandId, command.ProjectId, command.OperationKind, SourceControlDeliveryStatus.ReconciliationRequired,
+                DateTimeOffset.UtcNow, command.WorkItemIdentity, command.ContractReference.ToString(),
+                command.Target.CanonicalRepositoryIdentity, command.Target.BaseRef, command.Target.BaseSha,
+                command.Target.HeadRef, command.Target.HeadSha, command.ActorReference, command.AuditIdentity,
+                command.EvidenceRevision, command.Evidence.RemoteEvidenceFingerprint,
+                PullRequestId: command.Target.PullRequestId, MutationSent: false)
+            {
+                CommandContentHash = command.CommandContentHash,
+                EventKindOverride = SourceControlDeliveryAuditEventKind.Attempted,
+                ValidationDecisionReference = command.Evidence.ValidationDecisionReference?.ToString(),
+                HumanApprovalReference = command.Evidence.HumanApprovalRequestId?.ToString("D")
+            }, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private async Task<(SourceControlDeliveryCommand? Command, SourceControlDeliveryResult? Failure)> ResolveManagedWorkspaceAsync(
+        SourceControlDeliveryCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (command.WorkspaceReference is null || command.WorkspaceReference.ProjectId != command.ProjectId ||
+            _workspacePlans is null || _workspaceReceipts is null || _workspaceApprovalEvidence is null ||
+            _workspaceRepositories is null || _workspaceVerifier is null)
+            return (null, new(SourceControlDeliveryStatus.InvalidAuthority, "Local delivery requires an authoritative managed-workspace reference and receipt repositories."));
+
+        var planRead = await _workspacePlans.GetAsync(command.ProjectId, command.WorkspaceReference.PlanId, cancellationToken).ConfigureAwait(false);
+        if (planRead.State != WorkspacePreparationPlanReadState.Valid || planRead.Plan is null ||
+            !WorkspacePreparationPlanningService.SameContract(planRead.Plan.ContractReference, command.ContractReference) ||
+            planRead.Plan.Reference.PlanId != command.WorkspaceReference.PlanId ||
+            planRead.Plan.Reference.SchemaVersion != command.WorkspaceReference.SchemaVersion ||
+            !string.Equals(planRead.Plan.ContentHash, command.WorkspaceReference.ContentHash, StringComparison.OrdinalIgnoreCase))
+            return (null, new(SourceControlDeliveryStatus.InvalidAuthority, "The managed workspace plan is missing, stale, or mismatched."));
+
+        var receiptRead = await _workspaceReceipts.GetAsync(command.ProjectId, planRead.Plan.WorkspaceId, cancellationToken).ConfigureAwait(false);
+        if (receiptRead.State != WorkspacePreparationReceiptReadState.Valid || receiptRead.Receipt is null)
+            return (null, new(SourceControlDeliveryStatus.InvalidAuthority, "The managed workspace receipt is missing or cannot be trusted."));
+        var receipt = receiptRead.Receipt;
+        if (command.WorkspacePath is null || !WorkspaceRepositoryIdentity.AreEqual(command.WorkspacePath, receipt.WorkspacePath) ||
+            HasReparsePoint(command.WorkspacePath) || HasReparsePoint(receipt.WorkspacePath))
+            return (null, new(SourceControlDeliveryStatus.InvalidAuthority, "The caller workspace path is not the exact authoritative managed workspace."));
+
+        if (receipt.ApprovalReference is null)
+            return (null, new(SourceControlDeliveryStatus.InvalidAuthority, "The managed workspace receipt has no durable approval evidence."));
+        var approvalRead = await _workspaceApprovalEvidence.GetAsync(command.ProjectId, receipt.WorkspaceId, receipt.ApprovalReference.ApprovalId, cancellationToken).ConfigureAwait(false);
+        if (!approvalRead.IsValid || approvalRead.Evidence is null)
+            return (null, new(SourceControlDeliveryStatus.InvalidAuthority, "The managed workspace approval evidence is missing or invalid."));
+        var discovery = await _workspaceRepositories.DiscoverAsync(planRead.Plan.Repository.RegisteredPath, cancellationToken).ConfigureAwait(false);
+        if (!WorkspacePreparationPlanningService.ReceiptMatchesExactPlan(planRead.Plan, receipt, approvalRead.Evidence, receipt.WorkspacePath, discovery, out var associationError))
+            return (null, new(SourceControlDeliveryStatus.InvalidAuthority, associationError ?? "The managed workspace receipt no longer matches its authoritative plan."));
+        var prepared = await _workspaceVerifier.VerifyPreparedWorkspaceAsync(receipt.WorkspacePath, cancellationToken).ConfigureAwait(false);
+        if (!prepared.Succeeded || !WorkspaceRepositoryIdentity.AreEqual(prepared.WorkspacePath, receipt.WorkspacePath) ||
+            prepared.CommonDirectory is null || !WorkspaceRepositoryIdentity.AreEqual(prepared.CommonDirectory, receipt.RepositoryIdentity) ||
+            !string.Equals(prepared.BranchName, receipt.WorkspaceBranch, StringComparison.Ordinal) || prepared.IsDetached)
+            return (null, new(SourceControlDeliveryStatus.InvalidAuthority, "The managed workspace safety receipt is stale or the workspace identity changed."));
+
+        return (command.WithWorkspacePath(receipt.WorkspacePath), null);
+    }
+
+    private static bool HasReparsePoint(string path)
+    {
+        try
+        {
+            var current = new DirectoryInfo(Path.GetFullPath(path));
+            while (current is not null)
+            {
+                if ((current.Attributes & FileAttributes.ReparsePoint) != 0) return true;
+                if (current.Parent is null || string.Equals(current.FullName, current.Root.FullName, StringComparison.OrdinalIgnoreCase)) break;
+                current = current.Parent;
+            }
+        }
+        catch (IOException) { return true; }
+        catch (UnauthorizedAccessException) { return true; }
+        catch (ArgumentException) { return true; }
+        return false;
+    }
+
+    private static bool TrackerAuthorityMatches(SourceControlDeliveryAuditEvent previous, SourceControlDeliveryCommand command) =>
+        string.Equals(previous.TrackerPlanIdentity, SourceControlDeliveryIntent.TrackerPlanIdentity(command.TrackerPlan), StringComparison.Ordinal) &&
+        string.Equals(previous.TrackerOperationIdentity, SourceControlDeliveryIntent.TrackerOperationIdentity(command.TrackerOperation), StringComparison.Ordinal) &&
+        string.Equals(previous.TrackerAuthorityContentHash, command.TrackerAuthority?.ContentHash, StringComparison.OrdinalIgnoreCase);
+
     private async Task<SourceControlDeliveryResult?> ValidateHighRiskGatesAsync(SourceControlDeliveryCommand command, SourceControlRemoteEvidence evidence, CancellationToken cancellationToken)
     {
         var validationReference = command.Evidence.ValidationDecisionReference!;
@@ -661,12 +927,18 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
         if (!validation.IsValid || validation.Decision is null || validation.Decision.ProjectId != command.ProjectId ||
             validation.Decision.State != ValidationGateDecisionState.Satisfied ||
             validation.Decision.Reference.SchemaVersion != validationReference.SchemaVersion ||
-            !string.Equals(validation.Decision.Reference.ContentHash, validationReference.ContentHash, StringComparison.OrdinalIgnoreCase))
+            !string.Equals(validation.Decision.Reference.ContentHash, validationReference.ContentHash, StringComparison.OrdinalIgnoreCase) ||
+            command.Evidence.ExecutionRunAuthorityReference is null ||
+            !Same(validation.Decision.ExecutionRunAuthorityReference, command.Evidence.ExecutionRunAuthorityReference))
             return new(SourceControlDeliveryStatus.Blocked, "Current exact validation evidence is not satisfied.", Evidence: evidence);
 
         var review = await _reviews.ReadCaseAsync(command.ProjectId, command.Evidence.ReviewRootId!.Value, cancellationToken).ConfigureAwait(false);
         if (!review.IsUsable || review.InboxItem is null || review.InboxItem.CurrentReviewId != command.Evidence.CurrentReviewId ||
-            review.InboxItem.WorkflowState != ReviewWorkflowState.ReadyForAcceptanceAuthority || review.InboxItem.OwnerAttentionRequired)
+            review.InboxItem.WorkflowState != ReviewWorkflowState.ReadyForAcceptanceAuthority || review.InboxItem.OwnerAttentionRequired ||
+            review.InboxItem.LatestValidationReference is null || !Same(review.InboxItem.LatestValidationReference, validationReference) ||
+            !review.Events.Any(value => value.Kind == ReviewWorkflowEventKind.RevalidationRecorded &&
+                value.CurrentReviewId == command.Evidence.CurrentReviewId && value.ValidationState == ValidationGateDecisionState.Satisfied &&
+                value.ValidationDecisionReference is not null && Same(value.ValidationDecisionReference, validationReference)))
             return new(SourceControlDeliveryStatus.Blocked, "The current review workflow is not ready for acceptance authority.", Evidence: evidence);
 
         var target = HumanApprovalTarget.ProtectedBranchMerge(
@@ -675,12 +947,18 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
         var approvalContext = new HumanApprovalEvaluationContext(
             command.ProjectId, command.ContractReference, target, command.Evidence.HumanApprovalEvidenceRevision!, command.Evidence.CurrentPolicyReference!);
         var approval = await _approvals.EvaluateAsync(approvalContext, command.Evidence.HumanApprovalRequestId!.Value, cancellationToken).ConfigureAwait(false);
-        if (!approval.CanProceed || approval.SatisfyingReference is null || approval.EffectiveState is not (HumanApprovalState.Approved or HumanApprovalState.Waived))
+        if (!approval.CanProceed || approval.SatisfyingReference is null || approval.EffectiveState is not (HumanApprovalState.Approved or HumanApprovalState.Waived) ||
+            approval.Request is null || approval.Request.ProjectId != command.ProjectId ||
+            !Same(approval.Request.ContractReference, command.ContractReference) ||
+            !string.Equals(approval.Request.Target.ContentHash, target.ContentHash, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(approval.Request.EvidenceRevision.ContentHash, command.Evidence.HumanApprovalEvidenceRevision!.ContentHash, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(approval.Request.PolicyReference, command.Evidence.CurrentPolicyReference, StringComparison.Ordinal) ||
+            approval.SatisfyingReference.EventKind is not (HumanApprovalEventKind.Approved or HumanApprovalEventKind.Waived))
             return new(SourceControlDeliveryStatus.Blocked, "Current exact owner approval or waiver is not satisfied.", Evidence: evidence);
         if (evidence.PullRequest?.Mergeability != RemoteMergeability.Available)
             return new(SourceControlDeliveryStatus.Blocked, "Remote mergeability is not currently available.", Evidence: evidence);
-        if (evidence.RepositoryEvidence.CiRuns.Count > 0 && evidence.RepositoryEvidence.CiResult is not RemoteCiState.Passing)
-            return new(SourceControlDeliveryStatus.Blocked, "Remote CI evidence is not passing.", Evidence: evidence);
+        if (HasBlockingCiEvidence(evidence.RepositoryEvidence, out var ciReason))
+            return new(SourceControlDeliveryStatus.Blocked, ciReason, Evidence: evidence);
         return null;
     }
 
@@ -719,17 +997,29 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
         return null;
     }
 
-    private static SourceControlDeliveryResult? VerifyPostState(SourceControlDeliveryCommand command, SourceControlRemoteEvidence evidence)
+    private static SourceControlDeliveryResult? VerifyPostState(SourceControlDeliveryCommand command, SourceControlRemoteEvidence evidence, string? expectedMergeCommitSha = null)
     {
         if (command.OperationKind == SourceControlDeliveryOperationKind.MergePullRequest)
         {
             var pr = evidence.PullRequest;
-            return pr is not null && pr.Id == command.Target.PullRequestId && pr.State.Equals("merged", StringComparison.OrdinalIgnoreCase)
-                ? new(SourceControlDeliveryStatus.Verified, PullRequestId: pr.Id, Evidence: evidence)
+            var mergeProof = pr?.MergeCommitId;
+            return pr is not null && pr.Id == command.Target.PullRequestId &&
+                string.Equals(pr.SourceBranch, command.Target.HeadRef, StringComparison.Ordinal) &&
+                string.Equals(pr.TargetBranch, command.Target.BaseRef, StringComparison.Ordinal) &&
+                string.Equals(pr.HeadCommitId, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(pr.BaseCommitId, command.Target.BaseSha, StringComparison.OrdinalIgnoreCase) &&
+                pr.State.Equals("merged", StringComparison.OrdinalIgnoreCase) &&
+                mergeProof is { Length: >= 7 } && mergeProof.All(Uri.IsHexDigit) &&
+                (expectedMergeCommitSha is null || string.Equals(mergeProof, expectedMergeCommitSha, StringComparison.OrdinalIgnoreCase))
+                ? new(SourceControlDeliveryStatus.Verified, PullRequestId: pr.Id, MergeCommitSha: mergeProof, Evidence: evidence, RemoteDeliveryVerified: true)
                 : new(SourceControlDeliveryStatus.ReconciliationRequired, "Post-merge evidence does not prove an exact merged pull request.", MutationSent: true, MayHaveModifiedRemote: true, Evidence: evidence);
         }
         if (command.OperationKind == SourceControlDeliveryOperationKind.MarkReadyForReview)
-            return evidence.PullRequest?.IsDraft == false
+            return evidence.PullRequest is { IsDraft: false } pr && pr.Id == command.Target.PullRequestId &&
+                string.Equals(pr.SourceBranch, command.Target.HeadRef, StringComparison.Ordinal) &&
+                string.Equals(pr.TargetBranch, command.Target.BaseRef, StringComparison.Ordinal) &&
+                string.Equals(pr.HeadCommitId, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(pr.BaseCommitId, command.Target.BaseSha, StringComparison.OrdinalIgnoreCase)
                 ? new(SourceControlDeliveryStatus.Verified, PullRequestId: evidence.PullRequest.Id, Evidence: evidence)
                 : new(SourceControlDeliveryStatus.ReconciliationRequired, "Post-ready evidence does not prove the pull request is ready.", MutationSent: true, MayHaveModifiedRemote: true, Evidence: evidence);
         return null;
@@ -737,6 +1027,7 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
 
     private static bool Matches(SourceControlDeliveryCommand command, SourceControlDeliveryAuditEvent value) =>
         value.ProjectId == command.ProjectId && value.OperationKind == command.OperationKind &&
+        (string.IsNullOrWhiteSpace(value.CommandContentHash) || string.Equals(value.CommandContentHash, command.CommandContentHash, StringComparison.OrdinalIgnoreCase)) &&
         string.Equals(value.WorkItemIdentity, command.WorkItemIdentity, StringComparison.Ordinal) &&
         string.Equals(value.ContractReference, command.ContractReference.ToString(), StringComparison.Ordinal) &&
         string.Equals(value.RepositoryIdentity, command.Target.CanonicalRepositoryIdentity, StringComparison.Ordinal) &&
@@ -746,9 +1037,52 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
         string.Equals(value.EvidenceRevision, command.EvidenceRevision, StringComparison.OrdinalIgnoreCase);
 
     private static SourceControlDeliveryResult FromAudit(SourceControlDeliveryAuditEvent value, SourceControlDeliveryStatus status) =>
-        new(status, value.ErrorMessage, value.ActualHeadSha, value.PullRequestId, value.MergeCommitSha, value.MutationSent, value.MayHaveModifiedRemote);
+        new(status, value.ErrorMessage, value.ActualHeadSha, value.PullRequestId, value.MergeCommitSha, value.MutationSent,
+            value.MayHaveModifiedRemote, RemoteDeliveryVerified: value.RemoteDeliveryVerified,
+            TrackerSynchronization: value.TrackerOutcome is null ? null : new TrackerMutationResult(value.TrackerOutcome.Value));
 
     private static bool Same(PlanningExecutionContractReference left, PlanningExecutionContractReference right) =>
         left.ContractId == right.ContractId && left.Revision == right.Revision && left.SchemaVersion == right.SchemaVersion &&
         string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase);
+
+    private static bool Same(ExecutionRunAuthorityReference left, ExecutionRunAuthorityReference? right) =>
+        right is not null && left.RunId == right.RunId && left.SchemaVersion == right.SchemaVersion &&
+        string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase);
+
+    private static bool Same(ValidationGateDecisionReference left, ValidationGateDecisionReference right) =>
+        left.DecisionId == right.DecisionId && left.SchemaVersion == right.SchemaVersion &&
+        string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase);
+
+    private static bool HasBlockingCiEvidence(RemoteRepositoryEvidence evidence, out string reason)
+    {
+        if (evidence.StatusState is not (RemoteEvidenceState.Available or RemoteEvidenceState.NotConfigured) ||
+            evidence.CheckState is not (RemoteEvidenceState.Available or RemoteEvidenceState.NotConfigured) ||
+            evidence.CiState is not (RemoteEvidenceState.Available or RemoteEvidenceState.NotConfigured))
+        {
+            reason = "Remote status, check, or CI evidence is partial or unavailable.";
+            return true;
+        }
+
+        if (evidence.CiResult is RemoteCiState.Failing or RemoteCiState.Pending or RemoteCiState.Cancelled or RemoteCiState.Unknown)
+        {
+            reason = "Remote CI evidence is explicitly failing, incomplete, or still pending.";
+            return true;
+        }
+
+        foreach (var status in evidence.Statuses.Concat(evidence.Checks))
+        {
+            var state = status.State.ToLowerInvariant();
+            var conclusion = status.Conclusion?.ToLowerInvariant();
+            if (state is "failure" or "error" or "failed" or "failing" or "cancelled" or "canceled" or "pending" or "in_progress" or "queued" or "running" or "waiting" ||
+                conclusion is "failure" or "failed" or "timed_out" or "action_required" or "cancelled" or "canceled" or "error" ||
+                state == "completed" && conclusion is not ("success" or "succeeded" or "passing"))
+            {
+                reason = $"Remote check or commit status '{status.Name}' is not an explicit pass.";
+                return true;
+            }
+        }
+
+        reason = string.Empty;
+        return false;
+    }
 }

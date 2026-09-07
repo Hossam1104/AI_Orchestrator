@@ -234,7 +234,11 @@ public sealed class GitHubRemoteRepositoryEvidenceProvider : IRemoteRepositoryEv
                 RemoteEvidenceJson.String(root.GetProperty("head"), "sha"),
                 RemoteEvidenceJson.String(root.GetProperty("base"), "sha"),
                 mergeability,
-                RemoteEvidenceJson.SafeUri(root, "html_url", "github.com"));
+                RemoteEvidenceJson.SafeUri(root, "html_url", "github.com"),
+                RemoteEvidenceJson.String(root, "title"),
+                RemoteEvidenceJson.String(root, "body"),
+                RemoteEvidenceJson.String(root, "merge_commit_sha"),
+                RemoteEvidenceJson.String(root, "node_id"));
             draft.PullRequestState = RemoteEvidenceState.Available;
         }
         catch (ArgumentException)

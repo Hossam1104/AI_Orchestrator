@@ -334,7 +334,13 @@ public sealed class AzureReposRemoteRepositoryEvidenceProvider : IRemoteReposito
                     "checking" => RemoteMergeability.Calculating,
                     _ => RemoteMergeability.Unknown
                 },
-                SafeAzureUri(root, "url"));
+                SafeAzureUri(root, "url"),
+                RemoteEvidenceJson.String(root, "title"),
+                RemoteEvidenceJson.String(root, "description"),
+                root.TryGetProperty("lastMergeCommit", out var mergeCommit)
+                    ? RemoteEvidenceJson.String(mergeCommit, "commitId")
+                    : null,
+                RemoteEvidenceJson.String(root, "pullRequestId"));
             draft.PullRequestState = RemoteEvidenceState.Available;
 
             if (root.TryGetProperty("reviewers", out var reviewers) && reviewers.ValueKind == JsonValueKind.Array)

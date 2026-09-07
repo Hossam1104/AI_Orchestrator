@@ -107,6 +107,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IBoundedProcessHost, BoundedProcessHost>();
         services.AddSingleton<IManagedWorkspacePathProvider, ManagedWorkspacePathProvider>();
         services.AddSingleton<IWorkspaceRepository, GitWorkspaceRepository>();
+        services.AddSingleton<IWorkspacePreparedWorkspaceVerifier>(service =>
+            (IWorkspacePreparedWorkspaceVerifier)service.GetRequiredService<IWorkspaceRepository>());
         services.AddSingleton<IRepositoryPreparationLock, RepositoryPreparationFileLock>();
         services.AddSingleton<IWorkspacePreparationPlanRepository, JsonWorkspacePreparationPlanRepository>();
         services.AddSingleton<IWorkspacePreparationReceiptRepository, JsonWorkspacePreparationReceiptRepository>();

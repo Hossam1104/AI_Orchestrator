@@ -1,4 +1,5 @@
 using AIUsageMonitor.Application.Delivery;
+using AIUsageMonitor.Application.Trackers;
 
 namespace AIUsageMonitor.Infrastructure.Persistence;
 
@@ -28,6 +29,12 @@ public sealed class SourceControlDeliveryAuditRecord
     public string? ErrorMessage { get; set; }
     public bool MutationSent { get; set; }
     public bool MayHaveModifiedRemote { get; set; }
+    public string? CommandContentHash { get; set; }
+    public bool RemoteDeliveryVerified { get; set; }
+    public string? TrackerPlanIdentity { get; set; }
+    public string? TrackerOperationIdentity { get; set; }
+    public string? TrackerAuthorityContentHash { get; set; }
+    public string? TrackerOutcome { get; set; }
     public Guid EventId { get; set; }
     public string EventKind { get; set; } = string.Empty;
     public string? ValidationDecisionReference { get; set; }
@@ -64,6 +71,12 @@ public sealed class SourceControlDeliveryAuditRecord
         ValidationDecisionReference = value.ValidationDecisionReference,
         HumanApprovalReference = value.HumanApprovalReference,
         PostEvidenceFingerprint = value.PostEvidenceFingerprint,
+        CommandContentHash = value.CommandContentHash,
+        RemoteDeliveryVerified = value.RemoteDeliveryVerified,
+        TrackerPlanIdentity = value.TrackerPlanIdentity,
+        TrackerOperationIdentity = value.TrackerOperationIdentity,
+        TrackerAuthorityContentHash = value.TrackerAuthorityContentHash,
+        TrackerOutcome = value.TrackerOutcome?.ToString(),
         ContentHash = value.ContentHash
     };
 
@@ -83,6 +96,15 @@ public sealed class SourceControlDeliveryAuditRecord
         value = candidate with
         {
             EventId = EventId,
+            CommandContentHash = CommandContentHash,
+            RemoteDeliveryVerified = RemoteDeliveryVerified,
+            TrackerPlanIdentity = TrackerPlanIdentity,
+            TrackerOperationIdentity = TrackerOperationIdentity,
+            TrackerAuthorityContentHash = TrackerAuthorityContentHash,
+            TrackerOutcome = Enum.TryParse<TrackerMutationOutcome>(TrackerOutcome, out var trackerOutcome) ? trackerOutcome : null,
+            EventKindOverride = string.Equals(EventKind, nameof(SourceControlDeliveryAuditEventKind.Attempted), StringComparison.Ordinal)
+                ? SourceControlDeliveryAuditEventKind.Attempted
+                : null,
             ValidationDecisionReference = ValidationDecisionReference,
             HumanApprovalReference = HumanApprovalReference,
             PostEvidenceFingerprint = PostEvidenceFingerprint
@@ -96,6 +118,7 @@ public sealed class JsonSourceControlDeliveryAuditStore : ISourceControlDelivery
 {
     private readonly ApplicationDataPaths _paths;
     private readonly JsonlEventStore<SourceControlDeliveryAuditRecord> _events;
+    private static readonly SemaphoreSlim AppendGate = new(1, 1);
 
     public JsonSourceControlDeliveryAuditStore(
         ApplicationDataPaths paths,
@@ -134,22 +157,30 @@ public sealed class JsonSourceControlDeliveryAuditStore : ISourceControlDelivery
         ArgumentNullException.ThrowIfNull(value);
         if (value.ProjectId == Guid.Empty || value.CommandId == Guid.Empty)
             throw new ArgumentException("Delivery audit identity is required.", nameof(value));
-        var history = await _events.ReadAllWithStatusAsync(
-            _paths.GetProjectDeliveryAuditDirectory(value.ProjectId),
-            static record => record.OccurredAt,
-            SourceControlDeliveryLimits.MaxAuditRecords,
-            cancellationToken).ConfigureAwait(false);
-        if (history.Status != Application.Orchestration.HistoryReadStatus.Success || history.Issues.Count > 0)
-            throw new InvalidOperationException("Delivery audit history is corrupt or unavailable; append was rejected.");
-        if (history.Records.Count >= SourceControlDeliveryLimits.MaxAuditRecords)
-            throw new InvalidOperationException("Delivery audit capacity has been exhausted.");
-        if (history.Records.Any(record => record.EventId == value.EventId))
-            throw new InvalidOperationException("Duplicate delivery audit event identity was rejected.");
-        await _paths.EnsureProjectDirectoriesAsync(value.ProjectId, cancellationToken).ConfigureAwait(false);
-        await _events.AppendAsync(
-            _paths.GetProjectDeliveryAuditDirectory(value.ProjectId),
-            value.OccurredAt,
-            SourceControlDeliveryAuditRecord.FromApplication(value),
-            cancellationToken).ConfigureAwait(false);
+        await AppendGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var history = await _events.ReadAllWithStatusAsync(
+                _paths.GetProjectDeliveryAuditDirectory(value.ProjectId),
+                static record => record.OccurredAt,
+                SourceControlDeliveryLimits.MaxAuditRecords,
+                cancellationToken).ConfigureAwait(false);
+            if (history.Status != Application.Orchestration.HistoryReadStatus.Success || history.Issues.Count > 0)
+                throw new InvalidOperationException("Delivery audit history is corrupt or unavailable; append was rejected.");
+            if (history.Records.Count >= SourceControlDeliveryLimits.MaxAuditRecords)
+                throw new InvalidOperationException("Delivery audit capacity has been exhausted.");
+            if (history.Records.Any(record => record.EventId == value.EventId))
+                throw new InvalidOperationException("Duplicate delivery audit event identity was rejected.");
+            await _paths.EnsureProjectDirectoriesAsync(value.ProjectId, cancellationToken).ConfigureAwait(false);
+            await _events.AppendAsync(
+                _paths.GetProjectDeliveryAuditDirectory(value.ProjectId),
+                value.OccurredAt,
+                SourceControlDeliveryAuditRecord.FromApplication(value),
+                cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            AppendGate.Release();
+        }
     }
 }

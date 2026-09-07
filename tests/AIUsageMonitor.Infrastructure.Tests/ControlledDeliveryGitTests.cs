@@ -59,6 +59,24 @@ public sealed class ControlledDeliveryGitTests : IDisposable
         Assert.False(result.MutationSent);
     }
 
+    [Fact]
+    public async Task ReadOnlyPushReconciliation_ReturnsAlreadyAppliedForExactRemoteHead()
+    {
+        var working = Path.Combine(_root, "working");
+        var bare = Path.Combine(_root, "origin.git");
+        Initialize(working, bare);
+        var head = Git(working, "rev-parse", "HEAD").Trim();
+        var command = Command(working, bare, "task", head, head, []);
+        var service = new LocalDeliveryGitService();
+        var pushed = await service.PushExactHeadAsync(command);
+
+        var reconciled = await service.ReconcileAsync(command);
+
+        Assert.Equal(SourceControlDeliveryStatus.Verified, pushed.Status);
+        Assert.Equal(SourceControlDeliveryStatus.AlreadyApplied, reconciled.Status);
+        Assert.True(reconciled.MutationSent);
+    }
+
     private SourceControlDeliveryCommand Command(string working, string bare, string branch, string baseSha, string headSha, IReadOnlyList<string> paths)
     {
         var contract = new PlanningExecutionContractReference(Guid.NewGuid(), 1, 1, new string('a', 64));
