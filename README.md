@@ -24,9 +24,9 @@
 ## FAST V1 closeout status
 
 `FAST V1 CLOSEOUT MODE` is active. APO-48 is delivered, independently reviewed, Sol-accepted,
-merged, and Done. APO-51 is delivered, Sol-accepted, merged, and Done. The remaining four V1
-Stories are `APO-49`, `APO-63`, `APO-50`, and `APO-33`; `APO-49` is the current next gate and is
-not started.
+merged, and Done. APO-51 is delivered, Sol-accepted, merged, and Done. APO-49 is delivered and
+accepted. The remaining three V1 Stories are `APO-63`, `APO-50`, and `APO-33`; `APO-63` is the
+current next gate and is not started.
 
 V1 execution is focused on OpenAI, Claude, and Antigravity Plus. `COPILOT = POST-V1`, and all new
 inactive-provider-specific work is deferred until after V1. No new provider integration enters V1
@@ -106,8 +106,9 @@ APO is an active foundation, not a finished orchestration product.
 | :white_check_mark: Implemented / validated | APO-62 provider-independent, read-only remote SCM and CI evidence (GitHub and Azure Repos) |
 | :white_check_mark: Delivered / accepted | APO-48 independent validation evidence and evidence-based QA gates; accepted merge `7fe179844ceb056c542067485843bc892ebdefcc` |
 | :white_check_mark: Delivered / accepted | APO-51 Review Inbox and bounded remediation loop; accepted merge `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c` |
+| :white_check_mark: Delivered / accepted | APO-49 human approval policy and gates; accepted merge `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6` |
 | :construction: Planned | Local Git evidence is partially implemented through APO-37; controlled remote delivery (APO-63) remains unimplemented |
-| :construction: Planned | Human approval policy (APO-49), Mission Control (APO-50), controlled remote delivery (APO-63), and GitHub Actions CI (APO-33) |
+| :construction: Planned | Mission Control (APO-50), controlled remote delivery (APO-63), and GitHub Actions CI (APO-33) |
 | :compass: Strategic roadmap | Mission Control, Smart Continue, recovery, dependency-aware work, isolated workspaces, decision ledger, project health, skills, bounded automation, and optional remote approval design |
 
 APO-48 was accepted on product head `caed10d0486994e9235a66ef44ec6137649dd347`, with product
@@ -117,14 +118,14 @@ tree `f152699b89b4c1f498c3dbb4357ee07ac00fda77`, merge SHA
 `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
 
 Not yet implemented: full consumer capacity surfaces beyond the documented adapter boundaries,
-end-to-end autonomous provider execution, tracker automation, controlled remote delivery, human
-approval policy, Mission Control, GitHub Actions CI, and the full APO-15 dashboard.
+end-to-end autonomous provider execution, tracker automation, controlled remote delivery, Mission
+Control, GitHub Actions CI, and the full APO-15 dashboard.
 The durable control-plane contracts, bounded execution safeguards, and bounded Jira tracker slice in
 APO-38 through APO-47 and APO-68 are implemented; APO-62 provider-independent, read-only remote
 SCM/CI evidence (GitHub and Azure Repos) is also delivered. APO-48 independent validation evidence
-and QA gates and APO-51 Review Inbox and bounded remediation are delivered and accepted. Remaining
-capability boundaries not yet delivered: APO-49 human approval policy, APO-50 Mission Control,
-APO-63 controlled remote delivery, and APO-33 repository-owned GitHub Actions CI. APO-37
+and QA gates, APO-49 human approval policy and gates, and APO-51 Review Inbox and bounded remediation
+are delivered and accepted. Remaining capability boundaries not yet delivered: APO-50 Mission
+Control, APO-63 controlled remote delivery, and APO-33 repository-owned GitHub Actions CI. APO-37
 verifies a selected registered local path only when the owner clicks Verify repository; it does not
 inspect file contents, use credentials, contact a remote service, or perform Git writes. APO does
 not fabricate provider numbers or claim CI status before the relevant Story is delivered.
@@ -308,7 +309,7 @@ shipped runtime claims:
 
 1. **Delivered P0 control plane — APO-38..46 and APO-68:** agent/model truth, progressive onboarding, contracts, dependency graphs, handoffs, durable recovery, quality-first routing, bounded execution, isolated workspaces, and workspace-preparation hardening.
 2. **P0 tracker/evidence inputs — APO-47 and APO-62 delivered:** Jira/Azure Boards awareness (APO-47) and read-only remote SCM/CI evidence (APO-62) are both delivered.
-3. **P0 evidence, approval, and delivery — APO-48 delivered; APO-49, APO-63 remaining:** independent QA evidence and gates are accepted; human approval policy and controlled remote delivery remain to do.
+3. **P0 evidence, approval, and delivery — APO-48 and APO-49 delivered; APO-63 remaining:** independent QA evidence, gates, and human approval policy are accepted; controlled remote delivery remains to do.
 4. **P0 Mission Control — APO-50:** one evidence-backed command-center read model and surface.
 5. **P1 acceleration — APO-51..56:** APO-51 Review Inbox is delivered and accepted; later P1 capabilities remain deferred until separately authorized.
 6. **P2 controlled expansion — APO-57..58:** bounded background housekeeping and optional remote approval security design.

@@ -8,7 +8,7 @@ direction and sequencing after the accepted APO foundation; it is not a runtime 
 does not authorize a new Story. Each implementation boundary still requires a Sol-authored
 `TASK.md` contract.
 
-## Current status (6 September 2026)
+## Current status (7 September 2026)
 
 APO-38 through APO-47 and APO-68 are implemented and marked Done in Jira. APO-69 is also Done.
 APO-62 (remote SCM and CI evidence) is also Done. APO-48 is **FINAL ACCEPTED / MERGED / DONE**
@@ -18,8 +18,11 @@ with product merge SHA `7fe179844ceb056c542067485843bc892ebdefcc`, accepted prod
 and build 0 warnings / 0 errors. APO-51 is **FINAL ACCEPTED / MERGED / DONE** with product merge
 SHA `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`, accepted head
 `4aeb7e062320d78ab0323473d8ce321a30b66476`, and accepted tree
-`56053615c679fc64464464c9b856a5cf52a50860`. APO-49, APO-63, APO-50, and APO-33 remain To Do and
-not started; APO-49 is the current next gate. `GITHUB ACTIONS CI = NONE / NOT CLAIMED`. The live
+`56053615c679fc64464464c9b856a5cf52a50860`. APO-49 is **FINAL ACCEPTED / MERGED / CLOSED** with
+product merge SHA `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6`, accepted head
+`2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`, and accepted tree
+`09a35856723723dd59da9424d4c1b2b3b0576b8a`. APO-63, APO-50, and APO-33 remain To Do and not
+started; APO-63 is the current next gate. `GITHUB ACTIONS CI = NONE / NOT CLAIMED`. The live
 authority snapshot is maintained in `.ai/CURRENT_STATE.md` and `TASK.md`.
 
 ## FAST V1 closeout baseline
@@ -27,13 +30,14 @@ authority snapshot is maintained in `.ai/CURRENT_STATE.md` and `TASK.md`.
 ### MUST SHIP
 
 1. APO-51 - minimal Review Inbox / bounded remediation loop (delivered and accepted)
-2. APO-49 - minimal Human Approval + Delivery Gates (current next gate; not started)
+2. APO-49 - minimal Human Approval + Delivery Gates (delivered and accepted)
 3. APO-63 - controlled remote source-control delivery
 4. APO-50 - Mission Control read model + UI
 5. APO-33 - GitHub Actions CI + build/test/package
 
 The exact FAST V1 order is `APO-51 -> APO-49 -> APO-63 -> APO-50 -> APO-33 -> Final V1 Release
-Audit -> v1.0.0`. APO-51 is complete; the remaining four implementation Stories are To Do. This
+Audit -> v1.0.0`. APO-51 and APO-49 are complete; the remaining three implementation Stories are
+To Do. This
 roadmap does not authorize implementation.
 
 ### ACTIVE V1 AI RESOURCE BOUNDARY
@@ -152,8 +156,9 @@ or perform Git writes.
 
 APO-33 remains the existing repository-owned GitHub Actions CI/release Story. Local validation in
 this roadmap session is not a GitHub CI result. APO-48 independent validation evidence and
-evidence-based QA gates are accepted. Provider execution, tracker automation, controlled delivery,
-and Mission Control are not shipped by this documentation checkpoint.
+evidence-based QA gates and APO-49 human approval policy are accepted. Provider execution, tracker
+automation, controlled delivery, and Mission Control are not shipped by this documentation
+checkpoint.
 
 ## 6. Strategic Jira roadmap
 
@@ -180,7 +185,7 @@ Epics. APO-33 remains a complementary existing CI/release Story.
 
 - APO-62 — Provider-independent, read-only GitHub/Azure Repos remote SCM and CI evidence (delivered; Jira Done).
 - APO-48 — Independent QA and evidence gates (delivered; Jira Done; final accepted).
-- APO-49 — Human approval policy.
+- APO-49 — Human approval policy (delivered and accepted).
 - APO-63 — Controlled remote source-control delivery operations.
 
 ### P0 Mission Control — APO-50
@@ -294,7 +299,7 @@ explicit human gates. No remote write may silently bypass the evidence or approv
 ## 11. Jira hygiene / roadmap identity
 
 The approved APO-1 through APO-17 Epic structure is reused. APO-48 is delivered and the remaining
-FAST V1 must-ship backlog remaining after accepted APO-51 is APO-49, APO-63, APO-50, and APO-33.
+FAST V1 must-ship backlog remaining after accepted APO-51 and APO-49 is APO-63, APO-50, and APO-33.
 APO-52 through APO-61 are post-V1 deferred scope. APO-38 through APO-47 are delivered. APO-64 through APO-67 are Done, VOID,
 `no-project-work`, and `connector-correction` artifacts retained only as transparent Jira connector
 history; they have zero product scope and are excluded from roadmap totals, dependencies, sequencing,
@@ -328,9 +333,7 @@ APO-44 → APO-46 → APO-45                 recovery context
 Authoritative planner sequence for the remaining backlog:
 
 ```text
-Accepted APO-38..48 and APO-51 foundation
-        v
-APO-49 owner approval policy
+Accepted APO-38..49 and APO-51 foundation
         v
 APO-63 controlled remote delivery
         v
@@ -343,6 +346,8 @@ Final V1 Release Audit
 v1.0.0
 ```
 
+Remaining implementation order: `APO-63 -> APO-50 -> APO-33 -> Final V1 Release Audit -> v1.0.0`.
+
 Read-only remote evidence must precede controlled remote writes because APO cannot safely mutate a
 remote target without independently knowing the current repository, ref, review/check, validation,
 permission, mergeability, and approval state. The next Story is not selected by this roadmap;
@@ -352,7 +357,8 @@ planner sequencing, not a claim that every adjacent pair is a Jira hard dependen
 ## 13. Current planner boundary
 
 APO-69 is complete, APO-47 is merged and Jira Done, and APO-62 (remote SCM and CI evidence) is
-delivered and Jira Done. APO-48 and APO-51 are final accepted, merged, and Jira Done. The current
-FAST V1 gate is APO-49, which remains To Do and not started; APO-63, APO-50, and APO-33 also remain
-To Do. No implementation is authorized by this roadmap. GPT-5.6 Sol must provide a fresh,
-self-contained contract for each Story, and no automatic roadmap execution is permitted.
+delivered and Jira Done. APO-48 and APO-51 are final accepted, merged, and Jira Done. APO-49 is
+final accepted and merged at the product level. The current FAST V1 gate is APO-63, which remains
+To Do and not started; APO-50 and APO-33 also remain To Do. No implementation is authorized by
+this roadmap. GPT-5.6 Sol must provide a fresh, self-contained contract for each Story, and no
+automatic roadmap execution is permitted.
