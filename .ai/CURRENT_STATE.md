@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 7 September 2026 (APO-49 controlled integration closeout)
+**Last Updated:** 7 September 2026 (APO-63 executor delivery handoff)
 
 ## Canonical live snapshot
 
@@ -36,6 +36,14 @@
   `1,172 passed / 0 failed / 0 skipped`; build `0 warnings / 0 errors`.
 - Jira project key: `APO`. The Jira display name remains `AI Project Orchestrator`; this is a
   connector-visible display surface and is not changed by this closeout.
+- APO-63 executor branch: `feat/APO-63-controlled-remote-delivery`.
+- APO-63 required baseline: `origin/main` `fc8a2d7c79772d716d2c3d17ce729844c539dbd9`; tree
+  `e7a7156931931716d6ae80c5bea7331ee72e90ec`.
+- APO-63 functional commit: `7e3bf8574d3a56c1acd92f4c8a31a6c3d3d83b7f`; tree
+  `f3289bd211490ccd5d33c21a59d948601475e02e`; parent
+  `fc8a2d7c79772d716d2c3d17ce729844c539dbd9`.
+- APO-63 Draft PR: `#33`, base `main`, head
+  `feat/APO-63-controlled-remote-delivery`, `OPEN / DRAFT / UNMERGED`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
 - Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`
 
@@ -95,14 +103,43 @@ V1 is intentionally optimized around the currently available resource groups:
 Existing optional provider adapters and provider-independent architecture remain in the repository;
 provider cleanup/removal is deferred and is not part of this closeout.
 
+## APO-63 executor delivery
+
+`APO-63 executor delivery = COMPLETE / PENDING SOL REVIEW`; executor completion is not Sol
+acceptance.
+
+- Typed provider-independent operations: `CommitExactChanges`, `PushExactHead`,
+  `CreateDraftPullRequest`, `UpdatePullRequestMetadata`, `AddDeliveryComment`, `RequestReviewers`,
+  `MarkReadyForReview`, and `MergePullRequest`.
+- Application owns exact command/contract/project/work-item/repository/base/head/evidence bindings,
+  validation/review/approval gate coordination, idempotency, reconciliation, and tracker hook
+  contracts. Infrastructure owns safe structured Git commit/push and project-scoped JSONL audit.
+- Providers implement bounded official GitHub and Azure Repos mutations; API hosts are derived from
+  validated APO-62 identities. State-changing HTTP mutation retry count is zero.
+- Local Git integration: exact-path staging, unexpected/staged/untracked path rejection, branch and
+  parent verification, normal fast-forward push, remote identity matching, and post-push head check.
+- High-risk Ready/Merge requires current exact validation decision, current review workflow,
+  current APO-49 Approved/Waived evaluation, exact remote target, fresh late evidence, mergeability,
+  and truthful remote CI handling. No approval boolean shortcut is accepted.
+- Audit is append-only project JSONL with bounded records, event identity/kind, SHA-256 content
+  integrity, reference-only authorities, capacity enforcement, and fail-closed corrupt-history reads.
+- Focused tests: local Git `3 passed / 0 failed / 0 skipped`; provider adapters `2 passed / 0 failed /
+  0 skipped`; delivery service `3 passed / 0 failed / 0 skipped`.
+- Canonical validation: `1,180 passed / 0 failed / 0 skipped`; restore PASS; build `0 warnings / 0
+  errors`; `git diff --check` clean.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
+- `JIRA EXECUTOR ADMIN = DEFERRED TO SOL`; Jira transition/comment were not performed by this
+  executor. APO-50 and APO-33 remain not started.
+
 ## FAST V1 gate
 
 `APO-51 = FINAL ACCEPTED / MERGED / DONE` and is no longer the current gate. `APO-49 = FINAL
-ACCEPTED / MERGED / CLOSED`. The current FAST V1 gate is `APO-63`, which is not started.
+ACCEPTED / MERGED / CLOSED`. The current FAST V1 gate is `APO-63`, executor-complete and pending
+Sol exact-head review.
 
 Remaining V1 Stories:
 
-1. `APO-63` - must ship; current next gate; `To Do`
+1. `APO-63` - must ship; current next gate; executor complete, pending Sol acceptance
 2. `APO-50` - must ship; `To Do`
 3. `APO-33` - must ship; `To Do`
 
