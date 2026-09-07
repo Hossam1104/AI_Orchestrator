@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 7 September 2026 (APO-49 R2 executor remediation closeout)
+**Last Updated:** 7 September 2026 (APO-49 controlled integration closeout)
 
 ## Canonical live snapshot
 
@@ -24,6 +24,16 @@
 - APO-49 R2 functional commit: `72e796d6d95d0ca086aeb9614d830ed30e4144ad`; tree
   `aaf87a55bd5a55c26fc58f66ed3bb7080ac97864`; parent
   `f44a24943ae6e88667b1859cea8601ca340b57fc`.
+- APO-49 accepted final head: `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`; tree
+  `09a35856723723dd59da9424d4c1b2b3b0576b8a`.
+- APO-49 product merge on `main`: `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6`; PR #31
+  merged with a merge commit. Merge parents are `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48`
+  and `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`; merge tree is
+  `09a35856723723dd59da9424d4c1b2b3b0576b8a`.
+- `SOL EXACT-HEAD R2 RE-REVIEW = PASS`; `SOL-49-01R`, `SOL-49-02`, `SOL-49-03`, and
+  `SOL-49-04` are closed.
+- APO-49 validation evidence: focused `17 passed / 0 failed / 0 skipped`; canonical
+  `1,172 passed / 0 failed / 0 skipped`; build `0 warnings / 0 errors`.
 - Jira project key: `APO`. The Jira display name remains `AI Project Orchestrator`; this is a
   connector-visible display surface and is not changed by this closeout.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
@@ -87,20 +97,18 @@ provider cleanup/removal is deferred and is not part of this closeout.
 
 ## FAST V1 gate
 
-`APO-51 = FINAL ACCEPTED / MERGED / DONE` and is no longer the current gate. The current FAST V1
-gate is `APO-49`, whose bounded executor delivery is complete and whose exact-head Sol review and
-acceptance are pending.
+`APO-51 = FINAL ACCEPTED / MERGED / DONE` and is no longer the current gate. `APO-49 = FINAL
+ACCEPTED / MERGED / CLOSED`. The current FAST V1 gate is `APO-63`, which is not started.
 
 Remaining V1 Stories:
 
-1. `APO-49` - must ship; executor delivery complete; Sol acceptance pending
-2. `APO-63` - must ship; `To Do`
-3. `APO-50` - must ship; `To Do`
-4. `APO-33` - must ship; `To Do`
+1. `APO-63` - must ship; current next gate; `To Do`
+2. `APO-50` - must ship; `To Do`
+3. `APO-33` - must ship; `To Do`
 
 The exact FAST V1 implementation order is:
 
-`APO-51 -> APO-49 -> APO-63 -> APO-50 -> APO-33 -> Final V1 Release Audit -> v1.0.0`
+`APO-63 -> APO-50 -> APO-33 -> Final V1 Release Audit -> v1.0.0`
 
 GitHub remains V1 infrastructure. GitHub Actions remains APO-33 and is not delivered. Copilot is
 not part of V1 acceptance, review, routing, quota counting, or required functionality.
@@ -115,12 +123,12 @@ The following remain `POST-V1 / DEFERRED FAST CLOSEOUT` and must not be started 
 - Additional provider integrations
 - Provider polish not required for the core V1 loop or release safety
 
-APO-49 is the only product implementation scope started in this handoff and is executor-complete.
-APO-63, APO-50, and APO-33 product work was not started.
+APO-49 is the only product implementation scope started in this handoff and is final accepted and
+merged. APO-63, APO-50, and APO-33 product work was not started.
 
-## APO-49 executor delivery
+## APO-49 final acceptance
 
-`APO-49 R2 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL RE-REVIEW`
+`APO-49 = FINAL ACCEPTED / MERGED / CLOSED`
 
 - Branch: `feat/APO-49-human-approval-gates`.
 - Baseline: `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48` / tree
@@ -131,6 +139,10 @@ APO-63, APO-50, and APO-33 product work was not started.
 - R2 functional commit: `72e796d6d95d0ca086aeb9614d830ed30e4144ad` / tree
   `aaf87a55bd5a55c26fc58f66ed3bb7080ac97864`; parent
   `f44a24943ae6e88667b1859cea8601ca340b57fc`.
+- Accepted final head: `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26` / tree
+  `09a35856723723dd59da9424d4c1b2b3b0576b8a`.
+- `SOL EXACT-HEAD R2 RE-REVIEW = PASS`.
+- `SOL-49-01R = CLOSED`; `SOL-49-02 = CLOSED`; `SOL-49-03 = CLOSED`; `SOL-49-04 = CLOSED`.
 - SOL-49-01R executor-remediated: the service derives an immutable exact decision intent from
   authoritative request history, the invoked terminal kind, and the validated current
   contract/target/evidence/policy binding. Infrastructure HMAC proof is bound to the canonical
@@ -155,20 +167,21 @@ APO-63, APO-50, and APO-33 product work was not started.
 - R2 restore succeeded; build `0 warnings / 0 errors`; `git diff --check` clean.
 - First meaningful R2 failure: initial post-refactor focused compile reported CS0246 for the moved
   local owner authority test type; tests were corrected before the green focused run.
-- `JIRA R2 HANDOFF = DEFERRED TO SOL`; Jira connector was unavailable to this executor, and
-  APO-49 must remain `In Progress`.
-- PR #31 remains `OPEN / DRAFT / UNMERGED / MERGEABLE`, base `main`, head
-  `feat/APO-49-human-approval-gates`.
+- Product merge SHA: `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6`.
+- PR #31: `MERGED`, base `main`, head `feat/APO-49-human-approval-gates` at
+  `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`.
+- Merge parents: `fe923e7be2a3c3f69ece528f2bd89e9d5d603c48` and
+  `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`.
+- Merge tree: `09a35856723723dd59da9424d4c1b2b3b0576b8a`; accepted-head ancestry verified.
+- `JIRA CLOSEOUT ADMIN = PENDING SOL RECONCILIATION`; Jira status and transition were not
+  verified by this executor.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
-- `APO-63 = NOT STARTED`; no remote delivery, UI, provider, Copilot, CI, or automatic human
-  approval behavior was added. The final metadata-only handoff head is reported by exact Git
-  verification and is intentionally not embedded in this file to avoid self-SHA recursion.
+- `APO-63 = NOT STARTED`; no remote delivery, UI, provider, Copilot, or CI behavior was added.
 
 ## APO-51 final acceptance
 
 `APO-51 = FINAL ACCEPTED / MERGED / DONE`. The bounded review/finding/remediation lifecycle remains
-provider-independent; APO-49 is tracked separately and is now executor-complete pending Sol
-acceptance.
+provider-independent; APO-49 is now final accepted, merged, and closed at the product level.
 
 - Jira status: `Done`; resolution: `Done`; labels: `fast-v1`, `v1-must-ship`, `v1-closed`.
 - Required starting `origin/main`: `248808d911402cd2b5116d0959b83f640d4f0ae9`.
@@ -191,12 +204,11 @@ acceptance.
 
 ## FAST V1 handoff
 
-`FAST V1 CURRENT GATE = APO-49`; APO-49 executor delivery is complete and exact-head Sol review is
-pending.
+`FAST V1 CURRENT GATE = APO-63`; APO-49 is final accepted, merged, and closed at the product level.
 
 Remaining implementation order:
 
-`APO-49 -> APO-63 -> APO-50 -> APO-33 -> Final V1 Release Audit -> v1.0.0`
+`APO-63 -> APO-50 -> APO-33 -> Final V1 Release Audit -> v1.0.0`
 
 ## Authority boundary
 
