@@ -554,6 +554,19 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
             {
                 var local = await _localGit.PushExactHeadAsync(command, cancellationToken).ConfigureAwait(false);
                 result = new(local.Status, local.ErrorMessage, local.NewHeadSha, MutationSent: local.MutationSent);
+                if (local.Succeeded)
+                {
+                    if (!_adapters.TryGetValue(command.Target.Provider, out var pushAdapter))
+                        result = result with { Status = SourceControlDeliveryStatus.ReconciliationRequired, ErrorMessage = "The local push succeeded but no remote evidence adapter is available.", MayHaveModifiedRemote = true };
+                    else
+                    {
+                        var pushEvidence = await pushAdapter.ReadAsync(command, cancellationToken).ConfigureAwait(false);
+                        var pushVerificationFailure = ValidateRemoteEvidence(command, pushEvidence, requireCommandFingerprint: false);
+                        result = pushVerificationFailure ?? result with { Evidence = pushEvidence };
+                        if (pushVerificationFailure is not null)
+                            result = result with { Status = SourceControlDeliveryStatus.ReconciliationRequired, ErrorMessage = "The local push succeeded but independent provider evidence did not verify the exact remote head.", MutationSent = true, MayHaveModifiedRemote = true };
+                    }
+                }
             }
             else
             {
@@ -671,11 +684,11 @@ public sealed class SourceControlDeliveryService : ISourceControlDeliveryService
         return null;
     }
 
-    private static SourceControlDeliveryResult? ValidateRemoteEvidence(SourceControlDeliveryCommand command, SourceControlRemoteEvidence evidence)
+    private static SourceControlDeliveryResult? ValidateRemoteEvidence(SourceControlDeliveryCommand command, SourceControlRemoteEvidence evidence, bool requireCommandFingerprint = true)
     {
         if (!string.Equals(command.Evidence.ExpectedHeadSha, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(command.Evidence.ExpectedBaseSha, command.Target.BaseSha, StringComparison.OrdinalIgnoreCase) ||
-            !string.Equals(command.Evidence.RemoteEvidenceFingerprint, evidence.Fingerprint, StringComparison.OrdinalIgnoreCase))
+            requireCommandFingerprint && !string.Equals(command.Evidence.RemoteEvidenceFingerprint, evidence.Fingerprint, StringComparison.OrdinalIgnoreCase))
             return new(SourceControlDeliveryStatus.Stale, "The command evidence revision does not match the current exact remote target.", Evidence: evidence);
         if (evidence.RepositoryEvidence.ProjectId != command.ProjectId || evidence.RepositoryEvidence.RepositoryState != RemoteEvidenceState.Available ||
             evidence.RepositoryEvidence.Repository is null || evidence.RepositoryEvidence.Repository.Provider != command.Target.Provider ||
