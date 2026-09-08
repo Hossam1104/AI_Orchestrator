@@ -275,3 +275,40 @@ Remaining implementation order:
 `TASK.md` records the APO-49 executor handoff and does not authorize APO-63 or any roadmap
 continuation. The next executor or reviewer prompt must come from GPT-5.6 Sol. There is no
 automatic roadmap execution and no feature creep.
+
+## APO-63 R2 executor remediation handoff
+
+`APO-63 R2 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL EXACT-HEAD RE-REVIEW`
+
+- `SOL-63-01 = CLOSED / PRESERVED`.
+- `SOL-63-02R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-03 = CLOSED / PRESERVED`.
+- `SOL-63-04R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-05R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-06 = CLOSED / PRESERVED`.
+- `SOL-63-07R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- Branch: `feat/APO-63-controlled-remote-delivery`.
+- R2 functional commit: `2ec0b7a56ad5495dd6c942eef7a52197c19c625f`; tree
+  `1793cf309469c3caf0bdca752208098a62bc1f42`; parent
+  `9bb90c152134a7d6987257019969fe92290b6429`.
+- Functional scope: atomic durable Attempted claims; strict command, actor, credential, approval,
+  validation, review, and tracker identity binding; exact repository/PR/head/base/merge proof;
+  fail-closed post-write reconciliation; and durable remote-verification-before-tracker ordering.
+- Focused R2 tests: Connection `21 passed / 0 failed / 0 skipped`; Provider `10 passed / 0 failed /
+  0 skipped`; Infrastructure `7 passed / 0 failed / 0 skipped`.
+- Canonical solution tests: `1,207 passed / 0 failed / 0 skipped` (`Domain 28`, `Provider 155`,
+  `Infrastructure 672`, `Desktop 83`, `Connection 269`).
+- Restore succeeded; solution build succeeded with `0 warnings / 0 errors`; `git diff --check`
+  and changed-scope secret scan are clean.
+- First meaningful implementation failure: the first post-interface-change compile reported
+  `CS0535` because the in-memory audit test double lacked the new atomic claim API; the test double
+  was updated and the final build/tests are green.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `JIRA R2 HANDOFF = DEFERRED TO SOL`; this executor did not mutate Jira.
+- PR #33 remains `OPEN / DRAFT / UNMERGED`, base `main`, exact head branch above. This executor did
+  not merge, mark Ready, create another PR, invoke Opus, or start APO-50/APO-33.
+- `APO-50 = NOT STARTED`; `APO-33 = NOT STARTED`.
+- `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
+- Final branch head/tree are reported in the executor completion report after the metadata handoff
+  commit; no self-SHA recursion is written into this file.

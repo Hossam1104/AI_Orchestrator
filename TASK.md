@@ -7,58 +7,36 @@ This file is a short authority boundary, not an executable executor prompt.
 
 ## Current authority
 
-- `APO-48 = Done`.
-- `APO-51 = FINAL ACCEPTED / MERGED / DONE`.
-- `APO-49 = FINAL ACCEPTED / MERGED`.
-- `CURRENT NEXT GATE = APO-63`.
-- `APO-63 = EXECUTOR IMPLEMENTATION COMPLETE / PENDING SOL EXACT-HEAD REVIEW`.
+- `APO-63 R2 = EXECUTOR REMEDIATION COMPLETE / PENDING SOL EXACT-HEAD RE-REVIEW`.
+- `SOL-63-01 = CLOSED / PRESERVED`.
+- `SOL-63-02R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-03 = CLOSED / PRESERVED`.
+- `SOL-63-04R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-05R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-06 = CLOSED / PRESERVED`.
+- `SOL-63-07R = REMEDIATED / PENDING SOL RE-REVIEW`.
 - Executor branch: `feat/APO-63-controlled-remote-delivery`.
-- APO-63 primary functional commit: `7e3bf8574d3a56c1acd92f4c8a31a6c3d3d83b7f`; tree
-  `f3289bd211490ccd5d33c21a59d948601475e02e`; parent
-  `fc8a2d7c79772d716d2c3d17ce729844c539dbd9`.
-- APO-63 bounded post-push evidence fix: `bbc18bfef6ed537017cd39ec16c058cee8dfd6ea`; tree
-  `91def3705414dfc8ad0d6cc17a79af9ea118b7ad`; parent
-  `76611a71ba5df7fbd80e9f5bbba1493b6c7f5a55`.
-- APO-63 functional delivery head: `bbc18bfef6ed537017cd39ec16c058cee8dfd6ea`.
+- R2 functional commit: `2ec0b7a56ad5495dd6c942eef7a52197c19c625f`; tree
+  `1793cf309469c3caf0bdca752208098a62bc1f42`; parent
+  `9bb90c152134a7d6987257019969fe92290b6429`.
 - APO-63 PR #33: `OPEN / DRAFT / UNMERGED`, base `main`, exact head branch above.
-- R1 functional commit: `9ff04a0a953c6a8676808447dbc2a8f594cba4c2`; tree
-  `55491427e6d0ac950d9d1576377b31d870647ae3`.
-- R2 functional commit: `72e796d6d95d0ca086aeb9614d830ed30e4144ad`; tree
-  `aaf87a55bd5a55c26fc58f66ed3bb7080ac97864`.
-- Product merge: `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6`; accepted head
-  `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`; accepted tree
-  `09a35856723723dd59da9424d4c1b2b3b0576b8a`.
-- `JIRA CLOSEOUT ADMIN = PENDING SOL RECONCILIATION`; product closed / Jira admin pending Sol
-  reconciliation.
-- `JIRA EXECUTOR ADMIN = DEFERRED TO SOL`; this executor did not mutate Jira.
-- The accepted APO-51 product merge is `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`.
-- `TASK.md` does not authorize downstream implementation or roadmap continuation.
-- The next executor prompt requires GPT-5.6 Sol authority; no automatic roadmap continuation is permitted.
+- `JIRA R2 HANDOFF = DEFERRED TO SOL`; this executor did not mutate Jira.
 
 ## FAST V1 order
 
 `APO-63 -> APO-50 -> APO-33 -> Final V1 Release Audit -> v1.0.0`
-
-## Resource boundary
-
-- Active V1 resources: OpenAI + Claude + Antigravity Plus.
-- `COPILOT = POST-V1`.
-- Inactive/new provider work is `POST-V1`.
-- Existing optional provider code is preserved; provider cleanup/removal is deferred.
 
 ## Execution boundary
 
 - No feature creep.
 - No automatic roadmap execution.
 - Do not start a downstream Story without a fresh Sol-authored contract.
-- GitHub remains V1 infrastructure; GitHub Actions remains APO-33 and is not yet delivered.
+- Do not merge PR #33, mark it Ready, create another PR, invoke Opus, or start APO-50/APO-33.
+- GitHub Actions remains APO-33 and is not delivered.
 
 ## Handoff status
 
-- `APO-49 = FINAL ACCEPTED / MERGED`.
-- `CURRENT NEXT GATE = APO-63`.
-- `APO-63 executor delivery = COMPLETE / PENDING SOL REVIEW`.
-- `JIRA EXECUTOR ADMIN = DEFERRED TO SOL`.
+- `APO-63 R2 executor remediation = COMPLETE / PENDING SOL EXACT-HEAD RE-REVIEW`.
 - `APO-50 = NOT STARTED`.
 - `APO-33 = NOT STARTED`.
 - `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
