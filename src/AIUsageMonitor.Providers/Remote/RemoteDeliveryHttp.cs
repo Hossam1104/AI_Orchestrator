@@ -36,7 +36,8 @@ internal static class RemoteDeliveryHttp
         {
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
-                return new(Map(response.StatusCode), Error(response.StatusCode), StatusCode: response.StatusCode);
+                return new(Map(response.StatusCode), ErrorMessage: Error(response.StatusCode), StatusCode: response.StatusCode,
+                    OutcomeUncertain: (int)response.StatusCode >= 500);
             if (response.Content.Headers.ContentLength > MaxResponseBytes)
                 return new(RemoteEvidenceState.InvalidResponse, ErrorMessage: "Remote mutation response exceeded its bounded size.", StatusCode: response.StatusCode);
             var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);

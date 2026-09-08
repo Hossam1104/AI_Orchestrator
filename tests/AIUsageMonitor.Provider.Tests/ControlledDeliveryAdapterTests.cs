@@ -68,6 +68,9 @@ public sealed class ControlledDeliveryAdapterTests
         Assert.Contains("\"deleteSourceBranch\":false", request.Body, StringComparison.Ordinal);
         Assert.Contains("\"bypassPolicy\":false", request.Body, StringComparison.Ordinal);
         Assert.DoesNotContain("autoComplete", request.Body, StringComparison.OrdinalIgnoreCase);
+
+        var reconciliation = await adapter.ReconcileAsync(Command(target, SourceControlDeliveryOperationKind.MergePullRequest, handler, highRisk: true, credentialReference: "azure:test"));
+        Assert.Equal(SourceControlDeliveryStatus.AlreadyApplied, reconciliation.Status);
     }
 
     [Fact]
@@ -213,6 +216,109 @@ public sealed class ControlledDeliveryAdapterTests
         Assert.Equal(1, handler.Requests.Count(value => value.Method == HttpMethod.Put && value.Path.Contains("reviewers", StringComparison.Ordinal)));
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.BadGateway)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.GatewayTimeout)]
+    public async Task StateChangingHttp5xx_IsUncertainAndSentOnce(HttpStatusCode status)
+    {
+        var handler = new DeliveryHandler { Provider = RemoteRepositoryProvider.GitHub, CreatePullRequestFailureStatus = status };
+        var adapter = new GitHubRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.GitHub, handler), new SingleClientFactory(handler), new EmptyCredentials());
+
+        var result = await adapter.MutateAsync(
+            Command(RemoteRepositoryProvider.GitHub, "https://github.com/owner/repo.git", null, SourceControlDeliveryOperationKind.CreateDraftPullRequest, handler),
+            defaultEvidence(handler));
+
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+        Assert.True(result.MutationSent);
+        Assert.True(result.MayHaveModifiedRemote);
+        Assert.Equal(1, handler.Requests.Count(request => request.Method == HttpMethod.Post && request.Path.EndsWith("/pulls", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task AzureReviewerPartialWrite_RequiresReconciliationAndStopsAtFailure()
+    {
+        var handler = new DeliveryHandler
+        {
+            Provider = RemoteRepositoryProvider.AzureRepos,
+            PullRequestId = "7",
+            ReviewerFailureIndex = 2,
+            ReviewerFailureStatus = HttpStatusCode.NotFound
+        };
+        var adapter = new AzureReposRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.AzureRepos, handler), new SingleClientFactory(handler), new StaticCredentials());
+
+        var result = await adapter.MutateAsync(
+            Command(Target(RemoteRepositoryProvider.AzureRepos, "https://dev.azure.com/org/project/_git/repository", "7"), SourceControlDeliveryOperationKind.RequestReviewers, handler,
+                reviewers: ["reviewer-a", "reviewer-b", "reviewer-c"], credentialReference: "azure:test"),
+            defaultEvidence(handler));
+
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+        Assert.True(result.MutationSent);
+        Assert.True(result.MayHaveModifiedRemote);
+        Assert.Equal(2, handler.Requests.Count(value => value.Method == HttpMethod.Put && value.Path.Contains("reviewers", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task AzureFirstReviewerFailure_PreservesOrdinaryFailureSemantics()
+    {
+        var handler = new DeliveryHandler
+        {
+            Provider = RemoteRepositoryProvider.AzureRepos,
+            PullRequestId = "7",
+            ReviewerFailureIndex = 1,
+            ReviewerFailureStatus = HttpStatusCode.NotFound
+        };
+        var adapter = new AzureReposRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.AzureRepos, handler), new SingleClientFactory(handler), new StaticCredentials());
+
+        var result = await adapter.MutateAsync(
+            Command(Target(RemoteRepositoryProvider.AzureRepos, "https://dev.azure.com/org/project/_git/repository", "7"), SourceControlDeliveryOperationKind.RequestReviewers, handler,
+                reviewers: ["reviewer-a", "reviewer-b"], credentialReference: "azure:test"),
+            defaultEvidence(handler));
+
+        Assert.Equal(SourceControlDeliveryStatus.Failed, result.Status);
+        Assert.True(result.MutationSent);
+        Assert.False(result.MayHaveModifiedRemote);
+        Assert.Equal(1, handler.Requests.Count(value => value.Method == HttpMethod.Put && value.Path.Contains("reviewers", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task AzureReviewerUncertainFailure_RequiresReconciliation()
+    {
+        var handler = new DeliveryHandler
+        {
+            Provider = RemoteRepositoryProvider.AzureRepos,
+            PullRequestId = "7",
+            ReviewerFailureIndex = 2,
+            ReviewerFailureStatus = HttpStatusCode.BadGateway
+        };
+        var adapter = new AzureReposRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.AzureRepos, handler), new SingleClientFactory(handler), new StaticCredentials());
+
+        var result = await adapter.MutateAsync(
+            Command(Target(RemoteRepositoryProvider.AzureRepos, "https://dev.azure.com/org/project/_git/repository", "7"), SourceControlDeliveryOperationKind.RequestReviewers, handler,
+                reviewers: ["reviewer-a", "reviewer-b"], credentialReference: "azure:test"),
+            defaultEvidence(handler));
+
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+        Assert.True(result.MutationSent);
+        Assert.True(result.MayHaveModifiedRemote);
+        Assert.Equal(2, handler.Requests.Count(value => value.Method == HttpMethod.Put && value.Path.Contains("reviewers", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task AzureActivePullRequestWithMovedBase_CannotReconcileAsExact()
+    {
+        var handler = new DeliveryHandler { Provider = RemoteRepositoryProvider.AzureRepos, PullRequestId = "7" };
+        handler.CurrentBaseSha = "5555555555555555555555555555555555555555";
+        var adapter = new AzureReposRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.AzureRepos, handler), new SingleClientFactory(handler), new StaticCredentials());
+
+        var result = await adapter.ReconcileAsync(Command(Target(RemoteRepositoryProvider.AzureRepos, "https://dev.azure.com/org/project/_git/repository", "7"), SourceControlDeliveryOperationKind.RequestReviewers, handler,
+            reviewers: ["reviewer-a"], credentialReference: "azure:test"));
+
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+        Assert.True(result.MayHaveModifiedRemote);
+    }
+
     private static SourceControlDeliveryCommand Command(RemoteRepositoryProvider provider, string url, string? pullRequestId, SourceControlDeliveryOperationKind operation, DeliveryHandler handler) =>
         Command(Target(provider, url, pullRequestId), operation, handler, highRisk: operation is SourceControlDeliveryOperationKind.MarkReadyForReview or SourceControlDeliveryOperationKind.MergePullRequest);
 
@@ -241,13 +347,13 @@ public sealed class ControlledDeliveryAdapterTests
                 handler.Provider == RemoteRepositoryProvider.GitHub ? "1" : "repo-guid", handler.Provider == RemoteRepositoryProvider.GitHub ? "owner/repo" : "org/project/repository", handler.Provider == RemoteRepositoryProvider.GitHub ? "owner" : "org", handler.Provider == RemoteRepositoryProvider.GitHub ? "repo" : "repository", "main"),
             RemoteEvidenceState.Available,
             new RemoteBranchEvidence("task", handler.CurrentHeadSha, false), RemoteEvidenceState.Available,
-            handler.PullRequestId is null ? null : new RemotePullRequestEvidence(handler.PullRequestId, handler.PullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, BaseSha, RemoteMergeability.Available, null,
+            handler.PullRequestId is null ? null : new RemotePullRequestEvidence(handler.PullRequestId, handler.EvidencePullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, BaseSha, RemoteMergeability.Available, null,
                 handler.Title, handler.Body, handler.MergeCommitId),
             handler.PullRequestId is null ? RemoteEvidenceState.NotConfigured : RemoteEvidenceState.Available,
             reviews: handler.RequestedReviewers.Select(reviewer => new RemoteReviewEvidence(reviewer, "requested", requested: true)).ToArray(),
             reviewState: handler.PullRequestId is null ? RemoteEvidenceState.NotConfigured : RemoteEvidenceState.Available),
              new RemoteBranchEvidence("task", handler.CurrentHeadSha, false), new RemoteBranchEvidence("main", handler.CurrentBaseSha, true),
-             handler.PullRequestId is null ? null : new RemotePullRequestEvidence(handler.PullRequestId, handler.PullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, handler.CurrentBaseSha, RemoteMergeability.Available, null,
+             handler.PullRequestId is null ? null : new RemotePullRequestEvidence(handler.PullRequestId, handler.EvidencePullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, handler.CurrentBaseSha, RemoteMergeability.Available, null,
                 handler.Title, handler.Body, handler.MergeCommitId));
 
     private sealed class FakeEvidenceProvider(RemoteRepositoryProvider provider, DeliveryHandler handler) : IRemoteRepositoryEvidenceProvider
@@ -259,7 +365,7 @@ public sealed class ControlledDeliveryAdapterTests
             var source = provider == RemoteRepositoryProvider.GitHub ? RemoteEvidenceSource.GitHubRest : RemoteEvidenceSource.AzureDevOpsRest;
             var branch = request.RequestedBranch?.Equals("main", StringComparison.Ordinal) == true ? new RemoteBranchEvidence("main", handler.CurrentBaseSha, true) : new RemoteBranchEvidence("task", handler.CurrentHeadSha, false);
             var hasPr = request.PullRequestNumber.HasValue;
-            var pr = hasPr ? new RemotePullRequestEvidence(request.PullRequestNumber!.Value.ToString(), handler.PullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, handler.CurrentBaseSha, RemoteMergeability.Available, null,
+            var pr = hasPr ? new RemotePullRequestEvidence(request.PullRequestNumber!.Value.ToString(), handler.EvidencePullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, handler.CurrentBaseSha, RemoteMergeability.Available, null,
                 handler.Title, handler.Body, handler.MergeCommitId) : null;
             return Task.FromResult(new RemoteRepositoryEvidence(ProjectId, RemoteEvidenceState.Available, source, DateTimeOffset.UtcNow,
                 new RemoteRepositoryIdentity(provider, source, provider == RemoteRepositoryProvider.GitHub ? "1" : "repo-guid", provider == RemoteRepositoryProvider.GitHub ? "owner/repo" : "org/project/repository", provider == RemoteRepositoryProvider.GitHub ? "owner" : "org", provider == RemoteRepositoryProvider.GitHub ? "repo" : "repository", "main"),
@@ -273,9 +379,27 @@ public sealed class ControlledDeliveryAdapterTests
     {
         public RemoteRepositoryProvider Provider { get; init; }
         public string CurrentHeadSha { get; set; } = HeadSha;
-        public string CurrentBaseSha { get; private set; } = BaseSha;
+        public string CurrentBaseSha { get; set; } = BaseSha;
         public string? PullRequestId { get; set; }
         public string PullRequestState { get; private set; } = "open";
+        public string RawPullRequestState => Provider == RemoteRepositoryProvider.AzureRepos
+            ? PullRequestState switch
+            {
+                "open" => "active",
+                "merged" => "completed",
+                _ => PullRequestState
+            }
+            : PullRequestState;
+        public string EvidencePullRequestState => Provider == RemoteRepositoryProvider.AzureRepos
+            ? RawPullRequestState switch
+            {
+                "open" => "open",
+                "active" => "open",
+                "completed" => "merged",
+                "abandoned" => "closed",
+                _ => "unknown"
+            }
+            : PullRequestState;
         public bool IsDraft { get; set; } = true;
         public string Title { get; private set; } = "APO-63 test PR";
         public string Body { get; private set; } = "bounded body";
@@ -290,6 +414,9 @@ public sealed class ControlledDeliveryAdapterTests
         public bool DriftHeadAfterMutation { get; init; }
         public bool DriftHeadAfterReviewerMutation { get; init; }
         public bool DriftBaseAfterReviewerMutation { get; init; }
+        public int? ReviewerFailureIndex { get; init; }
+        public HttpStatusCode? ReviewerFailureStatus { get; init; }
+        public HttpStatusCode? CreatePullRequestFailureStatus { get; init; }
         public List<RecordedRequest> Requests { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -300,6 +427,8 @@ public sealed class ControlledDeliveryAdapterTests
             {
                 if (request.Method == HttpMethod.Post && request.RequestUri.AbsolutePath.EndsWith("/pulls", StringComparison.Ordinal))
                 {
+                    if (CreatePullRequestFailureStatus is { } failureStatus)
+                        return Status(failureStatus);
                     PullRequestId = "42";
                     return Json("{\"number\":42,\"node_id\":\"" + NodeId + "\",\"draft\":true,\"base\":{\"ref\":\"main\",\"sha\":\"" + BaseSha + "\",\"repo\":{\"full_name\":\"owner/repo\"}},\"head\":{\"ref\":\"task\",\"sha\":\"" + HeadSha + "\"}}");
                 }
@@ -360,7 +489,7 @@ public sealed class ControlledDeliveryAdapterTests
                 if (request.Method == HttpMethod.Put && request.RequestUri.AbsolutePath.EndsWith("/merge", StringComparison.Ordinal)) { PullRequestState = "merged"; MergeCommitId = SuppressMergeEvidence ? null : MergeSha; if (!SuppressMergeBaseAdvance) CurrentBaseSha = MergeSha; return Json("{\"merged\":true,\"sha\":\"" + MergeSha + "\"}"); }
                 return Json("{}");
             }
-            if (request.Method == HttpMethod.Patch && body.Contains("\"status\":\"completed\"", StringComparison.Ordinal)) { PullRequestId ??= "7"; PullRequestState = "completed"; MergeCommitId = MergeSha; if (!SuppressMergeBaseAdvance) CurrentBaseSha = MergeSha; return Json("{\"pullRequestId\":7,\"status\":\"completed\",\"lastMergeCommit\":{\"commitId\":\"" + MergeSha + "\"}}"); }
+            if (request.Method == HttpMethod.Patch && body.Contains("\"status\":\"completed\"", StringComparison.Ordinal)) { PullRequestId ??= "7"; PullRequestState = "merged"; MergeCommitId = MergeSha; if (!SuppressMergeBaseAdvance) CurrentBaseSha = MergeSha; return Json("{\"pullRequestId\":7,\"status\":\"completed\",\"lastMergeCommit\":{\"commitId\":\"" + MergeSha + "\"}}"); }
             if (request.Method == HttpMethod.Patch && body.Contains("\"isDraft\":false", StringComparison.Ordinal)) { IsDraft = false; return Json("{}"); }
             if (request.Method == HttpMethod.Patch && request.RequestUri.AbsolutePath.Contains("pullRequests/7", StringComparison.Ordinal))
             {
@@ -378,6 +507,9 @@ public sealed class ControlledDeliveryAdapterTests
             if (request.Method == HttpMethod.Put && request.RequestUri.AbsolutePath.Contains("reviewers", StringComparison.Ordinal))
             {
                 var reviewer = request.RequestUri.Segments[^1].Split('?', StringSplitOptions.RemoveEmptyEntries)[0].Trim('/');
+                var reviewerWriteNumber = Requests.Count(value => value.Method == HttpMethod.Put && value.Path.Contains("reviewers", StringComparison.Ordinal));
+                if (ReviewerFailureIndex == reviewerWriteNumber && ReviewerFailureStatus is { } failureStatus)
+                    return Status(failureStatus);
                 RequestedReviewers.Add(Uri.UnescapeDataString(reviewer));
                 if (DriftHeadAfterReviewerMutation) CurrentHeadSha = "4444444444444444444444444444444444444444";
                 if (DriftBaseAfterReviewerMutation) CurrentBaseSha = "5555555555555555555555555555555555555555";
@@ -387,6 +519,7 @@ public sealed class ControlledDeliveryAdapterTests
         }
 
         private static HttpResponseMessage Json(string body) => new(HttpStatusCode.OK) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") };
+        private static HttpResponseMessage Status(HttpStatusCode status) => new(status);
     }
 
     private sealed record RecordedRequest(HttpMethod Method, string Path, string Body);

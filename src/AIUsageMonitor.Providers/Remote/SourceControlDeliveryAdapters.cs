@@ -185,7 +185,7 @@ public abstract class RemoteSourceControlDeliveryAdapterBase : IRemoteSourceCont
             string.Equals(pr.TargetBranch, command.Target.BaseRef, StringComparison.Ordinal) &&
             string.Equals(pr.HeadCommitId, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(pr.MergeCommitId, mergeCommitSha, StringComparison.OrdinalIgnoreCase) &&
-            (pr.State.Equals("merged", StringComparison.OrdinalIgnoreCase) || pr.State.Equals("completed", StringComparison.OrdinalIgnoreCase));
+            pr.State.Equals("merged", StringComparison.OrdinalIgnoreCase);
         return exact
             ? null
             : new(SourceControlDeliveryStatus.ReconciliationRequired, "Fresh post-merge evidence does not prove the exact merge commit advanced the target branch.", PullRequestId: command.Target.PullRequestId, MergeCommitSha: mergeCommitSha, MutationSent: true, MayHaveModifiedRemote: true, Evidence: evidence);
@@ -548,10 +548,20 @@ public sealed class AzureReposRemoteSourceControlDeliveryAdapter : RemoteSourceC
                 break;
             case SourceControlDeliveryOperationKind.RequestReviewers:
             {
+                var anyReviewerWriteSucceeded = false;
                 foreach (var reviewer in command.Reviewers)
                 {
                     response = await SendAsync(HttpMethod.Put, target.Api($"pullRequests/{number}/reviewers/{Uri.EscapeDataString(reviewer)}?api-version=7.1"), authorization, new { }, cancellationToken).ConfigureAwait(false);
-                    if (response.State is not RemoteEvidenceState.Available) return MapFailure(response);
+                    if (response.State is not RemoteEvidenceState.Available)
+                    {
+                        var failure = MapFailure(response);
+                        return anyReviewerWriteSucceeded && !response.OutcomeUncertain
+                            ? new(SourceControlDeliveryStatus.ReconciliationRequired, failure.ErrorMessage,
+                                PullRequestId: number, MutationSent: true, MayHaveModifiedRemote: true)
+                            : failure;
+                    }
+
+                    anyReviewerWriteSucceeded = true;
                 }
                 var reviewerEvidence = await ReadAfterMutationAsync(command, number, cancellationToken).ConfigureAwait(false);
                 var reviewerTargetFailure = VerifyExactPostWriteTarget(command, reviewerEvidence);

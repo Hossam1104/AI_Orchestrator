@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 8 September 2026 (APO-63 R1 executor remediation handoff)
+**Last Updated:** 8 September 2026 (APO-63 R4 executor remediation handoff)
 
 ## Canonical live snapshot
 
@@ -308,6 +308,36 @@ automatic roadmap execution and no feature creep.
 - `JIRA R2 HANDOFF = DEFERRED TO SOL`; this executor did not mutate Jira.
 - PR #33 remains `OPEN / DRAFT / UNMERGED`, base `main`, exact head branch above. This executor did
   not merge, mark Ready, create another PR, invoke Opus, or start APO-50/APO-33.
+- `APO-50 = NOT STARTED`; `APO-33 = NOT STARTED`.
+- `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
+- Final branch head/tree are reported in the executor completion report after the metadata handoff
+  commit; no self-SHA recursion is written into this file.
+
+## APO-63 R4 executor remediation handoff
+
+`APO-63 R4 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL EXACT-HEAD R4 RE-REVIEW`
+
+- `OPUS-63-01 = REMEDIATED / PENDING SOL RE-REVIEW`: Azure Repos PR statuses are normalized at
+  the evidence-provider boundary (`active -> open`, `completed -> merged`, `abandoned -> closed`,
+  unknown values -> `unknown`).
+- `OPUS-63-02 = REMEDIATED / PENDING SOL RE-REVIEW`: all state-changing HTTP 5xx responses are
+  outcome-uncertain and map to reconciliation-required truth with `MutationSent = true` and
+  `MayHaveModifiedRemote = true`; no transport retry was added.
+- `OPUS-63-03 = REMEDIATED / PENDING SOL RE-REVIEW`: Azure reviewer writes track prior successful
+  PUTs and classify deterministic mid-loop failure as reconciliation-required; the loop stops at
+  the first failure and preserves ordinary first-write failure semantics.
+- Deferred low findings `OPUS-63-04`, `OPUS-63-05`, and `OPUS-63-06` were not changed.
+- Focused provider validation: `27 passed / 0 failed / 0 skipped`.
+- Full provider validation: `171 passed / 0 failed / 0 skipped`.
+- Canonical deterministic solution validation: `1,223 passed / 0 failed / 0 skipped` (`Domain 28`,
+  `Provider 171`, `Infrastructure 672`, `Desktop 83`, `Connection 269`).
+- `dotnet restore` succeeded; solution build succeeded with `0 warnings / 0 errors`.
+- `git diff --check` and changed-scope secret scan are clean.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `JIRA R4 HANDOFF = DEFERRED TO SOL`; no Jira connector mutation was performed.
+- PR #33 remains `OPEN / DRAFT / UNMERGED / MERGEABLE`; no Ready promotion, merge, new PR, or Opus
+  invocation occurred.
 - `APO-50 = NOT STARTED`; `APO-33 = NOT STARTED`.
 - `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
 - Final branch head/tree are reported in the executor completion report after the metadata handoff
