@@ -1,6 +1,7 @@
 using AIUsageMonitor.Application.Alerts;
 using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.Approvals;
+using AIUsageMonitor.Application.Delivery;
 using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Providers;
@@ -53,6 +54,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<JsonlEventStore<ActivityAuditRecordFile>>();
         services.AddSingleton<JsonlEventStore<TrackerMutationAuditRecord>>();
         services.AddSingleton<JsonlEventStore<HumanApprovalEventRecord>>();
+        services.AddSingleton<JsonlEventStore<SourceControlDeliveryAuditRecord>>();
 
         services.AddSingleton<IUsageSnapshotRepository, JsonUsageSnapshotRepository>();
         services.AddSingleton<IProviderRepository, JsonProviderRepository>();
@@ -105,6 +107,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IBoundedProcessHost, BoundedProcessHost>();
         services.AddSingleton<IManagedWorkspacePathProvider, ManagedWorkspacePathProvider>();
         services.AddSingleton<IWorkspaceRepository, GitWorkspaceRepository>();
+        services.AddSingleton<IWorkspacePreparedWorkspaceVerifier>(service =>
+            (IWorkspacePreparedWorkspaceVerifier)service.GetRequiredService<IWorkspaceRepository>());
         services.AddSingleton<IRepositoryPreparationLock, RepositoryPreparationFileLock>();
         services.AddSingleton<IWorkspacePreparationPlanRepository, JsonWorkspacePreparationPlanRepository>();
         services.AddSingleton<IWorkspacePreparationReceiptRepository, JsonWorkspacePreparationReceiptRepository>();
@@ -116,6 +120,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<ITrackerMutationAuditRepository, JsonTrackerMutationAuditRepository>();
         services.AddSingleton<IWorkItemTrackerAdapterResolver, WorkItemTrackerAdapterResolver>();
         services.AddSingleton<ITrackerSynchronizationService, TrackerSynchronizationService>();
+        services.AddSingleton<ILocalDeliveryGitService, LocalDeliveryGitService>();
+        services.AddSingleton<ISourceControlDeliveryAuditStore, JsonSourceControlDeliveryAuditStore>();
 
         services.AddSingleton<IValidationPlanRepository, JsonValidationPlanRepository>();
         services.AddSingleton<IValidationEvidenceRepository, JsonValidationEvidenceRepository>();
@@ -138,6 +144,7 @@ public static class InfrastructureServiceCollectionExtensions
             new LocalSingleOwnerDecisionAuthority(Environment.UserName));
         services.AddSingleton<IHumanApprovalStore, JsonHumanApprovalStore>();
         services.AddSingleton<IHumanApprovalService, HumanApprovalService>();
+        services.AddSingleton<ISourceControlDeliveryService, SourceControlDeliveryService>();
 
         // Stateless native-call wrapper; singleton avoids re-allocating it per resolution while
         // matching the lifetime of every other adapter registered here.

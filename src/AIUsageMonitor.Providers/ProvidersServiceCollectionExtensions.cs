@@ -1,4 +1,5 @@
 using AIUsageMonitor.Application.Providers;
+using AIUsageMonitor.Application.Delivery;
 using AIUsageMonitor.Application.RemoteEvidence;
 using AIUsageMonitor.Application.Trackers;
 using AIUsageMonitor.Providers.Antigravity;
@@ -114,6 +115,12 @@ public static class ProvidersServiceCollectionExtensions
         services.AddSingleton<IRemoteRepositoryEvidenceProvider>(provider =>
             provider.GetRequiredService<AzureReposRemoteRepositoryEvidenceProvider>());
         services.AddSingleton<IRemoteRepositoryEvidenceService, RemoteRepositoryEvidenceService>();
+        services.AddSingleton<GitHubRemoteSourceControlDeliveryAdapter>();
+        services.AddSingleton<AzureReposRemoteSourceControlDeliveryAdapter>();
+        services.AddSingleton<IRemoteSourceControlDeliveryAdapter>(provider =>
+            provider.GetRequiredService<GitHubRemoteSourceControlDeliveryAdapter>());
+        services.AddSingleton<IRemoteSourceControlDeliveryAdapter>(provider =>
+            provider.GetRequiredService<AzureReposRemoteSourceControlDeliveryAdapter>());
 
         services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<CodexProvider>());
         services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<ClaudeProvider>());

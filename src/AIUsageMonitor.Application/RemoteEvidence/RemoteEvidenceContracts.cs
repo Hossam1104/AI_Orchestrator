@@ -268,7 +268,11 @@ public sealed class RemotePullRequestEvidence
         string? headCommitId,
         string? baseCommitId,
         RemoteMergeability mergeability,
-        Uri? webUrl = null)
+        Uri? webUrl = null,
+        string? title = null,
+        string? body = null,
+        string? mergeCommitId = null,
+        string? providerNodeId = null)
     {
         Id = Required(id, nameof(id));
         State = Required(state, nameof(state));
@@ -279,6 +283,10 @@ public sealed class RemotePullRequestEvidence
         BaseCommitId = Optional(baseCommitId);
         Mergeability = mergeability;
         WebUrl = webUrl;
+        Title = Optional(title);
+        Body = body is null ? null : body.Length <= 20_000 ? body : body[..19_999] + "…";
+        MergeCommitId = Optional(mergeCommitId);
+        ProviderNodeId = Optional(providerNodeId);
     }
 
     public string Id { get; }
@@ -298,6 +306,14 @@ public sealed class RemotePullRequestEvidence
     public RemoteMergeability Mergeability { get; }
 
     public Uri? WebUrl { get; }
+
+    public string? Title { get; }
+
+    public string? Body { get; }
+
+    public string? MergeCommitId { get; }
+
+    public string? ProviderNodeId { get; }
 
     private static string Required(string value, string parameterName) =>
         Optional(value) is { } normalized

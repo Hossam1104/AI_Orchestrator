@@ -312,6 +312,9 @@ public sealed class ApplicationDataPaths
 
     public string GetProjectTrackerAuditDirectory(Guid projectId) => GetProjectPaths(projectId).TrackerAuditDirectory;
 
+    /// <summary>Project-isolated append-only audit stream for controlled source-control delivery.</summary>
+    public string GetProjectDeliveryAuditDirectory(Guid projectId) => GetProjectPaths(projectId).DeliveryAuditDirectory;
+
     public string GetProjectWorkspacesDirectory(Guid projectId) =>
         Path.Combine(GetProjectPaths(projectId).RootDirectory, "workspaces");
 
@@ -388,6 +391,7 @@ public sealed class ApplicationDataPaths
         Directory.CreateDirectory(projectPaths.ReviewWorkflowDirectory);
         Directory.CreateDirectory(projectPaths.ActivityDirectory);
         Directory.CreateDirectory(projectPaths.TrackerAuditDirectory);
+        Directory.CreateDirectory(projectPaths.DeliveryAuditDirectory);
         Directory.CreateDirectory(projectPaths.RootDirectory);
     }
 
@@ -422,6 +426,7 @@ public sealed class ProjectDataPaths
         ApprovalsDirectory = Path.Combine(OrchestrationDirectory, "approvals");
         ActivityDirectory = Path.Combine(OrchestrationDirectory, "activity");
         TrackerAuditDirectory = Path.Combine(OrchestrationDirectory, "tracker-audit");
+        DeliveryAuditDirectory = Path.Combine(OrchestrationDirectory, "delivery-audit");
         ContractsDirectory = Path.Combine(rootDirectory, "contracts");
         WorkGraphsDirectory = Path.Combine(rootDirectory, "work-graphs");
         HandoffsDirectory = Path.Combine(rootDirectory, "handoffs");
@@ -455,6 +460,9 @@ public sealed class ProjectDataPaths
 
     /// <summary>Project-isolated append-only evidence for bounded tracker mutations.</summary>
     public string TrackerAuditDirectory { get; }
+
+    /// <summary>Append-only APO-63 delivery outcomes, containing references and hashes only.</summary>
+    public string DeliveryAuditDirectory { get; }
 
     public string ContractsDirectory { get; }
 

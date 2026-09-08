@@ -321,7 +321,7 @@ public sealed class AzureReposRemoteRepositoryEvidenceProvider : IRemoteReposito
                 : null;
             draft.PullRequest = new RemotePullRequestEvidence(
                 RemoteEvidenceJson.Required(root, "pullRequestId"),
-                RemoteEvidenceJson.Required(root, "status"),
+                NormalizePullRequestState(RemoteEvidenceJson.Required(root, "status")),
                 RemoteEvidenceJson.Boolean(root, "isDraft"),
                 NormalizeBranch(RemoteEvidenceJson.String(root, "sourceRefName")),
                 NormalizeBranch(RemoteEvidenceJson.String(root, "targetRefName")),
@@ -334,7 +334,13 @@ public sealed class AzureReposRemoteRepositoryEvidenceProvider : IRemoteReposito
                     "checking" => RemoteMergeability.Calculating,
                     _ => RemoteMergeability.Unknown
                 },
-                SafeAzureUri(root, "url"));
+                SafeAzureUri(root, "url"),
+                RemoteEvidenceJson.String(root, "title"),
+                RemoteEvidenceJson.String(root, "description"),
+                root.TryGetProperty("lastMergeCommit", out var mergeCommit)
+                    ? RemoteEvidenceJson.String(mergeCommit, "commitId")
+                    : null,
+                RemoteEvidenceJson.String(root, "pullRequestId"));
             draft.PullRequestState = RemoteEvidenceState.Available;
 
             if (root.TryGetProperty("reviewers", out var reviewers) && reviewers.ValueKind == JsonValueKind.Array)
@@ -655,6 +661,15 @@ public sealed class AzureReposRemoteRepositoryEvidenceProvider : IRemoteReposito
                 new AuthenticationHeaderValue("Basic", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(":" + token))),
                 null);
     }
+
+    private static string NormalizePullRequestState(string status) =>
+        status.Trim().ToLowerInvariant() switch
+        {
+            "active" => "open",
+            "completed" => "merged",
+            "abandoned" => "closed",
+            _ => "unknown"
+        };
 
     private static (RemoteEvidenceState State, List<RemoteStatusEvidence> Values, bool Truncated) ParseAzureStatuses(
         RemoteHttpResult response,

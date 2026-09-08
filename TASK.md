@@ -7,46 +7,40 @@ This file is a short authority boundary, not an executable executor prompt.
 
 ## Current authority
 
-- `APO-48 = Done`.
-- `APO-51 = FINAL ACCEPTED / MERGED / DONE`.
-- `APO-49 = FINAL ACCEPTED / MERGED`.
-- `CURRENT NEXT GATE = APO-63`.
-- `APO-63 = NOT STARTED`.
-- Executor branch: `feat/APO-49-human-approval-gates`.
-- R1 functional commit: `9ff04a0a953c6a8676808447dbc2a8f594cba4c2`; tree
-  `55491427e6d0ac950d9d1576377b31d870647ae3`.
-- R2 functional commit: `72e796d6d95d0ca086aeb9614d830ed30e4144ad`; tree
-  `aaf87a55bd5a55c26fc58f66ed3bb7080ac97864`.
-- Product merge: `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6`; accepted head
-  `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`; accepted tree
-  `09a35856723723dd59da9424d4c1b2b3b0576b8a`.
-- `JIRA CLOSEOUT ADMIN = PENDING SOL RECONCILIATION`; product closed / Jira admin pending Sol
-  reconciliation.
-- The accepted APO-51 product merge is `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`.
-- `TASK.md` does not authorize downstream implementation or roadmap continuation.
-- The next executor prompt requires GPT-5.6 Sol authority; no automatic roadmap continuation is permitted.
+- `FAST V1 CURRENT GATE = APO-63`.
+- `APO-63 R3 executor remediation complete / Sol exact-head R3 re-review pending`.
+- `SOL-63-01 = CLOSED / PRESERVED`.
+- `SOL-63-02R = CLOSED / PRESERVED`.
+- `SOL-63-03 = CLOSED / PRESERVED`.
+- `SOL-63-04R-AZURE-REVIEWERS = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-05R = CLOSED / PRESERVED`.
+- `SOL-63-06 = CLOSED / PRESERVED`.
+- `SOL-63-07R = CLOSED / PRESERVED`.
+- Executor branch: `feat/APO-63-controlled-remote-delivery`.
+- R2 functional commit: `2ec0b7a56ad5495dd6c942eef7a52197c19c625f`; tree
+  `1793cf309469c3caf0bdca752208098a62bc1f42`; parent
+  `9bb90c152134a7d6987257019969fe92290b6429`.
+- R3 functional commit: `14dc2dcce50309b84cf435292f8e27f66cf8ffb1`; tree
+  `8cd82b3d349f503c5a37416765c8b58589a736e0`; parent
+  `ac19401966ac9e60546d9052f0323002a187115a`.
+- APO-63 PR #33: `OPEN / DRAFT / UNMERGED`, base `main`, exact head branch above.
+- `JIRA R3 HANDOFF = COMPLETED`; comment `12381`; APO-63 remains `In Progress`.
 
 ## FAST V1 order
 
 `APO-63 -> APO-50 -> APO-33 -> Final V1 Release Audit -> v1.0.0`
-
-## Resource boundary
-
-- Active V1 resources: OpenAI + Claude + Antigravity Plus.
-- `COPILOT = POST-V1`.
-- Inactive/new provider work is `POST-V1`.
-- Existing optional provider code is preserved; provider cleanup/removal is deferred.
 
 ## Execution boundary
 
 - No feature creep.
 - No automatic roadmap execution.
 - Do not start a downstream Story without a fresh Sol-authored contract.
-- GitHub remains V1 infrastructure; GitHub Actions remains APO-33 and is not yet delivered.
+- Do not merge PR #33, mark it Ready, create another PR, invoke Opus, or start APO-50/APO-33.
+- GitHub Actions remains APO-33 and is not delivered.
 
 ## Handoff status
 
-- `APO-49 = FINAL ACCEPTED / MERGED`.
-- `CURRENT NEXT GATE = APO-63`.
-- `JIRA CLOSEOUT ADMIN = PENDING SOL RECONCILIATION`.
-- `APO-63 NOT STARTED`.
+- `APO-63 R3 executor remediation = COMPLETE / PENDING SOL EXACT-HEAD R3 RE-REVIEW`.
+- `APO-50 = NOT STARTED`.
+- `APO-33 = NOT STARTED`.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.

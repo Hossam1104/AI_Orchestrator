@@ -585,6 +585,7 @@ public sealed class RemoteRepositoryEvidenceTests
         Assert.Equal(RemoteEvidenceSource.AzureDevOpsRest, evidence.Source);
         Assert.Equal("repo-guid", evidence.Repository!.ProviderRepositoryId);
         Assert.Equal("org/Project/repo", evidence.Repository.CanonicalName);
+        Assert.Equal("open", evidence.PullRequest!.State);
         Assert.Equal("def456", evidence.PullRequest!.HeadCommitId);
         Assert.Equal(RemoteMergeability.Available, evidence.PullRequest.Mergeability);
         Assert.Equal(2, evidence.Reviews.Count);
@@ -603,6 +604,24 @@ public sealed class RemoteRepositoryEvidenceTests
         Assert.Contains("top=100", Uri.UnescapeDataString(commitStatusRequest.RequestUri!.Query), StringComparison.Ordinal);
         Assert.DoesNotContain("$top=", Uri.UnescapeDataString(commitStatusRequest.RequestUri!.Query), StringComparison.Ordinal);
         Assert.Equal("https://dev.azure.com/org/Project/_build/results/99", evidence.CiRuns.Single().WebUrl!.ToString());
+    }
+
+    [Theory]
+    [InlineData("active", "open")]
+    [InlineData("completed", "merged")]
+    [InlineData("abandoned", "closed")]
+    [InlineData("notSet", "unknown")]
+    [InlineData("unexpected", "unknown")]
+    public async Task Azure_PullRequestStatusIsNormalizedAtEvidenceBoundary(string rawStatus, string expectedState)
+    {
+        var provider = CreateAzurePullRequestStateProvider(rawStatus, out _);
+        var evidence = await provider.InspectAsync(new RemoteRepositoryEvidenceRequest(
+            Guid.NewGuid(), "AzureRepos", "https://dev.azure.com/org/Project/_git/repo", repositoryId: "repo-guid",
+            repositoryMetadata: new Dictionary<string, string?> { ["credentialReference"] = "azure-ref" },
+            requestedBranch: "main", pullRequestNumber: 7));
+
+        Assert.Equal(RemoteEvidenceState.Available, evidence.PullRequestState);
+        Assert.Equal(expectedState, evidence.PullRequest!.State);
     }
 
     [Theory]
@@ -1396,6 +1415,24 @@ public sealed class RemoteRepositoryEvidenceTests
                 "/org/Project/_apis/git/repositories/repo-guid/refs" => Json("{\"value\":[{\"name\":\"refs/heads/main\",\"objectId\":\"abc123\"}]}"),
                 "/org/Project/_apis/git/repositories/repo-guid/commits/abc123/statuses" => Json("{\"value\":[]}"),
                 _ when path.EndsWith("/_apis/build/builds", StringComparison.Ordinal) => buildRoute(request),
+                _ => Status(HttpStatusCode.NotFound)
+            };
+        });
+
+    private static AzureReposRemoteRepositoryEvidenceProvider CreateAzurePullRequestStateProvider(
+        string rawStatus,
+        out List<HttpRequestMessage> requests) =>
+        CreateAzureProvider(AzureCredentials(), out requests, request =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            return path switch
+            {
+                "/org/Project/_apis/git/repositories/repo" => Json("{\"id\":\"repo-guid\",\"name\":\"repo\",\"defaultBranch\":\"refs/heads/main\",\"project\":{\"id\":\"project-guid\",\"name\":\"Project\"},\"url\":\"https://dev.azure.com/org/Project/_git/repo\"}"),
+                "/org/Project/_apis/git/repositories/repo-guid/refs" => Json("{\"value\":[{\"name\":\"refs/heads/main\",\"objectId\":\"abc123\"}]}"),
+                "/org/Project/_apis/git/repositories/repo-guid/pullRequests/7" => Json($"{{\"pullRequestId\":7,\"status\":\"{rawStatus}\",\"isDraft\":false,\"sourceRefName\":\"refs/heads/feature\",\"targetRefName\":\"refs/heads/main\",\"lastMergeSourceCommit\":{{\"commitId\":\"def456\"}},\"lastMergeTargetCommit\":{{\"commitId\":\"abc123\"}},\"mergeStatus\":\"succeeded\",\"repository\":{{\"id\":\"repo-guid\"}},\"reviewers\":[]}}"),
+                "/org/Project/_apis/git/repositories/repo-guid/commits/def456/statuses" => Json("{\"value\":[]}"),
+                "/org/Project/_apis/git/repositories/repo-guid/pullRequests/7/statuses" => Json("{\"value\":[]}"),
+                "/org/Project/_apis/build/builds" => Json("{\"value\":[]}"),
                 _ => Status(HttpStatusCode.NotFound)
             };
         });

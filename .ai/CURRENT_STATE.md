@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 7 September 2026 (APO-49 controlled integration closeout)
+**Last Updated:** 8 September 2026 (APO-63 R4 executor remediation handoff)
 
 ## Canonical live snapshot
 
@@ -36,6 +36,19 @@
   `1,172 passed / 0 failed / 0 skipped`; build `0 warnings / 0 errors`.
 - Jira project key: `APO`. The Jira display name remains `AI Project Orchestrator`; this is a
   connector-visible display surface and is not changed by this closeout.
+- APO-63 executor branch: `feat/APO-63-controlled-remote-delivery`.
+- APO-63 R1 required starting baseline: branch `feat/APO-63-controlled-remote-delivery`, HEAD
+  `567d8e128c40082f9614da567c35c6af1395a08d`; tree
+  `446bbc0c48f61b897c87d4ce36ca2ffa35b07a55`; `origin/main`
+  `fc8a2d7c79772d716d2c3d17ce729844c539dbd9`.
+- APO-63 R1 primary functional commit: `b4b6df215de98dfa14d40d718f1d55a6997ce272`; tree
+  `f26b321c2a571a4aa77c75d606384aa43d144280`; parent
+  `567d8e128c40082f9614da567c35c6af1395a08d`.
+- APO-63 R1 pre-current-state metadata handoff: `a67445b4dae1eac88edd7587cd39ff306a39018b`;
+  tree `e6472c579d6448ebfaa659afb53c083faf6f0947`; later metadata-only alignment is recorded
+  in the pushed branch and PR #33.
+- APO-63 Draft PR: `#33`, base `main`, head
+  `feat/APO-63-controlled-remote-delivery`, `OPEN / DRAFT / UNMERGED`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
 - Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`
 
@@ -95,14 +108,61 @@ V1 is intentionally optimized around the currently available resource groups:
 Existing optional provider adapters and provider-independent architecture remain in the repository;
 provider cleanup/removal is deferred and is not part of this closeout.
 
+## APO-63 R1 executor delivery
+
+`APO-63 R1 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL RE-REVIEW`; executor completion is not
+Sol acceptance.
+
+- `SOL-63-01 = REMEDIATED / PENDING SOL RE-REVIEW` — authoritative managed-workspace plan,
+  receipt, approval, discovery, and prepared-workspace verification are required; raw paths and
+  reparse aliases are rejected.
+- `SOL-63-02 = REMEDIATED / PENDING SOL RE-REVIEW` — exact immutable command intent is hashed and
+  bound to project, work item, contract, repository, refs, evidence, authority, and paths.
+- `SOL-63-03 = REMEDIATED / PENDING SOL RE-REVIEW` — GitHub Ready uses bounded official GraphQL
+  mutation plus exact readback; REST `draft=false` is not used.
+- `SOL-63-04 = REMEDIATED / PENDING SOL RE-REVIEW` — remote postconditions prove exact PR identity,
+  refs, SHAs, metadata, comments, reviewers, ready state, and concrete merge SHA.
+- `SOL-63-05 = REMEDIATED / PENDING SOL RE-REVIEW` — durable Attempted audit precedes mutation;
+  restart reconciliation is read-only and does not automatically resend mutations.
+- `SOL-63-06 = REMEDIATED / PENDING SOL RE-REVIEW` — explicit partial, unavailable, failing,
+  pending, cancelled, unknown, or negative CI/status/check evidence blocks high-risk operations.
+- `SOL-63-07 = REMEDIATED / PENDING SOL RE-REVIEW` — remote delivery verification is distinct from
+  tracker synchronization, with tracker-only retry bound to the original authority.
+
+- Typed provider-independent operations: `CommitExactChanges`, `PushExactHead`,
+  `CreateDraftPullRequest`, `UpdatePullRequestMetadata`, `AddDeliveryComment`, `RequestReviewers`,
+  `MarkReadyForReview`, and `MergePullRequest`.
+- Application owns exact command/contract/project/work-item/repository/base/head/evidence bindings,
+  validation/review/approval gate coordination, idempotency, reconciliation, and tracker hook
+  contracts. Infrastructure owns safe structured Git commit/push and project-scoped JSONL audit.
+- Providers implement bounded official GitHub and Azure Repos mutations; API hosts are derived from
+  validated APO-62 identities. State-changing HTTP mutation retry count is zero.
+- Local Git integration: exact-path staging, unexpected/staged/untracked path rejection, branch and
+  parent verification, normal fast-forward push, remote identity matching, and post-push head check.
+- High-risk Ready/Merge requires current exact validation decision, current review workflow,
+  current APO-49 Approved/Waived evaluation, exact remote target, fresh late evidence, mergeability,
+  and truthful remote CI handling. No approval boolean shortcut is accepted.
+- Audit is append-only project JSONL with bounded records, event identity/kind, SHA-256 content
+  integrity, reference-only authorities, capacity enforcement, and fail-closed corrupt-history reads.
+- Focused R1 tests: delivery service `11 passed / 0 failed / 0 skipped`; provider adapters `4
+  passed / 0 failed / 0 skipped`; local Git `4 passed / 0 failed / 0 skipped`; total `19 passed / 0
+  failed / 0 skipped`.
+- Canonical R1 validation: serial solution run `1,191 passed / 0 failed / 0 skipped`; restore PASS;
+  build `0 warnings / 0 errors`; `git diff --check` clean; changed-scope secret scan clean.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `JIRA R1 HANDOFF = DEFERRED TO SOL`; Jira transition/comment were not performed by this
+  executor. APO-50 and APO-33 remain not started.
+
 ## FAST V1 gate
 
 `APO-51 = FINAL ACCEPTED / MERGED / DONE` and is no longer the current gate. `APO-49 = FINAL
-ACCEPTED / MERGED / CLOSED`. The current FAST V1 gate is `APO-63`, which is not started.
+ACCEPTED / MERGED / CLOSED`. The current FAST V1 gate is `APO-63`, executor-complete and pending
+Sol exact-head review.
 
 Remaining V1 Stories:
 
-1. `APO-63` - must ship; current next gate; `To Do`
+1. `APO-63` - must ship; current next gate; executor complete, pending Sol acceptance
 2. `APO-50` - must ship; `To Do`
 3. `APO-33` - must ship; `To Do`
 
@@ -215,3 +275,107 @@ Remaining implementation order:
 `TASK.md` records the APO-49 executor handoff and does not authorize APO-63 or any roadmap
 continuation. The next executor or reviewer prompt must come from GPT-5.6 Sol. There is no
 automatic roadmap execution and no feature creep.
+
+## APO-63 R2 executor remediation handoff
+
+`APO-63 R2 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL EXACT-HEAD RE-REVIEW`
+
+- `SOL-63-01 = CLOSED / PRESERVED`.
+- `SOL-63-02R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-03 = CLOSED / PRESERVED`.
+- `SOL-63-04R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-05R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-06 = CLOSED / PRESERVED`.
+- `SOL-63-07R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- Branch: `feat/APO-63-controlled-remote-delivery`.
+- R2 functional commit: `2ec0b7a56ad5495dd6c942eef7a52197c19c625f`; tree
+  `1793cf309469c3caf0bdca752208098a62bc1f42`; parent
+  `9bb90c152134a7d6987257019969fe92290b6429`.
+- Functional scope: atomic durable Attempted claims; strict command, actor, credential, approval,
+  validation, review, and tracker identity binding; exact repository/PR/head/base/merge proof;
+  fail-closed post-write reconciliation; and durable remote-verification-before-tracker ordering.
+- Focused R2 tests: Connection `21 passed / 0 failed / 0 skipped`; Provider `10 passed / 0 failed /
+  0 skipped`; Infrastructure `7 passed / 0 failed / 0 skipped`.
+- Canonical solution tests: `1,207 passed / 0 failed / 0 skipped` (`Domain 28`, `Provider 155`,
+  `Infrastructure 672`, `Desktop 83`, `Connection 269`).
+- Restore succeeded; solution build succeeded with `0 warnings / 0 errors`; `git diff --check`
+  and changed-scope secret scan are clean.
+- First meaningful implementation failure: the first post-interface-change compile reported
+  `CS0535` because the in-memory audit test double lacked the new atomic claim API; the test double
+  was updated and the final build/tests are green.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `JIRA R2 HANDOFF = DEFERRED TO SOL`; this executor did not mutate Jira.
+- PR #33 remains `OPEN / DRAFT / UNMERGED`, base `main`, exact head branch above. This executor did
+  not merge, mark Ready, create another PR, invoke Opus, or start APO-50/APO-33.
+- `APO-50 = NOT STARTED`; `APO-33 = NOT STARTED`.
+- `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
+- Final branch head/tree are reported in the executor completion report after the metadata handoff
+  commit; no self-SHA recursion is written into this file.
+
+## APO-63 R4 executor remediation handoff
+
+`APO-63 R4 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL EXACT-HEAD R4 RE-REVIEW`
+
+- `OPUS-63-01 = REMEDIATED / PENDING SOL RE-REVIEW`: Azure Repos PR statuses are normalized at
+  the evidence-provider boundary (`active -> open`, `completed -> merged`, `abandoned -> closed`,
+  unknown values -> `unknown`).
+- `OPUS-63-02 = REMEDIATED / PENDING SOL RE-REVIEW`: all state-changing HTTP 5xx responses are
+  outcome-uncertain and map to reconciliation-required truth with `MutationSent = true` and
+  `MayHaveModifiedRemote = true`; no transport retry was added.
+- `OPUS-63-03 = REMEDIATED / PENDING SOL RE-REVIEW`: Azure reviewer writes track prior successful
+  PUTs and classify deterministic mid-loop failure as reconciliation-required; the loop stops at
+  the first failure and preserves ordinary first-write failure semantics.
+- Deferred low findings `OPUS-63-04`, `OPUS-63-05`, and `OPUS-63-06` were not changed.
+- Focused provider validation: `27 passed / 0 failed / 0 skipped`.
+- Full provider validation: `171 passed / 0 failed / 0 skipped`.
+- Canonical deterministic solution validation: `1,223 passed / 0 failed / 0 skipped` (`Domain 28`,
+  `Provider 171`, `Infrastructure 672`, `Desktop 83`, `Connection 269`).
+- `dotnet restore` succeeded; solution build succeeded with `0 warnings / 0 errors`.
+- `git diff --check` and changed-scope secret scan are clean.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `JIRA R4 HANDOFF = DEFERRED TO SOL`; no Jira connector mutation was performed.
+- PR #33 remains `OPEN / DRAFT / UNMERGED / MERGEABLE`; no Ready promotion, merge, new PR, or Opus
+  invocation occurred.
+- `APO-50 = NOT STARTED`; `APO-33 = NOT STARTED`.
+- `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
+- Final branch head/tree are reported in the executor completion report after the metadata handoff
+  commit; no self-SHA recursion is written into this file.
+
+## APO-63 R3 executor remediation handoff
+
+`APO-63 R3 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL EXACT-HEAD R3 RE-REVIEW`
+
+- `SOL-63-01 = CLOSED / PRESERVED`.
+- `SOL-63-02R = CLOSED / PRESERVED`.
+- `SOL-63-03 = CLOSED / PRESERVED`.
+- `SOL-63-04R-AZURE-REVIEWERS = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-05R = CLOSED / PRESERVED`.
+- `SOL-63-06 = CLOSED / PRESERVED`.
+- `SOL-63-07R = CLOSED / PRESERVED`.
+- Surgical change: Azure Repos `RequestReviewers` now runs
+  `VerifyExactPostWriteTarget` on fresh reviewer evidence before reviewer-specific proof can
+  return `Verified`.
+- R3 functional commit: `14dc2dcce50309b84cf435292f8e27f66cf8ffb1`; tree
+  `8cd82b3d349f503c5a37416765c8b58589a736e0`; parent
+  `ac19401966ac9e60546d9052f0323002a187115a`.
+- Focused controlled-delivery tests: `13 passed / 0 failed / 0 skipped`.
+- Provider suite: `158 passed / 0 failed / 0 skipped`.
+- Canonical solution tests: `1,210 passed / 0 failed / 0 skipped` (`Domain 28`, `Provider 158`,
+  `Infrastructure 672`, `Desktop 83`, `Connection 269`).
+- Restore succeeded; solution build succeeded with `0 warnings / 0 errors`; `git diff --check`
+  and changed-scope secret scan are clean.
+- First meaningful R3 implementation failure: the initial compile used a duplicate local name
+  (`CS0136`) after adding the verifier; the reviewer-path local was renamed and the focused and
+  canonical suites then passed.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `JIRA R3 HANDOFF = COMPLETED`; comment `12381`; APO-63 remains `In Progress` and was not
+  transitioned.
+- PR #33 remains `OPEN / DRAFT / UNMERGED`, base `main`, head
+  `feat/APO-63-controlled-remote-delivery`; no Ready promotion, merge, new PR, or Opus invocation.
+- `APO-50 = NOT STARTED`; `APO-33 = NOT STARTED`.
+- `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
+- Final branch head/tree are reported in the executor completion report after the metadata handoff
+  commit; no self-SHA recursion is written into this file.
