@@ -24,7 +24,7 @@ This file is a short authority boundary, not an executable executor prompt.
   `8cd82b3d349f503c5a37416765c8b58589a736e0`; parent
   `ac19401966ac9e60546d9052f0323002a187115a`.
 - APO-63 PR #33: `OPEN / DRAFT / UNMERGED`, base `main`, exact head branch above.
-- `JIRA R3 HANDOFF = DEFERRED TO SOL`; this executor did not mutate Jira.
+- `JIRA R3 HANDOFF = COMPLETED`; comment `12381`; APO-63 remains `In Progress`.
 
 ## FAST V1 order
 

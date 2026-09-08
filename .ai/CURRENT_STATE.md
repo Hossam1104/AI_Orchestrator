@@ -341,7 +341,8 @@ automatic roadmap execution and no feature creep.
   canonical suites then passed.
 - `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
-- `JIRA R3 HANDOFF = DEFERRED TO SOL`; this executor did not mutate Jira.
+- `JIRA R3 HANDOFF = COMPLETED`; comment `12381`; APO-63 remains `In Progress` and was not
+  transitioned.
 - PR #33 remains `OPEN / DRAFT / UNMERGED`, base `main`, head
   `feat/APO-63-controlled-remote-delivery`; no Ready promotion, merge, new PR, or Opus invocation.
 - `APO-50 = NOT STARTED`; `APO-33 = NOT STARTED`.
