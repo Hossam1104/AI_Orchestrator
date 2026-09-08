@@ -1,6 +1,32 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 8 September 2026 (APO-63 final integration closeout)
+**Last Updated:** 8 September 2026 (APO-50 executor closeout; Sol review pending)
+
+## APO-50 executor closeout
+
+`APO-50 EXECUTOR IMPLEMENTATION = COMPLETE / PENDING SOL EXACT-HEAD REVIEW`; executor completion
+is not Sol acceptance, merge, or Jira completion.
+
+- Branch: `feat/APO-50-mission-control`.
+- Functional commit: `36ae943e5b77fe171021e5946a12500094248e2c`; parent
+  `272cd953d2e823f743fd79446198b2bf3c8e1f5f`; tree
+  `6692c0607a436cef3ae31afaac59b8c05a6e7eec`.
+- Draft PR #35 is open against `main`, unmerged, with head
+  `36ae943e5b77fe171021e5946a12500094248e2c`.
+- Mission Control adds a project-scoped read-only snapshot contract and composition service for
+  project, execution, role, repository/tracker, validation, review/approval, runtime, attention,
+  and limitation data. It uses only existing persisted/local read contracts and does not perform
+  provider refresh, live remote SCM, tracker, or runtime process inspection.
+- Mission Control is the default desktop workspace. The selector does not guess when multiple
+  active projects exist; refresh is project-scoped and serialized; degraded persistence and
+  incomplete sources remain truthful `Unknown`/limitation states.
+- Validation: restore passed; solution build passed with `0 warnings / 0 errors`; canonical serial
+  suite passed with `1,239 passed / 0 failed / 0 skipped`; diff and changed-scope secret scans were
+  clean.
+- `APO-33 = NOT STARTED`; GitHub Actions remains `NONE / NOT CLAIMED`.
+- Jira APO-50 start and handoff mutation were deferred to Sol because no Jira connector was
+  available in this execution context.
+- Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
 
 ## Canonical live snapshot
 
