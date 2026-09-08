@@ -41,6 +41,9 @@ public sealed class MissionControlReadModelTests
         Assert.Equal("No current work selected", snapshot.CurrentWork.Title);
         Assert.Contains(snapshot.Limitations, value => value.Section == "Project context");
         Assert.Contains(snapshot.Limitations, value => value.Section == "Runtime");
+        Assert.False(snapshot.Approval.HasEvidence);
+        Assert.Equal(0, snapshot.Approval.PendingCount);
+        Assert.Equal("No current approval evidence", snapshot.Approval.StatusText);
         Assert.DoesNotContain("Ready", snapshot.StateReason, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -111,6 +114,47 @@ public sealed class MissionControlReadModelTests
         var snapshot = await service.ReadAsync(project.Id);
 
         Assert.Equal(MissionControlState.Unknown, snapshot.State);
+        Assert.False(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Equal("No current work selected", snapshot.CurrentWork.Title);
+        Assert.Equal("No authoritative current-step evidence", snapshot.CurrentWork.CurrentStep);
+        Assert.Null(snapshot.CurrentWork.ExecutionRunId);
+        Assert.Contains(snapshot.Limitations, value => value.Kind == MissionControlLimitationKind.EvidenceStale);
+    }
+
+    [Fact]
+    public async Task FreshRunningExecution_RemainsAuthoritativeCurrentWork()
+    {
+        var project = CreateProject("Fresh", "C:\\fresh");
+        var service = CreateService([project], executions: [Run(project, ExecutionRunStatus.Running, "WORK-1", "Current work")]);
+
+        var snapshot = await service.ReadAsync(project.Id);
+
+        Assert.Equal(MissionControlState.Running, snapshot.State);
+        Assert.True(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Equal("Current work", snapshot.CurrentWork.Title);
+        Assert.NotNull(snapshot.CurrentWork.ExecutionRunId);
+    }
+
+    [Fact]
+    public async Task StaleRunningExecutionWithMatchingReview_RemainsCurrentReview()
+    {
+        var project = CreateProject("Stale review", "C:\\stale-review");
+        var stale = new ExecutionRun(
+            project.Id,
+            Guid.NewGuid(),
+            ExecutionRunStatus.Running,
+            Now.AddHours(-2),
+            workItemReference: "WORK-1",
+            taskTitle: "Old work",
+            recordedAt: Now.AddHours(-2));
+        var review = ReviewItem(project, ReviewWorkflowState.AwaitingAdjudication, ownerAttention: true, boundRunId: stale.RunId);
+        var service = CreateService([project], executions: [stale], reviewItems: [review]);
+
+        var snapshot = await service.ReadAsync(project.Id);
+
+        Assert.Equal(MissionControlState.Review, snapshot.State);
+        Assert.True(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Equal(MissionControlState.Review, snapshot.CurrentWork.State);
         Assert.Contains(snapshot.Limitations, value => value.Kind == MissionControlLimitationKind.EvidenceStale);
     }
 
@@ -203,9 +247,84 @@ public sealed class MissionControlReadModelTests
         var historicalSnapshot = await service.ReadAsync(project.Id);
 
         Assert.NotEqual(MissionControlState.HumanApprovalRequired, historicalSnapshot.State);
+        Assert.True(historicalSnapshot.Approval.HasEvidence);
+        Assert.Equal(0, historicalSnapshot.Approval.PendingCount);
+        Assert.Equal("Current approval context unavailable", historicalSnapshot.Approval.StatusText);
+        Assert.Equal("Resolve the current approval context", historicalSnapshot.Approval.NextRequiredAction);
         Assert.Contains(historicalSnapshot.Limitations, value => value.Kind == MissionControlLimitationKind.CorrelationUnavailable);
+        var attention = Assert.Single(historicalSnapshot.AttentionItems, value => value.Title == "Approval context unavailable");
+        Assert.Equal(MissionControlAttentionSeverity.Medium, attention.Severity);
+        Assert.Equal(MissionControlState.Unknown, attention.State);
+        Assert.Equal("Resolve the current approval context", attention.NextSafeAction);
         Assert.NotNull(approvalService.LastCurrentContexts);
         Assert.Empty(approvalService.LastCurrentContexts!);
+    }
+
+    [Fact]
+    public async Task MultipleHistoricalApprovalsWithoutCurrentContext_DoNotBecomePendingCount()
+    {
+        var project = CreateProject("Approval history", "C:\\approval-history");
+        var approvalItems = new[]
+        {
+            ApprovalItem(project, currentContextKnown: false),
+            ApprovalItem(project, currentContextKnown: false)
+        };
+        var service = CreateService([project], approvals: new FakeApprovalService(approvalItems));
+
+        var snapshot = await service.ReadAsync(project.Id);
+
+        Assert.Equal(0, snapshot.Approval.PendingCount);
+        Assert.NotEqual(approvalItems.Length, snapshot.Approval.PendingCount);
+        Assert.Equal("Current approval context unavailable", snapshot.Approval.StatusText);
+    }
+
+    [Fact]
+    public async Task UnknownApprovalContextWithRunningExecution_PreservesRunningStateAndAttention()
+    {
+        var project = CreateProject("Running approval history", "C:\\running-approval");
+        var service = CreateService(
+            [project],
+            executions: [Run(project, ExecutionRunStatus.Running, "WORK-1", "Current work")],
+            approvals: new FakeApprovalService([ApprovalItem(project, currentContextKnown: false)]));
+
+        var snapshot = await service.ReadAsync(project.Id);
+
+        Assert.Equal(MissionControlState.Running, snapshot.State);
+        Assert.True(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Contains(snapshot.Limitations, value => value.Kind == MissionControlLimitationKind.CorrelationUnavailable);
+        Assert.Contains(snapshot.AttentionItems, value => value.Title == "Approval context unavailable");
+        Assert.DoesNotContain(snapshot.AttentionItems, value => value.Title == "Human approval required");
+    }
+
+    [Fact]
+    public async Task FailedExecution_PreservesFailureStateAndAttention()
+    {
+        var project = CreateProject("Failed", "C:\\failed");
+        var service = CreateService([project], executions: [Run(project, ExecutionRunStatus.Failed, "WORK-1", "Failed work")]);
+
+        var snapshot = await service.ReadAsync(project.Id);
+
+        Assert.Equal(MissionControlState.Failed, snapshot.State);
+        var attention = Assert.Single(snapshot.AttentionItems, value => value.Title == "Execution failed");
+        Assert.Equal(MissionControlState.Failed, attention.State);
+        Assert.Equal("Review the failure evidence", attention.NextSafeAction);
+    }
+
+    [Fact]
+    public async Task HistoricalReviewValidation_RemainsUncorrelated()
+    {
+        var project = CreateProject("Historical validation", "C:\\historical-validation");
+        var review = ReviewItem(
+            project,
+            ReviewWorkflowState.AwaitingAdjudication,
+            ownerAttention: true,
+            validationState: ValidationGateDecisionState.Satisfied);
+        var service = CreateService([project], reviewItems: [review]);
+
+        var snapshot = await service.ReadAsync(project.Id);
+
+        Assert.Equal(ValidationGateDecisionState.Satisfied, snapshot.Validation.State);
+        Assert.Equal("Historical / uncorrelated review validation", snapshot.Validation.StatusText);
     }
 
     [Fact]
@@ -272,7 +391,7 @@ public sealed class MissionControlReadModelTests
     private static ExecutionRun Run(Project project, ExecutionRunStatus status, string reference, string title) =>
         new(project.Id, Guid.NewGuid(), status, Now.AddMinutes(-2), workItemReference: reference, taskTitle: title, recordedAt: Now.AddMinutes(-1));
 
-    private static ReviewInboxItem ReviewItem(Project project, ReviewWorkflowState state, bool ownerAttention, DateTimeOffset? timestamp = null, Guid? boundRunId = null) =>
+    private static ReviewInboxItem ReviewItem(Project project, ReviewWorkflowState state, bool ownerAttention, DateTimeOffset? timestamp = null, Guid? boundRunId = null, ValidationGateDecisionState? validationState = null) =>
         new()
         {
             ProjectId = project.Id,
@@ -291,7 +410,8 @@ public sealed class MissionControlReadModelTests
             OwnerAttentionReason = "Review action is required.",
             NextRequiredAction = state == ReviewWorkflowState.HumanDecisionRequired
                 ? ReviewWorkflowNextAction.HumanDecision
-                : ReviewWorkflowNextAction.AdjudicateFindings
+                : ReviewWorkflowNextAction.AdjudicateFindings,
+            LatestValidationState = validationState
         };
 
     private static HumanApprovalInboxItem ApprovalItem(Project project, bool currentContextKnown) =>

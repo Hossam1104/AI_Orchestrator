@@ -178,7 +178,7 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
                     limitations.Add(new(
                         "Approvals",
                         MissionControlLimitationKind.CorrelationUnavailable,
-                        "Approval requests exist, but their current execution context was not supplied; they are not promoted to a current human gate.",
+                        "Historical approval evidence exists, but the exact current execution/action context is unavailable; Mission Control cannot determine the current approval state safely.",
                         "Human approval inbox"));
                 }
             }
@@ -214,13 +214,12 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
                 latestReview.LatestTimestamp));
         }
 
-        var currentApproval = approvalItems.FirstOrDefault(value =>
-            value.CurrentContextKnown &&
-            value.OwnerAttentionRequired &&
-            value.EffectiveState is HumanApprovalState.Pending or HumanApprovalState.Escalated);
+        var currentApproval = approvalItems.FirstOrDefault(IsCurrentPendingApproval);
         var staleApproval = approvalItems.FirstOrDefault(value =>
             value.CurrentContextKnown &&
             value.IsStale);
+        var approvalContextUnavailable = approvalItems.Count > 0 &&
+            approvalItems.All(value => !value.CurrentContextKnown);
 
         var reviewRequiresHumanDecision = review is not null &&
             reviewCanDriveState &&
@@ -272,7 +271,7 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
             reviewSummary,
             approvalSummary,
             runtime,
-            BuildAttentionItems(project, latestExecution, executionState, currentReview, reviewCanDriveState, currentApproval, staleApproval),
+            BuildAttentionItems(project, latestExecution, executionState, currentReview, reviewCanDriveState, currentApproval, staleApproval, approvalContextUnavailable ? approvalItems[0] : null),
             limitations);
     }
 
@@ -372,7 +371,8 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
                 .ThenBy(value => value.RootReviewId)
                 .FirstOrDefault();
 
-    private static bool IsCurrentExecution(ExecutionRun? execution) =>
+    private static bool IsCurrentExecution(ExecutionRun? execution, MissionControlState? executionState) =>
+        executionState is not null &&
         execution?.Status is ExecutionRunStatus.Planned or ExecutionRunStatus.Waiting or
             ExecutionRunStatus.Running or ExecutionRunStatus.Blocked or ExecutionRunStatus.Review or
             ExecutionRunStatus.HumanApprovalRequired;
@@ -384,7 +384,7 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
         bool reviewCanDriveState,
         string nextSafeAction)
     {
-        var executionIsCurrent = IsCurrentExecution(execution);
+        var executionIsCurrent = IsCurrentExecution(execution, executionState);
         var reviewIsCurrent = reviewCanDriveState && currentReview is not null;
         var hasWork = (executionIsCurrent || reviewIsCurrent) &&
             (execution?.WorkItemReference is not null || execution?.TaskTitle is not null);
@@ -528,11 +528,12 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
         HumanApprovalInboxItem? currentApproval,
         HumanApprovalInboxItem? staleApproval)
     {
+        var currentPendingCount = items.Count(IsCurrentPendingApproval);
         if (currentApproval is not null)
         {
             return new(
                 true,
-                items.Count,
+                currentPendingCount,
                 currentApproval.EffectiveState.ToString(),
                 currentApproval.SafeTargetSummary,
                 currentApproval.NextRequiredAction.ToString(),
@@ -543,17 +544,33 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
         {
             return new(
                 true,
-                items.Count,
+                currentPendingCount,
                 "Stale / blocked",
                 staleApproval.SafeTargetSummary,
                 staleApproval.NextRequiredAction.ToString(),
                 staleApproval.RequestedAt);
         }
 
+        if (items.Count > 0 && items.All(value => !value.CurrentContextKnown))
+        {
+            return new(
+                true,
+                0,
+                "Current approval context unavailable",
+                "Not available",
+                FormatApprovalAction(HumanApprovalNextAction.ResolveCurrentContext),
+                items[0].RequestedAt);
+        }
+
         return items.Count == 0
             ? new(false, 0, "No current approval evidence", "Not available", "Unknown", null)
-            : new(true, items.Count, "No current approval requiring action", "Not available", "Unknown", items[0].RequestedAt);
+            : new(true, currentPendingCount, "No current approval requiring action", "Not available", "Unknown", items[0].RequestedAt);
     }
+
+    private static bool IsCurrentPendingApproval(HumanApprovalInboxItem value) =>
+        value.CurrentContextKnown &&
+        value.OwnerAttentionRequired &&
+        value.EffectiveState is HumanApprovalState.Pending or HumanApprovalState.Escalated;
 
     private static MissionControlRuntimeSummary BuildRuntime(
         ExecutionRun? execution,
@@ -718,7 +735,8 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
         ReviewInboxItem? review,
         bool reviewCanDriveState,
         HumanApprovalInboxItem? approval,
-        HumanApprovalInboxItem? staleApproval)
+        HumanApprovalInboxItem? staleApproval,
+        HumanApprovalInboxItem? approvalContextUnavailable)
     {
         var items = new List<MissionControlAttentionItem>();
         if (approval is not null)
@@ -742,6 +760,17 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
                 "Human approval inbox",
                 staleApproval.RequestedAt,
                 FormatApprovalAction(staleApproval.NextRequiredAction)));
+        }
+        if (approvalContextUnavailable is not null)
+        {
+            items.Add(new(
+                MissionControlAttentionSeverity.Medium,
+                MissionControlState.Unknown,
+                "Approval context unavailable",
+                "Historical approval evidence exists, but the current binding cannot be verified.",
+                "Human approval inbox",
+                approvalContextUnavailable.RequestedAt,
+                FormatApprovalAction(HumanApprovalNextAction.ResolveCurrentContext)));
         }
         if (project.Status == ProjectStatus.Blocked || execution?.Status == ExecutionRunStatus.Blocked)
         {
