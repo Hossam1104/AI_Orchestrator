@@ -12,7 +12,7 @@ Sol acceptance, merge, or Jira completion.
   `e693e0b6c00286a165c872e73d1e9a68d0f5d1fb`; tree
   `537000e793da79926027708d2dee80dca137e54b`.
 - Draft PR #35 remains open against `main` and unmerged; the R1 branch push and PR metadata update
-  remain handoff actions.
+  are complete.
 - Mission Control adds a project-scoped read-only snapshot contract and composition service for
   project, execution, role, repository/tracker, validation, review/approval, runtime, attention,
   and limitation data. It uses only existing persisted/local read contracts and does not perform
@@ -33,8 +33,7 @@ Sol acceptance, merge, or Jira completion.
   suite passed with `1,243 passed / 0 failed / 0 skipped`; diff and changed-scope secret scans were
   clean.
 - `APO-33 = NOT STARTED`; GitHub Actions remains `NONE / NOT CLAIMED`.
-- Jira APO-50 R1 handoff comment remains a required handoff action; no status transition or gate
-  change is authorized.
+- Jira APO-50 R1 handoff comment `12393` was added; no status transition or gate change was made.
 - Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
 
 ## Canonical live snapshot
