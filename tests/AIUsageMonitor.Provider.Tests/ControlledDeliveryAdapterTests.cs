@@ -111,6 +111,60 @@ public sealed class ControlledDeliveryAdapterTests
         Assert.Empty(handler.Requests);
     }
 
+    [Fact]
+    public async Task MetadataPostWriteHeadDrift_IsNotVerified()
+    {
+        var handler = new DeliveryHandler { Provider = RemoteRepositoryProvider.GitHub, PullRequestId = "42", DriftHeadAfterMutation = true };
+        var adapter = new GitHubRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.GitHub, handler), new SingleClientFactory(handler), new EmptyCredentials());
+        var result = await adapter.MutateAsync(Command(Target(RemoteRepositoryProvider.GitHub, "https://github.com/owner/repo.git", "42"), SourceControlDeliveryOperationKind.UpdatePullRequestMetadata, handler), defaultEvidence(handler));
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+    }
+
+    [Fact]
+    public async Task ReviewerPostWriteHeadDrift_IsNotVerified()
+    {
+        var handler = new DeliveryHandler { Provider = RemoteRepositoryProvider.GitHub, PullRequestId = "42", DriftHeadAfterMutation = true };
+        var adapter = new GitHubRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.GitHub, handler), new SingleClientFactory(handler), new EmptyCredentials());
+        var result = await adapter.MutateAsync(Command(Target(RemoteRepositoryProvider.GitHub, "https://github.com/owner/repo.git", "42"), SourceControlDeliveryOperationKind.RequestReviewers, handler, reviewers: ["octocat"]), defaultEvidence(handler));
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+    }
+
+    [Fact]
+    public async Task CommentPostWriteHeadDrift_IsNotVerified()
+    {
+        var handler = new DeliveryHandler { Provider = RemoteRepositoryProvider.GitHub, PullRequestId = "42", DriftHeadAfterMutation = true };
+        var adapter = new GitHubRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.GitHub, handler), new SingleClientFactory(handler), new EmptyCredentials());
+        var result = await adapter.MutateAsync(Command(Target(RemoteRepositoryProvider.GitHub, "https://github.com/owner/repo.git", "42"), SourceControlDeliveryOperationKind.AddDeliveryComment, handler, comment: "exact comment"), defaultEvidence(handler));
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+    }
+
+    [Fact]
+    public async Task ReadyPostWriteHeadDrift_IsNotVerified()
+    {
+        var handler = new DeliveryHandler { Provider = RemoteRepositoryProvider.GitHub, PullRequestId = "42", DriftHeadAfterMutation = true };
+        var adapter = new GitHubRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.GitHub, handler), new SingleClientFactory(handler), new EmptyCredentials());
+        var result = await adapter.MutateAsync(Command(Target(RemoteRepositoryProvider.GitHub, "https://github.com/owner/repo.git", "42"), SourceControlDeliveryOperationKind.MarkReadyForReview, handler, highRisk: true), defaultEvidence(handler));
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+    }
+
+    [Fact]
+    public async Task GitHubMergeResponseWithoutBaseAdvance_IsReconciliationRequired()
+    {
+        var handler = new DeliveryHandler { Provider = RemoteRepositoryProvider.GitHub, PullRequestId = "42", IsDraft = false, SuppressMergeBaseAdvance = true };
+        var adapter = new GitHubRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.GitHub, handler), new SingleClientFactory(handler), new EmptyCredentials());
+        var result = await adapter.MutateAsync(Command(Target(RemoteRepositoryProvider.GitHub, "https://github.com/owner/repo.git", "42"), SourceControlDeliveryOperationKind.MergePullRequest, handler, highRisk: true), defaultEvidence(handler));
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+    }
+
+    [Fact]
+    public async Task AzureMergeResponseWithoutBaseAdvance_IsReconciliationRequired()
+    {
+        var handler = new DeliveryHandler { Provider = RemoteRepositoryProvider.AzureRepos, PullRequestId = "7", IsDraft = false, SuppressMergeBaseAdvance = true };
+        var adapter = new AzureReposRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.AzureRepos, handler), new SingleClientFactory(handler), new StaticCredentials());
+        var result = await adapter.MutateAsync(Command(Target(RemoteRepositoryProvider.AzureRepos, "https://dev.azure.com/org/project/_git/repository", "7"), SourceControlDeliveryOperationKind.MergePullRequest, handler, highRisk: true, credentialReference: "azure:test"), defaultEvidence(handler));
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+    }
+
     private static SourceControlDeliveryCommand Command(RemoteRepositoryProvider provider, string url, string? pullRequestId, SourceControlDeliveryOperationKind operation, DeliveryHandler handler) =>
         Command(Target(provider, url, pullRequestId), operation, handler, highRisk: operation is SourceControlDeliveryOperationKind.MarkReadyForReview or SourceControlDeliveryOperationKind.MergePullRequest);
 
@@ -144,8 +198,8 @@ public sealed class ControlledDeliveryAdapterTests
             handler.PullRequestId is null ? RemoteEvidenceState.NotConfigured : RemoteEvidenceState.Available,
             reviews: handler.RequestedReviewers.Select(reviewer => new RemoteReviewEvidence(reviewer, "requested", requested: true)).ToArray(),
             reviewState: handler.PullRequestId is null ? RemoteEvidenceState.NotConfigured : RemoteEvidenceState.Available),
-            new RemoteBranchEvidence("task", handler.CurrentHeadSha, false), new RemoteBranchEvidence("main", BaseSha, true),
-            handler.PullRequestId is null ? null : new RemotePullRequestEvidence(handler.PullRequestId, handler.PullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, BaseSha, RemoteMergeability.Available, null,
+             new RemoteBranchEvidence("task", handler.CurrentHeadSha, false), new RemoteBranchEvidence("main", handler.CurrentBaseSha, true),
+             handler.PullRequestId is null ? null : new RemotePullRequestEvidence(handler.PullRequestId, handler.PullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, handler.CurrentBaseSha, RemoteMergeability.Available, null,
                 handler.Title, handler.Body, handler.MergeCommitId));
 
     private sealed class FakeEvidenceProvider(RemoteRepositoryProvider provider, DeliveryHandler handler) : IRemoteRepositoryEvidenceProvider
@@ -155,9 +209,9 @@ public sealed class ControlledDeliveryAdapterTests
         public Task<RemoteRepositoryEvidence> InspectAsync(RemoteRepositoryEvidenceRequest request, CancellationToken cancellationToken = default)
         {
             var source = provider == RemoteRepositoryProvider.GitHub ? RemoteEvidenceSource.GitHubRest : RemoteEvidenceSource.AzureDevOpsRest;
-            var branch = request.RequestedBranch?.Equals("main", StringComparison.Ordinal) == true ? new RemoteBranchEvidence("main", BaseSha, true) : new RemoteBranchEvidence("task", handler.CurrentHeadSha, false);
+            var branch = request.RequestedBranch?.Equals("main", StringComparison.Ordinal) == true ? new RemoteBranchEvidence("main", handler.CurrentBaseSha, true) : new RemoteBranchEvidence("task", handler.CurrentHeadSha, false);
             var hasPr = request.PullRequestNumber.HasValue;
-            var pr = hasPr ? new RemotePullRequestEvidence(request.PullRequestNumber!.Value.ToString(), handler.PullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, BaseSha, RemoteMergeability.Available, null,
+            var pr = hasPr ? new RemotePullRequestEvidence(request.PullRequestNumber!.Value.ToString(), handler.PullRequestState, handler.IsDraft, "task", "main", handler.CurrentHeadSha, handler.CurrentBaseSha, RemoteMergeability.Available, null,
                 handler.Title, handler.Body, handler.MergeCommitId) : null;
             return Task.FromResult(new RemoteRepositoryEvidence(ProjectId, RemoteEvidenceState.Available, source, DateTimeOffset.UtcNow,
                 new RemoteRepositoryIdentity(provider, source, provider == RemoteRepositoryProvider.GitHub ? "1" : "repo-guid", provider == RemoteRepositoryProvider.GitHub ? "owner/repo" : "org/project/repository", provider == RemoteRepositoryProvider.GitHub ? "owner" : "org", provider == RemoteRepositoryProvider.GitHub ? "repo" : "repository", "main"),
@@ -170,7 +224,8 @@ public sealed class ControlledDeliveryAdapterTests
     private sealed class DeliveryHandler : HttpMessageHandler
     {
         public RemoteRepositoryProvider Provider { get; init; }
-        public string CurrentHeadSha { get; init; } = HeadSha;
+        public string CurrentHeadSha { get; set; } = HeadSha;
+        public string CurrentBaseSha { get; private set; } = BaseSha;
         public string? PullRequestId { get; set; }
         public string PullRequestState { get; private set; } = "open";
         public bool IsDraft { get; set; } = true;
@@ -183,6 +238,8 @@ public sealed class ControlledDeliveryAdapterTests
         public bool SuppressReviewerEvidence { get; init; }
         public bool ReturnIncorrectComment { get; init; }
         public bool SuppressMergeEvidence { get; init; }
+        public bool SuppressMergeBaseAdvance { get; init; }
+        public bool DriftHeadAfterMutation { get; init; }
         public List<RecordedRequest> Requests { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -197,10 +254,11 @@ public sealed class ControlledDeliveryAdapterTests
                     return Json("{\"number\":42,\"node_id\":\"" + NodeId + "\",\"draft\":true,\"base\":{\"ref\":\"main\",\"sha\":\"" + BaseSha + "\",\"repo\":{\"full_name\":\"owner/repo\"}},\"head\":{\"ref\":\"task\",\"sha\":\"" + HeadSha + "\"}}");
                 }
                 if (request.Method == HttpMethod.Get && request.RequestUri.AbsolutePath.EndsWith("/pulls/42", StringComparison.Ordinal))
-                    return Json("{\"number\":42,\"node_id\":\"" + NodeId + "\",\"draft\":" + IsDraft.ToString().ToLowerInvariant() + ",\"base\":{\"ref\":\"main\",\"sha\":\"" + BaseSha + "\",\"repo\":{\"full_name\":\"owner/repo\"}},\"head\":{\"ref\":\"task\",\"sha\":\"" + HeadSha + "\"}}");
+                    return Json("{\"number\":42,\"node_id\":\"" + NodeId + "\",\"draft\":" + IsDraft.ToString().ToLowerInvariant() + ",\"base\":{\"ref\":\"main\",\"sha\":\"" + CurrentBaseSha + "\",\"repo\":{\"full_name\":\"owner/repo\"}},\"head\":{\"ref\":\"task\",\"sha\":\"" + HeadSha + "\"}}");
                 if (request.Method == HttpMethod.Post && request.RequestUri.AbsolutePath == "/graphql" && body.Contains("markPullRequestReadyForReview", StringComparison.Ordinal))
                 {
                     IsDraft = false;
+                    if (DriftHeadAfterMutation) CurrentHeadSha = "4444444444444444444444444444444444444444";
                     return Json(JsonSerializer.Serialize(new
                     {
                         data = new
@@ -230,12 +288,14 @@ public sealed class ControlledDeliveryAdapterTests
                         if (update.RootElement.TryGetProperty("title", out var title)) Title = title.GetString() ?? string.Empty;
                         if (update.RootElement.TryGetProperty("body", out var updateBody)) Body = updateBody.GetString() ?? string.Empty;
                     }
+                    if (DriftHeadAfterMutation) CurrentHeadSha = "4444444444444444444444444444444444444444";
                     return Json("{\"id\":99}");
                 }
                 if (request.Method == HttpMethod.Post && request.RequestUri.AbsolutePath.EndsWith("/comments", StringComparison.Ordinal))
                 {
                     using var comment = JsonDocument.Parse(body);
                     var commentText = comment.RootElement.GetProperty("body").GetString() ?? string.Empty;
+                    if (DriftHeadAfterMutation) CurrentHeadSha = "4444444444444444444444444444444444444444";
                     return Json("{\"id\":99,\"body\":\"" + (ReturnIncorrectComment ? "different comment" : commentText) + "\"}");
                 }
                 if (request.Method == HttpMethod.Post && request.RequestUri.AbsolutePath.EndsWith("/requested_reviewers", StringComparison.Ordinal))
@@ -244,12 +304,13 @@ public sealed class ControlledDeliveryAdapterTests
                     RequestedReviewers.Clear();
                     if (!SuppressReviewerEvidence)
                         foreach (var reviewer in reviewers.RootElement.GetProperty("reviewers").EnumerateArray()) RequestedReviewers.Add(reviewer.GetString() ?? string.Empty);
+                    if (DriftHeadAfterMutation) CurrentHeadSha = "4444444444444444444444444444444444444444";
                     return Json("{}");
                 }
-                if (request.Method == HttpMethod.Put && request.RequestUri.AbsolutePath.EndsWith("/merge", StringComparison.Ordinal)) { PullRequestState = "merged"; MergeCommitId = SuppressMergeEvidence ? null : MergeSha; return Json("{\"merged\":true,\"sha\":\"" + MergeSha + "\"}"); }
+                if (request.Method == HttpMethod.Put && request.RequestUri.AbsolutePath.EndsWith("/merge", StringComparison.Ordinal)) { PullRequestState = "merged"; MergeCommitId = SuppressMergeEvidence ? null : MergeSha; if (!SuppressMergeBaseAdvance) CurrentBaseSha = MergeSha; return Json("{\"merged\":true,\"sha\":\"" + MergeSha + "\"}"); }
                 return Json("{}");
             }
-            if (request.Method == HttpMethod.Patch && body.Contains("\"status\":\"completed\"", StringComparison.Ordinal)) { PullRequestId ??= "7"; PullRequestState = "completed"; MergeCommitId = MergeSha; return Json("{\"pullRequestId\":7,\"status\":\"completed\",\"lastMergeCommit\":{\"commitId\":\"" + MergeSha + "\"}}"); }
+            if (request.Method == HttpMethod.Patch && body.Contains("\"status\":\"completed\"", StringComparison.Ordinal)) { PullRequestId ??= "7"; PullRequestState = "completed"; MergeCommitId = MergeSha; if (!SuppressMergeBaseAdvance) CurrentBaseSha = MergeSha; return Json("{\"pullRequestId\":7,\"status\":\"completed\",\"lastMergeCommit\":{\"commitId\":\"" + MergeSha + "\"}}"); }
             if (request.Method == HttpMethod.Patch && body.Contains("\"isDraft\":false", StringComparison.Ordinal)) { IsDraft = false; return Json("{}"); }
             if (request.Method == HttpMethod.Patch && request.RequestUri.AbsolutePath.Contains("pullRequests/7", StringComparison.Ordinal))
             {

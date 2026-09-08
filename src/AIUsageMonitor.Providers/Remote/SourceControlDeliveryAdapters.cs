@@ -85,6 +85,12 @@ public abstract class RemoteSourceControlDeliveryAdapterBase : IRemoteSourceCont
         if (pr is null || !ExactPullRequest(pr, command))
             return new(SourceControlDeliveryStatus.ReconciliationRequired, "Remote evidence does not identify the exact prior target.", PullRequestId: command.Target.PullRequestId, Evidence: evidence, MayHaveModifiedRemote: true);
 
+        var targetFailure = command.OperationKind == SourceControlDeliveryOperationKind.MergePullRequest
+            ? VerifyMergePostWriteTarget(command, evidence, pr.MergeCommitId)
+            : VerifyExactPostWriteTarget(command, evidence);
+        if (targetFailure is not null)
+            return targetFailure;
+
         if (command.OperationKind == SourceControlDeliveryOperationKind.UpdatePullRequestMetadata &&
             pr.Title is not null && string.Equals(pr.Title, command.PullRequestTitle, StringComparison.Ordinal) &&
             string.Equals(pr.Body ?? string.Empty, command.PullRequestBody ?? string.Empty, StringComparison.Ordinal))
@@ -107,7 +113,9 @@ public abstract class RemoteSourceControlDeliveryAdapterBase : IRemoteSourceCont
         string.Equals(pullRequest.SourceBranch, command.Target.HeadRef, StringComparison.Ordinal) &&
         string.Equals(pullRequest.TargetBranch, command.Target.BaseRef, StringComparison.Ordinal) &&
         string.Equals(pullRequest.HeadCommitId, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) &&
-        string.Equals(pullRequest.BaseCommitId, command.Target.BaseSha, StringComparison.OrdinalIgnoreCase);
+        (command.OperationKind != SourceControlDeliveryOperationKind.MergePullRequest ||
+            !pullRequest.State.Equals("open", StringComparison.OrdinalIgnoreCase) ||
+            pullRequest.BaseCommitId is null || string.Equals(pullRequest.BaseCommitId, command.Target.BaseSha, StringComparison.OrdinalIgnoreCase));
 
     protected HttpClient Client => _httpClientFactory.CreateClient(HttpClientName);
 
@@ -123,6 +131,64 @@ public abstract class RemoteSourceControlDeliveryAdapterBase : IRemoteSourceCont
     {
         var rebound = pullRequestId is null ? command : command.WithTarget(command.Target.WithPullRequest(pullRequestId));
         return await ReadAsync(rebound, cancellationToken).ConfigureAwait(false);
+    }
+
+    protected static SourceControlRemoteMutationResult? VerifyExactPostWriteTarget(
+        SourceControlDeliveryCommand command,
+        SourceControlRemoteEvidence evidence,
+        string? pullRequestId = null)
+    {
+        var repository = evidence.RepositoryEvidence.Repository;
+        var expectedPullRequestId = pullRequestId ?? command.Target.PullRequestId;
+        var pr = evidence.PullRequest;
+        var exact = evidence.RepositoryEvidence.ProjectId == command.ProjectId &&
+            evidence.RepositoryEvidence.RepositoryState == RemoteEvidenceState.Available && repository is not null &&
+            repository.Provider == command.Target.Provider &&
+            string.Equals(repository.ProviderRepositoryId, command.Target.ProviderRepositoryId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(repository.CanonicalName, command.Target.CanonicalRepositoryIdentity, StringComparison.OrdinalIgnoreCase) &&
+            evidence.HeadBranch is not null && string.Equals(evidence.HeadBranch.BranchName, command.Target.HeadRef, StringComparison.Ordinal) &&
+            string.Equals(evidence.HeadBranch.CommitId, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) &&
+            evidence.BaseBranch is not null && string.Equals(evidence.BaseBranch.BranchName, command.Target.BaseRef, StringComparison.Ordinal) &&
+            string.Equals(evidence.BaseBranch.CommitId, command.Target.BaseSha, StringComparison.OrdinalIgnoreCase) &&
+            pr is not null && string.Equals(pr.Id, expectedPullRequestId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(pr.SourceBranch, command.Target.HeadRef, StringComparison.Ordinal) &&
+            string.Equals(pr.TargetBranch, command.Target.BaseRef, StringComparison.Ordinal) &&
+            string.Equals(pr.HeadCommitId, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) &&
+            (pr.BaseCommitId is null || string.Equals(pr.BaseCommitId, command.Target.BaseSha, StringComparison.OrdinalIgnoreCase));
+        return exact
+            ? null
+            : new(SourceControlDeliveryStatus.ReconciliationRequired, "Fresh post-write evidence does not prove the complete exact delivery target.", PullRequestId: expectedPullRequestId, MutationSent: true, MayHaveModifiedRemote: true, Evidence: evidence);
+    }
+
+    protected static SourceControlRemoteMutationResult? VerifyMergePostWriteTarget(
+        SourceControlDeliveryCommand command,
+        SourceControlRemoteEvidence evidence,
+        string? mergeCommitSha,
+        SourceControlRemoteEvidence? preMutationEvidence = null)
+    {
+        if (preMutationEvidence is not null && VerifyExactPostWriteTarget(command, preMutationEvidence) is not null)
+            return new(SourceControlDeliveryStatus.ReconciliationRequired, "The original merge target evidence was not exact.", PullRequestId: command.Target.PullRequestId, MutationSent: true, MayHaveModifiedRemote: true, Evidence: evidence);
+        var repository = evidence.RepositoryEvidence.Repository;
+        var pr = evidence.PullRequest;
+        var exact = repository is not null && evidence.RepositoryEvidence.ProjectId == command.ProjectId &&
+            evidence.RepositoryEvidence.RepositoryState == RemoteEvidenceState.Available &&
+            repository.Provider == command.Target.Provider &&
+            string.Equals(repository.ProviderRepositoryId, command.Target.ProviderRepositoryId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(repository.CanonicalName, command.Target.CanonicalRepositoryIdentity, StringComparison.OrdinalIgnoreCase) &&
+            evidence.HeadBranch is not null && string.Equals(evidence.HeadBranch.BranchName, command.Target.HeadRef, StringComparison.Ordinal) &&
+            string.Equals(evidence.HeadBranch.CommitId, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) &&
+            evidence.BaseBranch is not null && string.Equals(evidence.BaseBranch.BranchName, command.Target.BaseRef, StringComparison.Ordinal) &&
+            mergeCommitSha is { Length: >= 7 } && mergeCommitSha.All(Uri.IsHexDigit) &&
+            string.Equals(evidence.BaseBranch.CommitId, mergeCommitSha, StringComparison.OrdinalIgnoreCase) &&
+            pr is not null && string.Equals(pr.Id, command.Target.PullRequestId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(pr.SourceBranch, command.Target.HeadRef, StringComparison.Ordinal) &&
+            string.Equals(pr.TargetBranch, command.Target.BaseRef, StringComparison.Ordinal) &&
+            string.Equals(pr.HeadCommitId, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(pr.MergeCommitId, mergeCommitSha, StringComparison.OrdinalIgnoreCase) &&
+            (pr.State.Equals("merged", StringComparison.OrdinalIgnoreCase) || pr.State.Equals("completed", StringComparison.OrdinalIgnoreCase));
+        return exact
+            ? null
+            : new(SourceControlDeliveryStatus.ReconciliationRequired, "Fresh post-merge evidence does not prove the exact merge commit advanced the target branch.", PullRequestId: command.Target.PullRequestId, MergeCommitSha: mergeCommitSha, MutationSent: true, MayHaveModifiedRemote: true, Evidence: evidence);
     }
 
     protected async Task<RemoteDeliveryHttpResult> SendAsync(
@@ -281,15 +347,15 @@ public sealed class GitHubRemoteSourceControlDeliveryAdapter : RemoteSourceContr
                 if (string.IsNullOrWhiteSpace(mergeSha) || mergeSha.Length < 7 || !mergeSha.All(Uri.IsHexDigit))
                     return new(SourceControlDeliveryStatus.ReconciliationRequired, "GitHub did not return a concrete merge commit identity.", PullRequestId: number, MutationSent: true, MayHaveModifiedRemote: true);
                 var mergedEvidence = await ReadAfterMutationAsync(command, number, cancellationToken).ConfigureAwait(false);
-                return mergedEvidence.PullRequest?.State.Equals("merged", StringComparison.OrdinalIgnoreCase) == true &&
-                    string.Equals(mergedEvidence.PullRequest.MergeCommitId, mergeSha, StringComparison.OrdinalIgnoreCase)
-                    ? new(SourceControlDeliveryStatus.Verified, PullRequestId: number, MergeCommitSha: mergeSha, MutationSent: true, Evidence: mergedEvidence)
-                    : new(SourceControlDeliveryStatus.ReconciliationRequired, "GitHub merge was sent but post-state is not verified.", PullRequestId: number, MergeCommitSha: mergeSha, MutationSent: true, MayHaveModifiedRemote: true, Evidence: mergedEvidence);
+                var mergeFailure = VerifyMergePostWriteTarget(command, mergedEvidence, mergeSha, currentEvidence);
+                return mergeFailure ?? new(SourceControlDeliveryStatus.Verified, PullRequestId: number, MergeCommitSha: mergeSha, MutationSent: true, Evidence: mergedEvidence);
             default:
                 return new(SourceControlDeliveryStatus.Unsupported, "The GitHub delivery operation is not supported.");
         }
         if (response.State is not RemoteEvidenceState.Available) return MapFailure(response);
         var updatedEvidence = await ReadAfterMutationAsync(command, number, cancellationToken).ConfigureAwait(false);
+        var targetFailure = VerifyExactPostWriteTarget(command, updatedEvidence);
+        if (targetFailure is not null) return targetFailure;
         if (command.OperationKind == SourceControlDeliveryOperationKind.UpdatePullRequestMetadata &&
             (updatedEvidence.PullRequest?.Title is null ||
              !string.Equals(updatedEvidence.PullRequest.Title, command.PullRequestTitle, StringComparison.Ordinal) ||
@@ -348,13 +414,10 @@ public sealed class GitHubRemoteSourceControlDeliveryAdapter : RemoteSourceContr
                 return new(SourceControlDeliveryStatus.ReconciliationRequired, error ?? "GitHub Ready mutation response was ambiguous.", PullRequestId: number, MutationSent: true, MayHaveModifiedRemote: true);
 
             var updated = await ReadAfterMutationAsync(command, number, cancellationToken).ConfigureAwait(false);
-            return updated.PullRequest is { IsDraft: false } pr && pr.Id == number &&
-                string.Equals(pr.SourceBranch, command.Target.HeadRef, StringComparison.Ordinal) &&
-                string.Equals(pr.TargetBranch, command.Target.BaseRef, StringComparison.Ordinal) &&
-                string.Equals(pr.HeadCommitId, command.Target.HeadSha, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(pr.BaseCommitId, command.Target.BaseSha, StringComparison.OrdinalIgnoreCase)
+            var targetFailure = VerifyExactPostWriteTarget(command, updated);
+            return targetFailure ?? (updated.PullRequest is { IsDraft: false } pr && pr.Id == number
                 ? new(SourceControlDeliveryStatus.Verified, PullRequestId: number, MutationSent: true, Evidence: updated)
-                : new(SourceControlDeliveryStatus.ReconciliationRequired, "GitHub Ready mutation was sent but exact post-state verification failed.", PullRequestId: number, MutationSent: true, MayHaveModifiedRemote: true, Evidence: updated);
+                : new(SourceControlDeliveryStatus.ReconciliationRequired, "GitHub Ready mutation was sent but exact post-state verification failed.", PullRequestId: number, MutationSent: true, MayHaveModifiedRemote: true, Evidence: updated));
         }
         catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException or ArgumentException)
         {
@@ -386,6 +449,8 @@ public sealed class GitHubRemoteSourceControlDeliveryAdapter : RemoteSourceContr
 
     private static SourceControlRemoteMutationResult VerifyCreated(SourceControlDeliveryCommand command, SourceControlRemoteEvidence evidence, string id)
     {
+        var targetFailure = VerifyExactPostWriteTarget(command, evidence, id);
+        if (targetFailure is not null) return targetFailure;
         var pr = evidence.PullRequest;
         return evidence.RepositoryEvidence.Repository is { } repository &&
             repository.Provider == command.Target.Provider &&
@@ -506,15 +571,15 @@ public sealed class AzureReposRemoteSourceControlDeliveryAdapter : RemoteSourceC
                 if (string.IsNullOrWhiteSpace(mergeSha) || mergeSha.Length < 7 || !mergeSha.All(Uri.IsHexDigit))
                     return new(SourceControlDeliveryStatus.ReconciliationRequired, "Azure did not return a concrete merge commit identity.", PullRequestId: number, MutationSent: true, MayHaveModifiedRemote: true);
                 var mergedEvidence = await ReadAfterMutationAsync(command, number, cancellationToken).ConfigureAwait(false);
-                return mergedEvidence.PullRequest?.State.Equals("completed", StringComparison.OrdinalIgnoreCase) == true &&
-                    string.Equals(mergedEvidence.PullRequest.MergeCommitId, mergeSha, StringComparison.OrdinalIgnoreCase)
-                    ? new(SourceControlDeliveryStatus.Verified, PullRequestId: number, MergeCommitSha: mergeSha, MutationSent: true, Evidence: mergedEvidence)
-                    : new(SourceControlDeliveryStatus.ReconciliationRequired, "Azure completion was sent but post-state is not verified.", PullRequestId: number, MergeCommitSha: mergeSha, MutationSent: true, MayHaveModifiedRemote: true, Evidence: mergedEvidence);
+                var mergeFailure = VerifyMergePostWriteTarget(command, mergedEvidence, mergeSha, currentEvidence);
+                return mergeFailure ?? new(SourceControlDeliveryStatus.Verified, PullRequestId: number, MergeCommitSha: mergeSha, MutationSent: true, Evidence: mergedEvidence);
             default:
                 return new(SourceControlDeliveryStatus.Unsupported, "The Azure Repos delivery operation is not supported.");
         }
         if (response.State is not RemoteEvidenceState.Available) return MapFailure(response);
         var updatedEvidence = await ReadAfterMutationAsync(command, number, cancellationToken).ConfigureAwait(false);
+        var targetFailure = VerifyExactPostWriteTarget(command, updatedEvidence);
+        if (targetFailure is not null) return targetFailure;
         if (command.OperationKind == SourceControlDeliveryOperationKind.UpdatePullRequestMetadata &&
             (updatedEvidence.PullRequest?.Title is null ||
              !string.Equals(updatedEvidence.PullRequest.Title, command.PullRequestTitle, StringComparison.Ordinal) ||
@@ -540,6 +605,8 @@ public sealed class AzureReposRemoteSourceControlDeliveryAdapter : RemoteSourceC
 
     private static SourceControlRemoteMutationResult VerifyAzureCreated(SourceControlDeliveryCommand command, SourceControlRemoteEvidence evidence, string id)
     {
+        var targetFailure = VerifyExactPostWriteTarget(command, evidence, id);
+        if (targetFailure is not null) return targetFailure;
         var pr = evidence.PullRequest;
         return evidence.RepositoryEvidence.Repository is { } repository &&
             repository.Provider == command.Target.Provider &&

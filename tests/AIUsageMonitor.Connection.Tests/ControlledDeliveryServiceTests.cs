@@ -223,6 +223,209 @@ public sealed class ControlledDeliveryServiceTests
         Assert.Equal(SourceControlDeliveryStatus.InvalidAuthority, result.Status);
     }
 
+    [Fact]
+    public async Task AttemptedMergeDiscovery_PersistsRemoteVerificationBeforeTracker()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var authority = HighRiskFixture.Create(contract, CreateEvidence(HeadSha), mismatch: false, operation: SourceControlDeliveryOperationKind.MergePullRequest);
+        var trackerFixture = TrackerFixture.Create(ProjectId);
+        var command = AttachTracker(authority.Command, trackerFixture.Plan, trackerFixture.Operation, trackerFixture.Authority);
+        var audit = new InMemoryAuditStore();
+        audit.Seed(new SourceControlDeliveryAuditEvent(command.CommandId, command.ProjectId, command.OperationKind, SourceControlDeliveryStatus.ReconciliationRequired,
+            DateTimeOffset.UtcNow, command.WorkItemIdentity, command.ContractReference.ToString(), command.Target.CanonicalRepositoryIdentity, command.Target.BaseRef, command.Target.BaseSha,
+            command.Target.HeadRef, command.Target.HeadSha, command.ActorReference, command.AuditIdentity, command.EvidenceRevision, command.Evidence.RemoteEvidenceFingerprint,
+            PullRequestId: command.Target.PullRequestId, MutationSent: true, MayHaveModifiedRemote: true, CommandContentHash: command.CommandContentHash,
+            RemoteDeliveryVerified: false, TrackerPlanIdentity: TrackerFixture.PlanIdentity(trackerFixture.Plan), TrackerOperationIdentity: TrackerFixture.OperationIdentity(trackerFixture.Operation),
+            TrackerAuthorityContentHash: trackerFixture.Authority.ContentHash, TrackerOutcome: TrackerMutationOutcome.ReconciliationRequired)
+        { EventKindOverride = SourceControlDeliveryAuditEventKind.Attempted });
+        var adapter = new ReconciliationOnlyAdapter(CreateEvidence(HeadSha));
+        var tracker = new RetryingTrackerService();
+
+        var first = await CreateService(contract, adapter, audit, tracker: tracker,
+            validationDecisions: new ConfiguredValidationRepository(authority.Decision), approvals: new EmptyApprovalService(authority.Approval), reviews: new EmptyReviewService(authority.ReviewCase))
+            .ExecuteAsync(command);
+
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, first.Status);
+        Assert.Equal(0, tracker.AttemptCount);
+        Assert.True(audit.Values.Last().RemoteDeliveryVerified);
+        Assert.Null(audit.Values.Last().TrackerOutcome);
+
+        var second = await CreateService(contract, adapter, audit, tracker: tracker,
+            validationDecisions: new ConfiguredValidationRepository(authority.Decision), approvals: new EmptyApprovalService(authority.Approval), reviews: new EmptyReviewService(authority.ReviewCase))
+            .ExecuteAsync(command);
+
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, second.Status);
+        Assert.Equal(1, tracker.AttemptCount);
+        Assert.Equal(1, adapter.MutationCount);
+    }
+
+    [Fact]
+    public async Task AttemptedMergeDiscoveryWithoutDurableVerification_DoesNotMutateTracker()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var authority = HighRiskFixture.Create(contract, CreateEvidence(HeadSha), mismatch: false, operation: SourceControlDeliveryOperationKind.MergePullRequest);
+        var trackerFixture = TrackerFixture.Create(ProjectId);
+        var command = AttachTracker(authority.Command, trackerFixture.Plan, trackerFixture.Operation, trackerFixture.Authority);
+        var audit = new InMemoryAuditStore { FailAfterFirstAppend = true };
+        audit.Seed(new SourceControlDeliveryAuditEvent(command.CommandId, command.ProjectId, command.OperationKind, SourceControlDeliveryStatus.ReconciliationRequired,
+            DateTimeOffset.UtcNow, command.WorkItemIdentity, command.ContractReference.ToString(), command.Target.CanonicalRepositoryIdentity, command.Target.BaseRef, command.Target.BaseSha,
+            command.Target.HeadRef, command.Target.HeadSha, command.ActorReference, command.AuditIdentity, command.EvidenceRevision, command.Evidence.RemoteEvidenceFingerprint,
+            PullRequestId: command.Target.PullRequestId, MutationSent: true, MayHaveModifiedRemote: true, CommandContentHash: command.CommandContentHash,
+            RemoteDeliveryVerified: false, TrackerPlanIdentity: TrackerFixture.PlanIdentity(trackerFixture.Plan), TrackerOperationIdentity: TrackerFixture.OperationIdentity(trackerFixture.Operation),
+            TrackerAuthorityContentHash: trackerFixture.Authority.ContentHash, TrackerOutcome: TrackerMutationOutcome.ReconciliationRequired)
+        { EventKindOverride = SourceControlDeliveryAuditEventKind.Attempted });
+        var adapter = new ReconciliationOnlyAdapter(CreateEvidence(HeadSha));
+        var tracker = new RetryingTrackerService();
+
+        var result = await CreateService(contract, adapter, audit, tracker: tracker,
+            validationDecisions: new ConfiguredValidationRepository(authority.Decision), approvals: new EmptyApprovalService(authority.Approval), reviews: new EmptyReviewService(authority.ReviewCase))
+            .ExecuteAsync(command);
+
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+        Assert.Equal(0, tracker.AttemptCount);
+        Assert.False(audit.Values.Last().RemoteDeliveryVerified);
+        Assert.Equal(1, adapter.MutationCount);
+    }
+
+    [Fact]
+    public async Task ExactApprovalEvidenceChain_IsAccepted()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var authority = HighRiskFixture.Create(contract, CreateEvidence(HeadSha), mismatch: false);
+        var adapter = new FakeDeliveryAdapter(CreateEvidence(HeadSha), CreateReadyEvidence());
+        var audit = new InMemoryAuditStore();
+        var result = await CreateService(contract, adapter, audit,
+            validationDecisions: new ConfiguredValidationRepository(authority.Decision),
+            approvals: new EmptyApprovalService(authority.Approval), reviews: new EmptyReviewService(authority.ReviewCase))
+            .ExecuteAsync(authority.Command);
+
+        Assert.Equal(SourceControlDeliveryStatus.Verified, result.Status);
+        Assert.Equal(1, adapter.MutationCount);
+    }
+
+    [Fact]
+    public async Task ApprovalRequestConsistentWithUnrelatedRevision_IsBlocked()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var current = HighRiskFixture.Create(contract, CreateEvidence(HeadSha), mismatch: false);
+        var unrelated = HighRiskFixture.Create(contract, CreateEvidence(HeadSha), mismatch: false);
+        var unrelatedApproval = unrelated.Approval;
+        var command = ReplaceEvidence(current.Command, new SourceControlDeliveryEvidence(
+            current.Command.Evidence.RemoteEvidenceFingerprint, HeadSha, BaseSha,
+            current.Decision.Reference, current.Command.Evidence.ReviewRootId, current.Command.Evidence.CurrentReviewId,
+            current.Command.Evidence.HumanApprovalRequestId, unrelatedApproval.Request!.EvidenceRevision, "policy:v1",
+            current.Command.Evidence.ExecutionRunAuthorityReference));
+        var adapter = new FakeDeliveryAdapter(CreateEvidence(HeadSha));
+        var result = await CreateService(contract, adapter, new InMemoryAuditStore(),
+            validationDecisions: new ConfiguredValidationRepository(current.Decision),
+            approvals: new EmptyApprovalService(unrelatedApproval), reviews: new EmptyReviewService(current.ReviewCase))
+            .ExecuteAsync(command);
+
+        Assert.Equal(SourceControlDeliveryStatus.Blocked, result.Status);
+        Assert.Equal(0, adapter.MutationCount);
+    }
+
+    [Fact]
+    public async Task ApprovalRevisionWithWrongReviewLineage_IsBlocked()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var current = HighRiskFixture.Create(contract, CreateEvidence(HeadSha), mismatch: false);
+        var wrongReview = HighRiskFixture.Create(contract, CreateEvidence(HeadSha), mismatch: false);
+        var wrongRevision = new HumanApprovalEvidenceRevision([
+            HumanApprovalEvidenceReference.FromValidationDecision(current.Decision.Reference),
+            HumanApprovalEvidenceReference.FromReviewIdentity($"review:{wrongReview.ReviewCase.RootReviewId:D}/{wrongReview.ReviewCase.InboxItem!.CurrentReviewId:D}", wrongReview.ReviewCase.InboxItem.CurrentReviewId)]);
+        var command = ReplaceEvidence(current.Command, new SourceControlDeliveryEvidence(
+            current.Command.Evidence.RemoteEvidenceFingerprint, HeadSha, BaseSha, current.Decision.Reference,
+            current.Command.Evidence.ReviewRootId, current.Command.Evidence.CurrentReviewId, current.Command.Evidence.HumanApprovalRequestId,
+            wrongRevision, "policy:v1", current.Command.Evidence.ExecutionRunAuthorityReference));
+        var adapter = new FakeDeliveryAdapter(CreateEvidence(HeadSha));
+        var result = await CreateService(contract, adapter, new InMemoryAuditStore(),
+            validationDecisions: new ConfiguredValidationRepository(current.Decision),
+            approvals: new EmptyApprovalService(current.Approval), reviews: new EmptyReviewService(current.ReviewCase))
+            .ExecuteAsync(command);
+
+        Assert.Equal(SourceControlDeliveryStatus.Blocked, result.Status);
+        Assert.Equal(0, adapter.MutationCount);
+    }
+
+    [Fact]
+    public async Task SameCommandAcrossIndependentServices_ClaimsOneMutation()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var adapter = new FakeDeliveryAdapter(CreateEvidence(HeadSha));
+        var firstAudit = new InMemoryAuditStore();
+        var secondAudit = new InMemoryAuditStore(firstAudit.SharedState);
+        var command = CreateCommand(contract, CreateEvidence(HeadSha), SourceControlDeliveryOperationKind.UpdatePullRequestMetadata);
+        var first = CreateService(contract, adapter, firstAudit);
+        var second = CreateService(contract, adapter, secondAudit);
+
+        var results = await Task.WhenAll(first.ExecuteAsync(command), second.ExecuteAsync(command));
+
+        Assert.Equal(1, adapter.MutationCount);
+        Assert.Contains(results, value => value.Status == SourceControlDeliveryStatus.Verified);
+        Assert.Contains(results, value => value.Status is SourceControlDeliveryStatus.ReconciliationRequired or SourceControlDeliveryStatus.AlreadyApplied);
+    }
+
+    [Fact]
+    public async Task ChangedActorUnderSameCommandId_IsRejectedWithoutSecondMutation()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var adapter = new FakeDeliveryAdapter(CreateEvidence(HeadSha));
+        var audit = new InMemoryAuditStore();
+        var original = CreateCommand(contract, CreateEvidence(HeadSha), SourceControlDeliveryOperationKind.UpdatePullRequestMetadata, commandId: Guid.NewGuid());
+        var changed = ReplaceCommand(original, actorReference: "different-actor");
+
+        Assert.Equal(SourceControlDeliveryStatus.Verified, (await CreateService(contract, adapter, audit).ExecuteAsync(original)).Status);
+        Assert.Equal(SourceControlDeliveryStatus.InvalidAuthority, (await CreateService(contract, adapter, audit).ExecuteAsync(changed)).Status);
+        Assert.Equal(1, adapter.MutationCount);
+    }
+
+    [Fact]
+    public async Task ChangedCredentialUnderSameCommandId_IsRejectedWithoutSecondMutation()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var adapter = new FakeDeliveryAdapter(CreateEvidence(HeadSha));
+        var audit = new InMemoryAuditStore();
+        var original = ReplaceCommand(CreateCommand(contract, CreateEvidence(HeadSha), SourceControlDeliveryOperationKind.UpdatePullRequestMetadata, commandId: Guid.NewGuid()), credentialReference: "credential-a");
+        var changed = ReplaceCommand(original, credentialReference: "credential-b");
+
+        Assert.Equal(SourceControlDeliveryStatus.Verified, (await CreateService(contract, adapter, audit).ExecuteAsync(original)).Status);
+        Assert.Equal(SourceControlDeliveryStatus.InvalidAuthority, (await CreateService(contract, adapter, audit).ExecuteAsync(changed)).Status);
+        Assert.Equal(1, adapter.MutationCount);
+    }
+
+    [Fact]
+    public async Task MissingPersistedCommandHash_FailsClosedWithoutMutation()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var adapter = new FakeDeliveryAdapter(CreateEvidence(HeadSha));
+        var audit = new InMemoryAuditStore();
+        var command = CreateCommand(contract, CreateEvidence(HeadSha), SourceControlDeliveryOperationKind.UpdatePullRequestMetadata);
+        audit.Seed(new SourceControlDeliveryAuditEvent(command.CommandId, command.ProjectId, command.OperationKind, SourceControlDeliveryStatus.ReconciliationRequired,
+            DateTimeOffset.UtcNow, command.WorkItemIdentity, command.ContractReference.ToString(), command.Target.CanonicalRepositoryIdentity, command.Target.BaseRef, command.Target.BaseSha,
+            command.Target.HeadRef, command.Target.HeadSha, command.ActorReference, command.AuditIdentity, command.EvidenceRevision, command.Evidence.RemoteEvidenceFingerprint));
+
+        var result = await CreateService(contract, adapter, audit).ExecuteAsync(command);
+
+        Assert.Equal(SourceControlDeliveryStatus.InvalidAuthority, result.Status);
+        Assert.Equal(0, adapter.MutationCount);
+    }
+
+    [Fact]
+    public async Task CapacityClaimRejectsBeforeAttemptedAppendOrMutation()
+    {
+        var contract = ContractFixture.Create(ProjectId, ContractId);
+        var adapter = new FakeDeliveryAdapter(CreateEvidence(HeadSha));
+        var audit = new InMemoryAuditStore { ForceCapacityExceeded = true };
+        var command = CreateCommand(contract, CreateEvidence(HeadSha), SourceControlDeliveryOperationKind.UpdatePullRequestMetadata);
+
+        var result = await CreateService(contract, adapter, audit).ExecuteAsync(command);
+
+        Assert.Equal(SourceControlDeliveryStatus.Blocked, result.Status);
+        Assert.Equal(0, adapter.MutationCount);
+        Assert.Empty(audit.Values);
+    }
+
     private static SourceControlDeliveryService CreateService(PlanningExecutionContract contract, IRemoteSourceControlDeliveryAdapter adapter, InMemoryAuditStore audit,
         ILocalDeliveryGitService? localGit = null,
         IValidationGateDecisionRepository? validationDecisions = null,
@@ -264,15 +467,23 @@ public sealed class ControlledDeliveryServiceTests
         return new(repository, new RemoteBranchEvidence("task", headSha, false), new RemoteBranchEvidence("main", BaseSha, true), new RemotePullRequestEvidence("42", "open", true, "task", "main", headSha, BaseSha, RemoteMergeability.Available));
     }
 
-    private sealed class FakeDeliveryAdapter(SourceControlRemoteEvidence evidence) : IRemoteSourceControlDeliveryAdapter
+    private sealed class FakeDeliveryAdapter : IRemoteSourceControlDeliveryAdapter
     {
+        private readonly SourceControlRemoteEvidence _evidence;
+        private readonly SourceControlRemoteEvidence? _mutationEvidence;
+        public FakeDeliveryAdapter(SourceControlRemoteEvidence evidence, SourceControlRemoteEvidence? mutationEvidence = null)
+        {
+            _evidence = evidence;
+            _mutationEvidence = mutationEvidence;
+        }
         public RemoteRepositoryProvider Provider => RemoteRepositoryProvider.GitHub;
         public int MutationCount { get; private set; }
-        public Task<SourceControlRemoteEvidence> ReadAsync(SourceControlDeliveryCommand command, CancellationToken cancellationToken = default) => Task.FromResult(evidence);
+        public Task<SourceControlRemoteEvidence> ReadAsync(SourceControlDeliveryCommand command, CancellationToken cancellationToken = default) => Task.FromResult(_evidence);
         public Task<SourceControlRemoteMutationResult> MutateAsync(SourceControlDeliveryCommand command, SourceControlRemoteEvidence currentEvidence, CancellationToken cancellationToken = default)
         {
             MutationCount++;
-            return Task.FromResult(new SourceControlRemoteMutationResult(SourceControlDeliveryStatus.Verified));
+            return Task.FromResult(new SourceControlRemoteMutationResult(SourceControlDeliveryStatus.Verified,
+                PullRequestId: command.Target.PullRequestId, Evidence: _mutationEvidence));
         }
     }
 
@@ -356,6 +567,26 @@ public sealed class ControlledDeliveryServiceTests
             command.EvidenceRevision, command.AuditIdentity, command.Evidence, command.CredentialReference, command.WorkspacePath, command.ExpectedParentHeadSha,
             command.AllowedChangedPaths, command.CommitMessage, command.PullRequestTitle, command.PullRequestBody, command.DeliveryComment, command.Reviewers,
             command.TrackerRequest, plan, operation, authority, command.WorkspaceReference);
+
+    private static SourceControlDeliveryCommand ReplaceEvidence(SourceControlDeliveryCommand command, SourceControlDeliveryEvidence evidence) =>
+        new(command.CommandId, command.ProjectId, command.WorkItemIdentity, command.ContractReference, command.OperationKind, command.Target, command.ActorReference,
+            command.EvidenceRevision, command.AuditIdentity, evidence, command.CredentialReference, command.WorkspacePath, command.ExpectedParentHeadSha,
+            command.AllowedChangedPaths, command.CommitMessage, command.PullRequestTitle, command.PullRequestBody, command.DeliveryComment, command.Reviewers,
+            command.TrackerRequest, command.TrackerPlan, command.TrackerOperation, command.TrackerAuthority, command.WorkspaceReference);
+
+    private static SourceControlDeliveryCommand ReplaceCommand(SourceControlDeliveryCommand command, string? actorReference = null, string? credentialReference = null) =>
+        new(command.CommandId, command.ProjectId, command.WorkItemIdentity, command.ContractReference, command.OperationKind, command.Target,
+            actorReference ?? command.ActorReference, command.EvidenceRevision, command.AuditIdentity, command.Evidence, credentialReference,
+            command.WorkspacePath, command.ExpectedParentHeadSha, command.AllowedChangedPaths, command.CommitMessage, command.PullRequestTitle,
+            command.PullRequestBody, command.DeliveryComment, command.Reviewers, command.TrackerRequest, command.TrackerPlan, command.TrackerOperation,
+            command.TrackerAuthority, command.WorkspaceReference);
+
+    private static SourceControlRemoteEvidence CreateReadyEvidence()
+    {
+        var current = CreateEvidence(HeadSha);
+        return new(current.RepositoryEvidence, current.HeadBranch, current.BaseBranch,
+            new RemotePullRequestEvidence("42", "open", false, "task", "main", HeadSha, BaseSha, RemoteMergeability.Available));
+    }
 
     private sealed class TrackerFixture
     {
@@ -448,22 +679,74 @@ public sealed class ControlledDeliveryServiceTests
 
     private sealed class InMemoryAuditStore : ISourceControlDeliveryAuditStore
     {
-        private readonly List<SourceControlDeliveryAuditEvent> _values = [];
+        public sealed class AuditState
+        {
+            public List<SourceControlDeliveryAuditEvent> Values { get; } = [];
+        }
+
+        private static readonly SemaphoreSlim Gate = new(1, 1);
+        private readonly AuditState _state;
+        public InMemoryAuditStore(AuditState? state = null) => _state = state ?? new();
+        public AuditState SharedState => _state;
         public bool FailAfterFirstAppend { get; set; }
-        public void Seed(SourceControlDeliveryAuditEvent value) => _values.Add(value);
+        public bool ForceCapacityExceeded { get; set; }
+        public IReadOnlyList<SourceControlDeliveryAuditEvent> Values => _state.Values;
+        public void Seed(SourceControlDeliveryAuditEvent value) => _state.Values.Add(value);
         public Task<SourceControlDeliveryAuditReadResult> FindAsync(Guid projectId, Guid commandId, CancellationToken cancellationToken = default)
         {
-            var value = _values.LastOrDefault(item => item.ProjectId == projectId && item.CommandId == commandId);
+            var value = _state.Values.LastOrDefault(item => item.ProjectId == projectId && item.CommandId == commandId);
+            if (value is not null && !SourceControlDeliveryAuditEvent.IsSha256(value.CommandContentHash))
+                return Task.FromResult<SourceControlDeliveryAuditReadResult>(new(SourceControlDeliveryAuditReadState.Corrupt, ErrorMessage: "invalid command hash"));
             SourceControlDeliveryAuditReadResult result = value is null
                 ? new(SourceControlDeliveryAuditReadState.Missing)
                 : new(SourceControlDeliveryAuditReadState.Found, value);
             return Task.FromResult(result);
         }
-        public Task AppendAsync(SourceControlDeliveryAuditEvent value, CancellationToken cancellationToken = default)
+        public async Task<SourceControlDeliveryAttemptClaim> TryBeginAttemptAsync(SourceControlDeliveryCommand command, CancellationToken cancellationToken = default)
         {
-            if (FailAfterFirstAppend && _values.Count > 0) throw new InvalidOperationException("simulated outcome persistence failure");
-            _values.Add(value);
-            return Task.CompletedTask;
+            await Gate.WaitAsync(cancellationToken);
+            try
+            {
+                var existing = _state.Values.LastOrDefault(item => item.ProjectId == command.ProjectId && item.CommandId == command.CommandId);
+                if (existing is not null)
+                    return existing.MatchesCommand(command)
+                        ? new(SourceControlDeliveryAttemptClaimState.Existing, existing)
+                        : new(SourceControlDeliveryAttemptClaimState.ConflictingIntent, existing, "conflicting command intent");
+                if (ForceCapacityExceeded || _state.Values.Count >= SourceControlDeliveryLimits.MaxAuditRecords)
+                    return new(SourceControlDeliveryAttemptClaimState.CapacityExceeded, ErrorMessage: "capacity");
+                var attempted = new SourceControlDeliveryAuditEvent(
+                    command.CommandId, command.ProjectId, command.OperationKind, SourceControlDeliveryStatus.ReconciliationRequired,
+                    DateTimeOffset.UtcNow, command.WorkItemIdentity, command.ContractReference.ToString(), command.Target.CanonicalRepositoryIdentity,
+                    command.Target.BaseRef, command.Target.BaseSha, command.Target.HeadRef, command.Target.HeadSha, command.ActorReference,
+                    command.AuditIdentity, command.EvidenceRevision, command.Evidence.RemoteEvidenceFingerprint,
+                    PullRequestId: command.Target.PullRequestId, CommandContentHash: command.CommandContentHash,
+                    CredentialReference: command.CredentialReference,
+                    TrackerPlanIdentity: SourceControlDeliveryIntent.TrackerPlanIdentity(command.TrackerPlan),
+                    TrackerOperationIdentity: SourceControlDeliveryIntent.TrackerOperationIdentity(command.TrackerOperation),
+                    TrackerAuthorityContentHash: command.TrackerAuthority?.ContentHash)
+                {
+                    EventKindOverride = SourceControlDeliveryAuditEventKind.Attempted
+                };
+                _state.Values.Add(attempted);
+                return new(SourceControlDeliveryAttemptClaimState.Claimed);
+            }
+            finally
+            {
+                Gate.Release();
+            }
+        }
+        public async Task AppendAsync(SourceControlDeliveryAuditEvent value, CancellationToken cancellationToken = default)
+        {
+            await Gate.WaitAsync(cancellationToken);
+            try
+            {
+                if (FailAfterFirstAppend && _state.Values.Count > 0) throw new InvalidOperationException("simulated outcome persistence failure");
+                _state.Values.Add(value);
+            }
+            finally
+            {
+                Gate.Release();
+            }
         }
     }
 
