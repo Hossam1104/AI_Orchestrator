@@ -1,31 +1,40 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 8 September 2026 (APO-50 executor closeout; Sol review pending)
+**Last Updated:** 9 September 2026 (APO-50 R1 executor remediation; Sol exact-head review pending)
 
-## APO-50 executor closeout
+## APO-50 R1 executor remediation
 
-`APO-50 EXECUTOR IMPLEMENTATION = COMPLETE / PENDING SOL EXACT-HEAD REVIEW`; executor completion
-is not Sol acceptance, merge, or Jira completion.
+`APO-50 R1 REMEDIATION = PARTIAL / PENDING SOL EXACT-HEAD RE-REVIEW`; executor completion is not
+Sol acceptance, merge, or Jira completion.
 
 - Branch: `feat/APO-50-mission-control`.
-- Functional commit: `36ae943e5b77fe171021e5946a12500094248e2c`; parent
-  `272cd953d2e823f743fd79446198b2bf3c8e1f5f`; tree
-  `6692c0607a436cef3ae31afaac59b8c05a6e7eec`.
-- Draft PR #35 is open against `main`, unmerged, with head
-  `36ae943e5b77fe171021e5946a12500094248e2c`.
+- R1 functional commit: `f9c56627a913497ceb40bfcabc1a6b2497d09c95`; parent
+  `e693e0b6c00286a165c872e73d1e9a68d0f5d1fb`; tree
+  `537000e793da79926027708d2dee80dca137e54b`.
+- Draft PR #35 remains open against `main` and unmerged; the R1 branch push and PR metadata update
+  remain handoff actions.
 - Mission Control adds a project-scoped read-only snapshot contract and composition service for
   project, execution, role, repository/tracker, validation, review/approval, runtime, attention,
   and limitation data. It uses only existing persisted/local read contracts and does not perform
   provider refresh, live remote SCM, tracker, or runtime process inspection.
-- Mission Control is the default desktop workspace. The selector does not guess when multiple
-  active projects exist; refresh is project-scoped and serialized; degraded persistence and
-  incomplete sources remain truthful `Unknown`/limitation states.
+- R1 closes SOL-50-02: terminal `Completed`/`Cancelled` execution history cannot populate current
+  work; an exact correlated active review may establish a current Review boundary without making
+  the execution Running.
+- R1 closes SOL-50-03: `ReviewInboxItem.BoundRunId` exposes the current review's exact run binding,
+  including current-review metadata rather than a stale root-review binding; Mission Control only
+  lets matching review evidence drive state.
+- SOL-50-01 is partial: existing V1 persisted authorities do not expose a current action/delivery
+  authority that can safely reconstruct the complete approval contract/target/evidence/policy
+  tuple. Mission Control passes an explicit empty context set to `HumanApprovalService`; unknown,
+  historical, and unresolved approvals remain non-current with a correlation limitation. The
+  production approval service remains unchanged and exact supplied contexts remain covered by its
+  tests.
 - Validation: restore passed; solution build passed with `0 warnings / 0 errors`; canonical serial
-  suite passed with `1,239 passed / 0 failed / 0 skipped`; diff and changed-scope secret scans were
+  suite passed with `1,243 passed / 0 failed / 0 skipped`; diff and changed-scope secret scans were
   clean.
 - `APO-33 = NOT STARTED`; GitHub Actions remains `NONE / NOT CLAIMED`.
-- Jira APO-50 start and handoff mutation were deferred to Sol because no Jira connector was
-  available in this execution context.
+- Jira APO-50 R1 handoff comment remains a required handoff action; no status transition or gate
+  change is authorized.
 - Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
 
 ## Canonical live snapshot
