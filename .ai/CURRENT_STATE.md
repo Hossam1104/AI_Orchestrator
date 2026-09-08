@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 8 September 2026 (APO-63 R4 executor remediation handoff)
+**Last Updated:** 8 September 2026 (APO-63 final integration closeout)
 
 ## Canonical live snapshot
 
@@ -36,19 +36,16 @@
   `1,172 passed / 0 failed / 0 skipped`; build `0 warnings / 0 errors`.
 - Jira project key: `APO`. The Jira display name remains `AI Project Orchestrator`; this is a
   connector-visible display surface and is not changed by this closeout.
-- APO-63 executor branch: `feat/APO-63-controlled-remote-delivery`.
-- APO-63 R1 required starting baseline: branch `feat/APO-63-controlled-remote-delivery`, HEAD
-  `567d8e128c40082f9614da567c35c6af1395a08d`; tree
-  `446bbc0c48f61b897c87d4ce36ca2ffa35b07a55`; `origin/main`
-  `fc8a2d7c79772d716d2c3d17ce729844c539dbd9`.
-- APO-63 R1 primary functional commit: `b4b6df215de98dfa14d40d718f1d55a6997ce272`; tree
-  `f26b321c2a571a4aa77c75d606384aa43d144280`; parent
-  `567d8e128c40082f9614da567c35c6af1395a08d`.
-- APO-63 R1 pre-current-state metadata handoff: `a67445b4dae1eac88edd7587cd39ff306a39018b`;
-  tree `e6472c579d6448ebfaa659afb53c083faf6f0947`; later metadata-only alignment is recorded
-  in the pushed branch and PR #33.
-- APO-63 Draft PR: `#33`, base `main`, head
-  `feat/APO-63-controlled-remote-delivery`, `OPEN / DRAFT / UNMERGED`.
+- `APO-63 PRODUCT ACCEPTANCE = FINAL`; `APO-63 INTEGRATION = COMPLETE`; `APO-63 = MERGED / DONE`.
+- Accepted APO-63 head: `08fd824f6dac393e0b752d40387c96841acefe8b`; accepted tree:
+  `6601d556d73e93b93c88d0d433db1b5b96eba580`.
+- Product merge on `main`: `aa2b584f0cb2723113775d0962388988741602ff`; merge tree:
+  `6601d556d73e93b93c88d0d433db1b5b96eba580`.
+- `SOL FINAL APO-63 ADJUDICATION = PASS`; `OPUS TARGETED CHECKPOINT = PASS`.
+- `OPUS-63-04/05/06 = LOW / NON-BLOCKING / POST-V1-DEFERRED`.
+- `FAST V1 CURRENT GATE = APO-50`; `APO-50 = NEXT / TO DO / NOT STARTED`; `APO-33 = TO DO / NOT STARTED`.
+- PR #33 is `MERGED`; its accepted head remains `feat/APO-63-controlled-remote-delivery`.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
 - Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`
 
@@ -154,16 +151,16 @@ Sol acceptance.
 - `JIRA R1 HANDOFF = DEFERRED TO SOL`; Jira transition/comment were not performed by this
   executor. APO-50 and APO-33 remain not started.
 
-## FAST V1 gate
+## Historical FAST V1 gate before APO-63 closeout
 
 `APO-51 = FINAL ACCEPTED / MERGED / DONE` and is no longer the current gate. `APO-49 = FINAL
-ACCEPTED / MERGED / CLOSED`. The current FAST V1 gate is `APO-63`, executor-complete and pending
+ACCEPTED / MERGED / CLOSED`. The former FAST V1 gate was `APO-63`, executor-complete and pending
 Sol exact-head review.
 
 Remaining V1 Stories:
 
-1. `APO-63` - must ship; current next gate; executor complete, pending Sol acceptance
-2. `APO-50` - must ship; `To Do`
+1. `APO-63` - final accepted, merged, and done
+2. `APO-50` - must ship; current gate; `To Do`
 3. `APO-33` - must ship; `To Do`
 
 The exact FAST V1 implementation order is:
@@ -313,7 +310,7 @@ automatic roadmap execution and no feature creep.
 - Final branch head/tree are reported in the executor completion report after the metadata handoff
   commit; no self-SHA recursion is written into this file.
 
-## APO-63 R4 executor remediation handoff
+## Historical APO-63 R4 executor remediation handoff
 
 `APO-63 R4 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL EXACT-HEAD R4 RE-REVIEW`
 
