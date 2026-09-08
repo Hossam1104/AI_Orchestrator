@@ -64,19 +64,19 @@ public sealed class CapacityViewModelTests
         viewModel.SetPersistenceAvailability(false);
         await viewModel.InitializeDegradedAsync();
 
-        Assert.False(viewModel.Overview.IsPersistenceAvailable);
-        Assert.Equal("Degraded mode", viewModel.Overview.PersistenceStateText);
-        Assert.Contains("unavailable", viewModel.Overview.PersistenceText, StringComparison.OrdinalIgnoreCase);
+        Assert.False(viewModel.MissionControl.IsStorageAvailable);
+        Assert.Equal("Unknown", viewModel.MissionControl.OverallStateText);
+        Assert.Contains("cannot be loaded", viewModel.MissionControl.StateReasonText, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void ShellStartsOnAiCapacity_WhileOverviewRemainsAvailable()
+    public void ShellStartsOnMissionControl_WhileExistingWorkspacesRemainAvailable()
     {
         var viewModel = new MainWindowViewModel(new AiCapacityViewModel());
 
-        Assert.Same(viewModel.AiCapacity, viewModel.ActiveWorkspace);
-        Assert.False(viewModel.IsOverviewSelected);
-        Assert.True(viewModel.IsAiCapacitySelected);
+        Assert.Same(viewModel.MissionControl, viewModel.ActiveWorkspace);
+        Assert.True(viewModel.IsMissionControlSelected);
+        Assert.False(viewModel.IsAiCapacitySelected);
     }
 
     [Fact]

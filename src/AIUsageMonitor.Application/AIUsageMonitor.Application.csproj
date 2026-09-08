@@ -11,6 +11,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="AIUsageMonitor.Infrastructure" />
     <InternalsVisibleTo Include="AIUsageMonitor.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="AIUsageMonitor.Connection.Tests" />
+    <InternalsVisibleTo Include="AIUsageMonitor.Desktop.Tests" />
   </ItemGroup>
 
 </Project>

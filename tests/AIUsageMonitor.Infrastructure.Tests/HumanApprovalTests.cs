@@ -28,6 +28,14 @@ public sealed class HumanApprovalTests
         Assert.False(pending.CanProceed);
         Assert.Equal(RecoveryGateState.Pending, HumanApprovalRecoveryProjection.ToRecoveryGateSnapshot(pending).State);
 
+        var pendingInbox = await scope.Service.ReadInboxAsync(
+            request.ProjectId,
+            new Dictionary<Guid, HumanApprovalEvaluationContext> { [request.RequestId] = context });
+        Assert.True(pendingInbox.IsUsable);
+        Assert.Equal(HumanApprovalState.Pending, pendingInbox.Items.Single().EffectiveState);
+        Assert.True(pendingInbox.Items.Single().CurrentContextKnown);
+        Assert.True(pendingInbox.Items.Single().OwnerAttentionRequired);
+
         var approved = await scope.Service.ApproveAsync(
             new HumanApprovalDecisionRequest(
                 request.ProjectId,

@@ -1,5 +1,6 @@
 using AIUsageMonitor.Application.Projects;
 using AIUsageMonitor.Application.Providers;
+using AIUsageMonitor.Application.MissionControl;
 using AIUsageMonitor.Desktop.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -31,7 +32,14 @@ public static class DesktopServiceCollectionExtensions
             provider.GetRequiredService<IProjectRepositoryStateService>(),
             provider.GetRequiredService<IProjectOnboardingService>(),
             provider.GetRequiredService<AIUsageMonitor.Application.Agents.IDefaultAgentCatalog>()));
-        services.AddSingleton<MainWindowViewModel>();
+        services.AddSingleton<IMissionControlReadModelService, MissionControlReadModelService>();
+        services.AddSingleton<MissionControlViewModel>(provider => new MissionControlViewModel(
+            provider.GetRequiredService<IProjectRegistryService>(),
+            provider.GetRequiredService<IMissionControlReadModelService>()));
+        services.AddSingleton<MainWindowViewModel>(provider => new MainWindowViewModel(
+            provider.GetRequiredService<MissionControlViewModel>(),
+            provider.GetRequiredService<AiCapacityViewModel>(),
+            provider.GetRequiredService<ProjectsViewModel>()));
         services.AddSingleton<MainWindow>();
 
         return services;

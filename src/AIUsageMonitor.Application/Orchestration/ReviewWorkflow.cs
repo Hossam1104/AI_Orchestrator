@@ -294,6 +294,8 @@ public sealed class ReviewInboxItem
     public Guid ProjectId { get; internal set; }
     public Guid RootReviewId { get; internal set; }
     public Guid CurrentReviewId { get; internal set; }
+    /// <summary>Exact run identity bound to the current review metadata, when persisted.</summary>
+    public Guid? BoundRunId { get; internal set; }
     public DateTimeOffset LatestTimestamp { get; internal set; }
     public string ReviewerReference { get; internal set; } = string.Empty;
     public string CurrentVerdict { get; internal set; } = string.Empty;
@@ -1012,11 +1014,18 @@ public sealed class ReviewWorkflowService : IReviewWorkflowService
             var blocking = review.Findings.Count(value => value.Blocking);
             var pending = review.Findings.Count(value => value.Blocking && !byFinding.ContainsKey(value.FindingId));
             var latest = _events.Count == 0 ? review.OccurredAt : _events.Max(value => value.OccurredAt);
+            var boundRunId = review.RunId ?? _events
+                .Where(value => value.CurrentReviewId == review.ReviewId && value.ExecutionRunAuthorityReference is not null)
+                .OrderByDescending(value => value.OccurredAt)
+                .ThenByDescending(value => value.EventId)
+                .Select(value => value.ExecutionRunAuthorityReference!.RunId)
+                .FirstOrDefault();
             return new ReviewInboxItem
             {
                 ProjectId = review.ProjectId,
                 RootReviewId = _events.Count == 0 ? review.ReviewId : _events[0].RootReviewId,
                 CurrentReviewId = review.ReviewId,
+                BoundRunId = boundRunId == Guid.Empty ? null : boundRunId,
                 LatestTimestamp = latest,
                 ReviewerReference = review.ReviewerReference,
                 CurrentVerdict = review.Verdict,

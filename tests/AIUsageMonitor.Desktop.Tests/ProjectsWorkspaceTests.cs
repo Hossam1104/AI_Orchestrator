@@ -614,22 +614,22 @@ public sealed class ProjectsWorkspaceTests
     {
         var viewModel = new MainWindowViewModel(new AiCapacityViewModel(), new ProjectsViewModel());
 
-        viewModel.ShowOverviewCommand.Execute(null);
-        Assert.Same(viewModel.Overview, viewModel.ActiveWorkspace);
-        Assert.True(viewModel.IsOverviewSelected);
+        viewModel.ShowMissionControlCommand.Execute(null);
+        Assert.Same(viewModel.MissionControl, viewModel.ActiveWorkspace);
+        Assert.True(viewModel.IsMissionControlSelected);
         Assert.False(viewModel.IsProjectsSelected);
         Assert.False(viewModel.IsAiCapacitySelected);
 
         viewModel.ShowProjectsCommand.Execute(null);
         Assert.Same(viewModel.Projects, viewModel.ActiveWorkspace);
-        Assert.False(viewModel.IsOverviewSelected);
+        Assert.False(viewModel.IsMissionControlSelected);
         Assert.True(viewModel.IsProjectsSelected);
         Assert.False(viewModel.IsAiCapacitySelected);
         Assert.True(viewModel.ShowProjectsCommand.CanExecute(null));
 
         viewModel.ShowAiCapacityCommand.Execute(null);
         Assert.Same(viewModel.AiCapacity, viewModel.ActiveWorkspace);
-        Assert.False(viewModel.IsOverviewSelected);
+        Assert.False(viewModel.IsMissionControlSelected);
         Assert.False(viewModel.IsProjectsSelected);
         Assert.True(viewModel.IsAiCapacitySelected);
     }

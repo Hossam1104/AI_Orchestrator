@@ -1,5 +1,6 @@
 using System.IO;
 using AIUsageMonitor.Application.Agents;
+using AIUsageMonitor.Application.MissionControl;
 using AIUsageMonitor.Application.Projects;
 using AIUsageMonitor.Application.Planning;
 using AIUsageMonitor.Application.Trackers;
@@ -51,6 +52,16 @@ public sealed class ProductionCompositionTests : IDisposable
         var mainWindowViewModel = provider.GetRequiredService<MainWindowViewModel>();
 
         Assert.NotNull(mainWindowViewModel);
+    }
+
+    [Fact]
+    public void ProductionComposition_ResolvesMissionControlReadModelAndViewModel()
+    {
+        using var provider = BuildProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IMissionControlReadModelService>());
+        var missionControl = provider.GetRequiredService<MissionControlViewModel>();
+        Assert.Same(missionControl, provider.GetRequiredService<MainWindowViewModel>().MissionControl);
     }
 
     [Fact]

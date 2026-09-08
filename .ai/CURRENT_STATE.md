@@ -1,6 +1,69 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 8 September 2026 (APO-63 final integration closeout)
+**Last Updated:** 9 September 2026 (APO-50 R2 final truthfulness correction; Sol exact-head R2 review pending)
+
+## APO-50 R2 final truthfulness correction
+
+`APO-50 R2 FINAL TRUTHFULNESS CORRECTION = COMPLETE / PENDING SOL EXACT-HEAD R2 REVIEW`; executor
+completion is not Sol acceptance, merge, or Jira completion.
+
+- Branch: `feat/APO-50-mission-control`.
+- R2 functional commit: `4a154d7e6b50381b1cb2a863bd2234332028b458`; parent
+  `a4142af970bba72487f9ddb2603374b61c532f8f`; tree
+  `f3245d9d953466c9273a5a07a1c4ec2371e7fc8f`.
+- SOL-50-01 = V1 limitation accepted by Sol; SOL-50-01R is remediated pending Sol review. Unknown
+  approval history is summarized as unavailable current context, has zero proven current pending
+  approvals, preserves `CorrelationUnavailable`, and adds bounded owner-attention guidance without
+  promoting overall state or fabricating current approval authority.
+- SOL-50-02 = remediated and preserved; SOL-50-02R is remediated pending Sol review. Stale Running
+  checkpoints no longer populate authoritative Current Work, while fresh Running and exact
+  `BoundRunId` review correlation remain supported. SOL-50-03 is closed and preserved.
+- Functional scope remains bounded to the Mission Control Application read model and focused
+  Connection tests; no new approval/current-action/delivery persistence, provider reads, polling, or
+  UI redesign was added.
+- Focused Mission Control tests: `21 passed / 0 failed / 0 skipped`.
+- Canonical serial solution tests: `1,249 passed / 0 failed / 0 skipped` (`Domain 28`, `Provider 171`,
+  `Infrastructure 672`, `Desktop 88`, `Connection 290`). Restore passed; build passed with `0
+  warnings / 0 errors`; `git diff --check` and changed-scope secret scan are clean.
+- Draft PR #35 remains open against `main` and unmerged; the R2 branch push was completed. Jira R2
+  handoff was not performed because the connected Atlassian site returned issue-not-found/no-permission
+  for APO-50 and APO-33; no status transition was attempted.
+- `APO-33 = NOT STARTED`; GitHub Actions remains `NONE / NOT CLAIMED`.
+- Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
+
+## APO-50 R1 executor remediation baseline
+
+`APO-50 R1 REMEDIATION = PARTIAL / PENDING SOL EXACT-HEAD RE-REVIEW`; executor completion is not
+Sol acceptance, merge, or Jira completion.
+
+- Branch: `feat/APO-50-mission-control`.
+- R1 functional commit: `f9c56627a913497ceb40bfcabc1a6b2497d09c95`; parent
+  `e693e0b6c00286a165c872e73d1e9a68d0f5d1fb`; tree
+  `537000e793da79926027708d2dee80dca137e54b`.
+- Draft PR #35 remains open against `main` and unmerged; the R1 branch push and PR metadata update
+  are complete.
+- Mission Control adds a project-scoped read-only snapshot contract and composition service for
+  project, execution, role, repository/tracker, validation, review/approval, runtime, attention,
+  and limitation data. It uses only existing persisted/local read contracts and does not perform
+  provider refresh, live remote SCM, tracker, or runtime process inspection.
+- R1 closes SOL-50-02: terminal `Completed`/`Cancelled` execution history cannot populate current
+  work; an exact correlated active review may establish a current Review boundary without making
+  the execution Running.
+- R1 closes SOL-50-03: `ReviewInboxItem.BoundRunId` exposes the current review's exact run binding,
+  including current-review metadata rather than a stale root-review binding; Mission Control only
+  lets matching review evidence drive state.
+- SOL-50-01 is partial: existing V1 persisted authorities do not expose a current action/delivery
+  authority that can safely reconstruct the complete approval contract/target/evidence/policy
+  tuple. Mission Control passes an explicit empty context set to `HumanApprovalService`; unknown,
+  historical, and unresolved approvals remain non-current with a correlation limitation. The
+  production approval service remains unchanged and exact supplied contexts remain covered by its
+  tests.
+- Validation: restore passed; solution build passed with `0 warnings / 0 errors`; canonical serial
+  suite passed with `1,243 passed / 0 failed / 0 skipped`; diff and changed-scope secret scans were
+  clean.
+- `APO-33 = NOT STARTED`; GitHub Actions remains `NONE / NOT CLAIMED`.
+- Jira APO-50 R1 handoff comment `12393` was added; no status transition or gate change was made.
+- Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
 
 ## Canonical live snapshot
 
