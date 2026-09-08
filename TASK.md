@@ -7,7 +7,8 @@ This file is a short authority boundary, not an executable executor prompt.
 
 ## Current authority
 
-- `APO-63 R2 = EXECUTOR REMEDIATION COMPLETE / PENDING SOL EXACT-HEAD RE-REVIEW`.
+- `FAST V1 CURRENT GATE = APO-63`.
+- `APO-63 R3 executor remediation complete / Sol exact-head R3 re-review pending`.
 - `SOL-63-01 = CLOSED / PRESERVED`.
 - `SOL-63-02R = REMEDIATED / PENDING SOL RE-REVIEW`.
 - `SOL-63-03 = CLOSED / PRESERVED`.
@@ -19,8 +20,11 @@ This file is a short authority boundary, not an executable executor prompt.
 - R2 functional commit: `2ec0b7a56ad5495dd6c942eef7a52197c19c625f`; tree
   `1793cf309469c3caf0bdca752208098a62bc1f42`; parent
   `9bb90c152134a7d6987257019969fe92290b6429`.
+- R3 functional commit: `14dc2dcce50309b84cf435292f8e27f66cf8ffb1`; tree
+  `8cd82b3d349f503c5a37416765c8b58589a736e0`; parent
+  `ac19401966ac9e60546d9052f0323002a187115a`.
 - APO-63 PR #33: `OPEN / DRAFT / UNMERGED`, base `main`, exact head branch above.
-- `JIRA R2 HANDOFF = DEFERRED TO SOL`; this executor did not mutate Jira.
+- `JIRA R3 HANDOFF = DEFERRED TO SOL`; this executor did not mutate Jira.
 
 ## FAST V1 order
 
@@ -36,7 +40,7 @@ This file is a short authority boundary, not an executable executor prompt.
 
 ## Handoff status
 
-- `APO-63 R2 executor remediation = COMPLETE / PENDING SOL EXACT-HEAD RE-REVIEW`.
+- `APO-63 R3 executor remediation = COMPLETE / PENDING SOL EXACT-HEAD R3 RE-REVIEW`.
 - `APO-50 = NOT STARTED`.
 - `APO-33 = NOT STARTED`.
 - `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.

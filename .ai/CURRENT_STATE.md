@@ -312,3 +312,39 @@ automatic roadmap execution and no feature creep.
 - `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
 - Final branch head/tree are reported in the executor completion report after the metadata handoff
   commit; no self-SHA recursion is written into this file.
+
+## APO-63 R3 executor remediation handoff
+
+`APO-63 R3 EXECUTOR REMEDIATION = COMPLETE / PENDING SOL EXACT-HEAD R3 RE-REVIEW`
+
+- `SOL-63-01 = CLOSED / PRESERVED`.
+- `SOL-63-02R = CLOSED / PRESERVED`.
+- `SOL-63-03 = CLOSED / PRESERVED`.
+- `SOL-63-04R-AZURE-REVIEWERS = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-05R = CLOSED / PRESERVED`.
+- `SOL-63-06 = CLOSED / PRESERVED`.
+- `SOL-63-07R = CLOSED / PRESERVED`.
+- Surgical change: Azure Repos `RequestReviewers` now runs
+  `VerifyExactPostWriteTarget` on fresh reviewer evidence before reviewer-specific proof can
+  return `Verified`.
+- R3 functional commit: `14dc2dcce50309b84cf435292f8e27f66cf8ffb1`; tree
+  `8cd82b3d349f503c5a37416765c8b58589a736e0`; parent
+  `ac19401966ac9e60546d9052f0323002a187115a`.
+- Focused controlled-delivery tests: `13 passed / 0 failed / 0 skipped`.
+- Provider suite: `158 passed / 0 failed / 0 skipped`.
+- Canonical solution tests: `1,210 passed / 0 failed / 0 skipped` (`Domain 28`, `Provider 158`,
+  `Infrastructure 672`, `Desktop 83`, `Connection 269`).
+- Restore succeeded; solution build succeeded with `0 warnings / 0 errors`; `git diff --check`
+  and changed-scope secret scan are clean.
+- First meaningful R3 implementation failure: the initial compile used a duplicate local name
+  (`CS0136`) after adding the verifier; the reviewer-path local was renamed and the focused and
+  canonical suites then passed.
+- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `JIRA R3 HANDOFF = DEFERRED TO SOL`; this executor did not mutate Jira.
+- PR #33 remains `OPEN / DRAFT / UNMERGED`, base `main`, head
+  `feat/APO-63-controlled-remote-delivery`; no Ready promotion, merge, new PR, or Opus invocation.
+- `APO-50 = NOT STARTED`; `APO-33 = NOT STARTED`.
+- `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
+- Final branch head/tree are reported in the executor completion report after the metadata handoff
+  commit; no self-SHA recursion is written into this file.
