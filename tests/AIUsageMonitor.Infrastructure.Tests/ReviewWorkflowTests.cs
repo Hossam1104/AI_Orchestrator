@@ -48,8 +48,9 @@ public sealed class ReviewWorkflowTests
         Assert.Equal(ValidationGateDecisionState.Satisfied, revalidated.Event!.ValidationState);
 
         var rereviewId = Guid.NewGuid();
+        var runB = harness.RegisterAuthority();
         harness.Clock.UtcNowValue = harness.Clock.UtcNow.AddMinutes(1);
-        await harness.Reviews.AppendReviewAsync(Review(rereviewId, harness.ProjectId, harness.Clock.UtcNow, blockingFinding: false));
+        await harness.Reviews.AppendReviewAsync(Review(rereviewId, harness.ProjectId, harness.Clock.UtcNow, blockingFinding: false, runId: runB.RunId));
         harness.Clock.UtcNowValue = harness.Clock.UtcNow.AddMinutes(1);
         Assert.True((await harness.Service.LinkRereviewAsync(new(harness.ProjectId, root, root, rereviewId))).Succeeded);
 
@@ -58,6 +59,8 @@ public sealed class ReviewWorkflowTests
         Assert.Equal(ReviewWorkflowState.ReadyForAcceptanceAuthority, final.InboxItem!.WorkflowState);
         Assert.Equal(ReviewWorkflowNextAction.SendToAcceptanceAuthority, final.InboxItem.NextRequiredAction);
         Assert.Equal(rereviewId, final.InboxItem.CurrentReviewId);
+        Assert.Equal(runB.RunId, final.InboxItem.BoundRunId);
+        Assert.NotEqual(runA.RunId, final.InboxItem.BoundRunId);
         Assert.Equal(2, final.Reviews.Count);
         Assert.Equal(6, final.Events.Count);
         Assert.Contains(final.Events, value => value.Kind == ReviewWorkflowEventKind.FindingAdjudicated && value.FindingId == "F1");
@@ -571,8 +574,8 @@ public sealed class ReviewWorkflowTests
         return (authority, completed.Event!, revalidated.Event!);
     }
 
-    private static ReviewMetadata Review(Guid reviewId, Guid projectId, DateTimeOffset occurredAt, bool blockingFinding) =>
-        new(projectId, reviewId, occurredAt, "reviewer:opus", "Changes Required", "High", findings:
+    private static ReviewMetadata Review(Guid reviewId, Guid projectId, DateTimeOffset occurredAt, bool blockingFinding, Guid? runId = null) =>
+        new(projectId, reviewId, occurredAt, "reviewer:opus", "Changes Required", "High", runId: runId, findings:
         [
             new ReviewFindingMetadata("F1", "High", "APO-51:workflow", "legacy", blockingFinding, summary: "bounded finding"),
             new ReviewFindingMetadata("F2", "Low", "APO-51:traceability", "legacy", false, summary: "non-blocking finding")

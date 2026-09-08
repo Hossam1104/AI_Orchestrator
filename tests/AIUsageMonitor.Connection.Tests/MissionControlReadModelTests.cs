@@ -68,7 +68,7 @@ public sealed class MissionControlReadModelTests
     }
 
     [Fact]
-    public async Task CompletedExecution_DoesNotBecomeAccepted()
+    public async Task CompletedExecution_DoesNotBecomeAcceptedOrCurrentWork()
     {
         var project = CreateProject("Completed", "C:\\completed");
         var service = CreateService([project], executions: [Run(project, ExecutionRunStatus.Completed, "WORK-1", "Completed work")]);
@@ -76,7 +76,22 @@ public sealed class MissionControlReadModelTests
         var snapshot = await service.ReadAsync(project.Id);
 
         Assert.Equal(MissionControlState.Unknown, snapshot.State);
+        Assert.False(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Equal("No current work selected", snapshot.CurrentWork.Title);
         Assert.Contains(snapshot.Limitations, value => value.Message.Contains("not acceptance", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task CancelledExecution_DoesNotBecomeCurrentWork()
+    {
+        var project = CreateProject("Cancelled", "C:\\cancelled");
+        var service = CreateService([project], executions: [Run(project, ExecutionRunStatus.Cancelled, "WORK-1", "Cancelled work")]);
+
+        var snapshot = await service.ReadAsync(project.Id);
+
+        Assert.Equal(MissionControlState.Unknown, snapshot.State);
+        Assert.False(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Equal("No current work selected", snapshot.CurrentWork.Title);
     }
 
     [Fact]
@@ -100,7 +115,7 @@ public sealed class MissionControlReadModelTests
     }
 
     [Fact]
-    public async Task ReviewState_IsUsedOnlyWhenItCanDriveCurrentState()
+    public async Task HistoricalReviewWithoutCurrentWork_DoesNotDriveCurrentState()
     {
         var project = CreateProject("Review", "C:\\review");
         var review = ReviewItem(project, ReviewWorkflowState.AwaitingAdjudication, ownerAttention: true);
@@ -108,8 +123,43 @@ public sealed class MissionControlReadModelTests
 
         var snapshot = await service.ReadAsync(project.Id);
 
+        Assert.Equal(MissionControlState.Unknown, snapshot.State);
+        Assert.False(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Contains(snapshot.Limitations, value => value.Kind == MissionControlLimitationKind.CorrelationUnavailable);
+        Assert.Equal("Historical / uncorrelated", snapshot.Review.WorkflowState);
+    }
+
+    [Fact]
+    public async Task MatchingReviewRun_DrivesReviewStateAndCurrentWork()
+    {
+        var project = CreateProject("Review", "C:\\review");
+        var run = Run(project, ExecutionRunStatus.Running, "WORK-1", "Current work");
+        var review = ReviewItem(project, ReviewWorkflowState.AwaitingAdjudication, ownerAttention: true, boundRunId: run.RunId);
+        var service = CreateService([project], executions: [run], reviewItems: [review]);
+
+        var snapshot = await service.ReadAsync(project.Id);
+
         Assert.Equal(MissionControlState.Review, snapshot.State);
+        Assert.True(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Equal(MissionControlState.Review, snapshot.CurrentWork.State);
         Assert.Contains(snapshot.AttentionItems, value => value.State == MissionControlState.Review);
+    }
+
+    [Fact]
+    public async Task CompletedRunWithMatchingActiveReview_IsCurrentReviewNotRunningExecution()
+    {
+        var project = CreateProject("Completed review", "C:\\completed-review");
+        var run = Run(project, ExecutionRunStatus.Completed, "WORK-1", "Completed work");
+        var review = ReviewItem(project, ReviewWorkflowState.AwaitingAdjudication, ownerAttention: true, boundRunId: run.RunId);
+        var service = CreateService([project], executions: [run], reviewItems: [review]);
+
+        var snapshot = await service.ReadAsync(project.Id);
+
+        Assert.Equal(MissionControlState.Review, snapshot.State);
+        Assert.True(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Equal(MissionControlState.Review, snapshot.CurrentWork.State);
+        Assert.Contains("Review workflow", snapshot.CurrentWork.CurrentStep, StringComparison.Ordinal);
+        Assert.NotEqual(ExecutionRunStatus.Running, snapshot.Runtime.LatestStatus);
     }
 
     [Fact]
@@ -124,10 +174,26 @@ public sealed class MissionControlReadModelTests
 
         Assert.Equal(MissionControlState.Running, snapshot.State);
         Assert.Contains(snapshot.Limitations, value => value.Kind == MissionControlLimitationKind.CorrelationUnavailable);
+        Assert.NotEqual(MissionControlState.HumanApprovalRequired, snapshot.State);
     }
 
     [Fact]
-    public async Task HumanApprovalRequired_RequiresCurrentKnownApprovalContext()
+    public async Task MatchingHumanDecisionReview_DrivesHumanApprovalRequired()
+    {
+        var project = CreateProject("Review approval", "C:\\review-approval");
+        var run = Run(project, ExecutionRunStatus.Completed, "WORK-2", "Completed work");
+        var review = ReviewItem(project, ReviewWorkflowState.HumanDecisionRequired, ownerAttention: true, boundRunId: run.RunId);
+        var service = CreateService([project], executions: [run], reviewItems: [review]);
+
+        var snapshot = await service.ReadAsync(project.Id);
+
+        Assert.Equal(MissionControlState.HumanApprovalRequired, snapshot.State);
+        Assert.True(snapshot.CurrentWork.IsAuthoritative);
+        Assert.Equal(MissionControlState.HumanApprovalRequired, snapshot.CurrentWork.State);
+    }
+
+    [Fact]
+    public async Task HumanApprovalWithoutAuthoritativeCurrentContext_RemainsUnknown()
     {
         var project = CreateProject("Approval", "C:\\approval");
         var historicalOnly = ApprovalItem(project, currentContextKnown: false);
@@ -138,14 +204,8 @@ public sealed class MissionControlReadModelTests
 
         Assert.NotEqual(MissionControlState.HumanApprovalRequired, historicalSnapshot.State);
         Assert.Contains(historicalSnapshot.Limitations, value => value.Kind == MissionControlLimitationKind.CorrelationUnavailable);
-
-        var current = ApprovalItem(project, currentContextKnown: true);
-        approvalService.Items = [current];
-
-        var currentSnapshot = await service.ReadAsync(project.Id);
-
-        Assert.Equal(MissionControlState.HumanApprovalRequired, currentSnapshot.State);
-        Assert.Contains(currentSnapshot.AttentionItems, value => value.State == MissionControlState.HumanApprovalRequired);
+        Assert.NotNull(approvalService.LastCurrentContexts);
+        Assert.Empty(approvalService.LastCurrentContexts!);
     }
 
     [Fact]
@@ -212,12 +272,13 @@ public sealed class MissionControlReadModelTests
     private static ExecutionRun Run(Project project, ExecutionRunStatus status, string reference, string title) =>
         new(project.Id, Guid.NewGuid(), status, Now.AddMinutes(-2), workItemReference: reference, taskTitle: title, recordedAt: Now.AddMinutes(-1));
 
-    private static ReviewInboxItem ReviewItem(Project project, ReviewWorkflowState state, bool ownerAttention, DateTimeOffset? timestamp = null) =>
+    private static ReviewInboxItem ReviewItem(Project project, ReviewWorkflowState state, bool ownerAttention, DateTimeOffset? timestamp = null, Guid? boundRunId = null) =>
         new()
         {
             ProjectId = project.Id,
             RootReviewId = Guid.NewGuid(),
             CurrentReviewId = Guid.NewGuid(),
+            BoundRunId = boundRunId,
             LatestTimestamp = timestamp ?? Now.AddMinutes(-1),
             ReviewerReference = "reviewer:test",
             CurrentVerdict = "Needs attention",
@@ -323,7 +384,12 @@ public sealed class MissionControlReadModelTests
     private sealed class FakeApprovalService(IReadOnlyList<HumanApprovalInboxItem> items) : IHumanApprovalService
     {
         public IReadOnlyList<HumanApprovalInboxItem> Items { get; set; } = items;
-        public Task<HumanApprovalInboxReadResult> ReadInboxAsync(Guid projectId, IReadOnlyDictionary<Guid, HumanApprovalEvaluationContext>? currentContexts = null, CancellationToken cancellationToken = default) => Task.FromResult(new HumanApprovalInboxReadResult(HumanApprovalHistoryReadStatus.Success, Items));
+        public IReadOnlyDictionary<Guid, HumanApprovalEvaluationContext>? LastCurrentContexts { get; private set; }
+        public Task<HumanApprovalInboxReadResult> ReadInboxAsync(Guid projectId, IReadOnlyDictionary<Guid, HumanApprovalEvaluationContext>? currentContexts = null, CancellationToken cancellationToken = default)
+        {
+            LastCurrentContexts = currentContexts;
+            return Task.FromResult(new HumanApprovalInboxReadResult(HumanApprovalHistoryReadStatus.Success, Items));
+        }
         public Task<HumanApprovalOperationResult> RequestAsync(HumanApprovalRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<HumanApprovalOperationResult> EscalateAsync(Guid projectId, Guid requestId, string escalationReference, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<HumanApprovalOperationResult> ApproveAsync(HumanApprovalDecisionRequest request, CancellationToken cancellationToken = default) => throw new NotSupportedException();

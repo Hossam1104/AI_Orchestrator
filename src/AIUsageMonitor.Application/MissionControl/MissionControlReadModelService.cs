@@ -113,7 +113,7 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
                 "Project orchestration history"));
         }
 
-        ReviewInboxItem? review = null;
+        IReadOnlyList<ReviewInboxItem> reviewItems = Array.Empty<ReviewInboxItem>();
         try
         {
             var read = await _reviews.ReadInboxAsync(projectId, cancellationToken).ConfigureAwait(false);
@@ -127,12 +127,12 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
             }
             else
             {
-                review = read.Items
+                reviewItems = read.Items
                     .Where(value => value.ProjectId == projectId)
                     .OrderByDescending(value => value.LatestTimestamp)
                     .ThenBy(value => value.RootReviewId)
                     .Take(20)
-                    .FirstOrDefault();
+                    .ToArray();
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -151,7 +151,12 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
         IReadOnlyList<HumanApprovalInboxItem> approvalItems = Array.Empty<HumanApprovalInboxItem>();
         try
         {
-            var read = await _approvals.ReadInboxAsync(projectId, cancellationToken: cancellationToken).ConfigureAwait(false);
+            // V1 has no persisted current-action/delivery authority from which the complete
+            // contract/target/evidence/policy tuple can be reconstructed safely. Pass an
+            // explicit empty context set so HumanApprovalService remains the sole evaluator and
+            // unresolved requests stay CurrentContextUnknown instead of being inferred current.
+            var currentApprovalContexts = new Dictionary<Guid, HumanApprovalEvaluationContext>();
+            var read = await _approvals.ReadInboxAsync(projectId, currentApprovalContexts, cancellationToken).ConfigureAwait(false);
             if (!read.IsUsable)
             {
                 limitations.Add(new(
@@ -192,16 +197,21 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
         }
 
         var latestExecution = LatestExecution(executions);
+        var latestReview = reviewItems.FirstOrDefault();
+        var currentReview = SelectCurrentReview(reviewItems, latestExecution);
+        var review = currentReview ?? latestReview;
         var executionState = MapExecutionState(latestExecution, now, limitations);
-        var reviewCanDriveState = latestExecution is null;
-        if (review is not null && latestExecution is not null)
+        var reviewCanDriveState = currentReview is not null;
+        if (latestReview is not null && !reviewCanDriveState)
         {
             limitations.Add(new(
                 "Review",
                 MissionControlLimitationKind.CorrelationUnavailable,
-                "The current review does not expose an exact binding to the latest execution checkpoint, so it is shown as detail and does not replace current execution state.",
+                latestExecution is null
+                    ? "Review evidence exists, but no authoritative current work or execution run exists to correlate it; it is shown as historical/detail evidence only."
+                    : "The latest review does not expose an exact binding to the latest execution checkpoint, so it is shown as historical/detail evidence and does not replace current execution state.",
                 "Review workflow and execution history",
-                review.LatestTimestamp));
+                latestReview.LatestTimestamp));
         }
 
         var currentApproval = approvalItems.FirstOrDefault(value =>
@@ -227,13 +237,13 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
             reviewRequiresHumanDecision,
             staleApproval);
 
-        var nextSafeAction = ResolveNextSafeAction(context, latestExecution, review, currentApproval, staleApproval);
-        var currentWork = BuildCurrentWork(latestExecution, executionState, nextSafeAction);
+        var nextSafeAction = ResolveNextSafeAction(context, latestExecution, currentReview, currentApproval, staleApproval);
+        var currentWork = BuildCurrentWork(latestExecution, executionState, currentReview, reviewCanDriveState, nextSafeAction);
         var roles = BuildRoles(context);
         var repository = BuildRepository(context);
         var tracker = BuildTracker(context);
-        var validation = BuildValidation(review);
-        var reviewSummary = BuildReview(review);
+        var validation = BuildValidation(review, reviewCanDriveState);
+        var reviewSummary = BuildReview(review, reviewCanDriveState);
         var approvalSummary = BuildApproval(approvalItems, currentApproval, staleApproval);
         var runtime = BuildRuntime(latestExecution, now, limitations);
 
@@ -262,7 +272,7 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
             reviewSummary,
             approvalSummary,
             runtime,
-            BuildAttentionItems(project, latestExecution, executionState, review, reviewCanDriveState, currentApproval, staleApproval),
+            BuildAttentionItems(project, latestExecution, executionState, currentReview, reviewCanDriveState, currentApproval, staleApproval),
             limitations);
     }
 
@@ -351,22 +361,53 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
             .ThenByDescending(value => value.RecordId)
             .FirstOrDefault();
 
+    private static ReviewInboxItem? SelectCurrentReview(
+        IReadOnlyList<ReviewInboxItem> reviews,
+        ExecutionRun? latestExecution) =>
+        latestExecution is null
+            ? null
+            : reviews
+                .Where(value => value.BoundRunId == latestExecution.RunId)
+                .OrderByDescending(value => value.LatestTimestamp)
+                .ThenBy(value => value.RootReviewId)
+                .FirstOrDefault();
+
+    private static bool IsCurrentExecution(ExecutionRun? execution) =>
+        execution?.Status is ExecutionRunStatus.Planned or ExecutionRunStatus.Waiting or
+            ExecutionRunStatus.Running or ExecutionRunStatus.Blocked or ExecutionRunStatus.Review or
+            ExecutionRunStatus.HumanApprovalRequired;
+
     private static MissionControlCurrentWorkSummary BuildCurrentWork(
         ExecutionRun? execution,
         MissionControlState? executionState,
+        ReviewInboxItem? currentReview,
+        bool reviewCanDriveState,
         string nextSafeAction)
     {
-        var hasWork = execution?.WorkItemReference is not null || execution?.TaskTitle is not null;
+        var executionIsCurrent = IsCurrentExecution(execution);
+        var reviewIsCurrent = reviewCanDriveState && currentReview is not null;
+        var hasWork = (executionIsCurrent || reviewIsCurrent) &&
+            (execution?.WorkItemReference is not null || execution?.TaskTitle is not null);
+        var state = reviewIsCurrent
+            ? currentReview!.WorkflowState == ReviewWorkflowState.HumanDecisionRequired
+                ? MissionControlState.HumanApprovalRequired
+                : MissionControlState.Review
+            : executionIsCurrent
+                ? executionState ?? MissionControlState.Unknown
+                : MissionControlState.Unknown;
+        var currentStep = reviewIsCurrent
+            ? $"Review workflow: {currentReview!.WorkflowState}"
+            : executionIsCurrent
+                ? execution!.TaskTitle ?? execution.WorkItemReference ?? "Current step unavailable"
+                : "No authoritative current-step evidence";
         return new(
             hasWork,
-            execution?.WorkItemReference ?? "No authoritative current work evidence",
-            execution?.TaskTitle ?? "No current work selected",
-            execution is null
-                ? "No authoritative current-step evidence"
-                : execution.TaskTitle ?? execution.WorkItemReference ?? "Current step unavailable",
-            executionState ?? MissionControlState.Unknown,
-            execution?.RecordedAt,
-            execution?.RunId,
+            hasWork ? execution!.WorkItemReference ?? "Current work reference unavailable" : "No authoritative current work evidence",
+            hasWork ? execution!.TaskTitle ?? "Current work title unavailable" : "No current work selected",
+            currentStep,
+            state,
+            reviewIsCurrent ? currentReview!.LatestTimestamp : executionIsCurrent ? execution!.RecordedAt : null,
+            hasWork ? execution!.RunId : null,
             nextSafeAction);
     }
 
@@ -447,10 +488,19 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
         return new(tracker.State, tracker.Type ?? "Not configured", tracker.Reference ?? "Not configured", "Not available", status);
     }
 
-    private static MissionControlValidationSummary BuildValidation(ReviewInboxItem? review)
+    private static MissionControlValidationSummary BuildValidation(ReviewInboxItem? review, bool isCurrent)
     {
         if (review?.LatestValidationState is null)
             return new(null, "No validation-gate evidence", "Not available", review?.LatestTimestamp);
+
+        if (!isCurrent)
+        {
+            return new(
+                review.LatestValidationState,
+                "Historical / uncorrelated review validation",
+                "Historical review evidence only",
+                review.LatestTimestamp);
+        }
 
         return new(
             review.LatestValidationState,
@@ -459,18 +509,18 @@ public sealed class MissionControlReadModelService : IMissionControlReadModelSer
             review.LatestTimestamp);
     }
 
-    private static MissionControlReviewSummary BuildReview(ReviewInboxItem? review) => review is null
+    private static MissionControlReviewSummary BuildReview(ReviewInboxItem? review, bool isCurrent) => review is null
         ? new(false, "No review evidence", "Not available", "Not available", 0, 0, false, "", "Unknown", null)
         : new(
             true,
-            review.WorkflowState.ToString(),
+            isCurrent ? review.WorkflowState.ToString() : "Historical / uncorrelated",
             review.CurrentVerdict,
             review.CurrentSeverity,
             review.BlockingFindingCount,
             review.PendingAdjudicationCount,
             review.OwnerAttentionRequired,
             review.OwnerAttentionReason ?? "No owner attention reason recorded",
-            review.NextRequiredAction.ToString(),
+            isCurrent ? review.NextRequiredAction.ToString() : "Correlation unavailable",
             review.LatestTimestamp);
 
     private static MissionControlApprovalSummary BuildApproval(
