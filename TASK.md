@@ -10,12 +10,12 @@ This file is a short authority boundary, not an executable executor prompt.
 - `FAST V1 CURRENT GATE = APO-63`.
 - `APO-63 R3 executor remediation complete / Sol exact-head R3 re-review pending`.
 - `SOL-63-01 = CLOSED / PRESERVED`.
-- `SOL-63-02R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-02R = CLOSED / PRESERVED`.
 - `SOL-63-03 = CLOSED / PRESERVED`.
-- `SOL-63-04R = REMEDIATED / PENDING SOL RE-REVIEW`.
-- `SOL-63-05R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-04R-AZURE-REVIEWERS = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-05R = CLOSED / PRESERVED`.
 - `SOL-63-06 = CLOSED / PRESERVED`.
-- `SOL-63-07R = REMEDIATED / PENDING SOL RE-REVIEW`.
+- `SOL-63-07R = CLOSED / PRESERVED`.
 - Executor branch: `feat/APO-63-controlled-remote-delivery`.
 - R2 functional commit: `2ec0b7a56ad5495dd6c942eef7a52197c19c625f`; tree
   `1793cf309469c3caf0bdca752208098a62bc1f42`; parent
