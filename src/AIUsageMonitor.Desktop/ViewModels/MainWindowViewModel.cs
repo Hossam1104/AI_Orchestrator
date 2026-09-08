@@ -2,82 +2,46 @@ using System.Windows.Input;
 
 namespace AIUsageMonitor.Desktop.ViewModels;
 
-public sealed class OverviewViewModel : ObservableObject
-{
-    private string _persistenceText = "LocalAppData is available for the foundation.";
-    private string _persistenceStateText = "Ready";
-    private string _shellStatusText = "The branded shell is ready. AI Capacity is the first usable APO workspace.";
-    private bool _isPersistenceAvailable = true;
-
-    public string PersistenceText
-    {
-        get => _persistenceText;
-        private set => SetProperty(ref _persistenceText, value);
-    }
-
-    public string PersistenceStateText
-    {
-        get => _persistenceStateText;
-        private set => SetProperty(ref _persistenceStateText, value);
-    }
-
-    public string ShellStatusText
-    {
-        get => _shellStatusText;
-        private set => SetProperty(ref _shellStatusText, value);
-    }
-
-    public bool IsPersistenceAvailable
-    {
-        get => _isPersistenceAvailable;
-        private set => SetProperty(ref _isPersistenceAvailable, value);
-    }
-
-    internal void SetPersistenceAvailability(bool persistenceAvailable)
-    {
-        IsPersistenceAvailable = persistenceAvailable;
-        PersistenceStateText = persistenceAvailable ? "Ready" : "Degraded mode";
-        PersistenceText = persistenceAvailable
-            ? "LocalAppData is available for the foundation."
-            : "LocalAppData is unavailable; no local state will be written.";
-        ShellStatusText = persistenceAvailable
-            ? "The branded shell is ready. AI Capacity is the first usable APO workspace."
-            : "Local persistence is unavailable. AI Capacity is running in safe degraded mode.";
-    }
-}
-
 public sealed class MainWindowViewModel : ObservableObject
 {
     private object _activeWorkspace;
-    private bool _isOverviewSelected;
+    private bool _isMissionControlSelected;
     private bool _isProjectsSelected;
     private bool _isAiCapacitySelected;
 
     public MainWindowViewModel()
-        : this(new AiCapacityViewModel(), new ProjectsViewModel())
+        : this(new MissionControlViewModel(), new AiCapacityViewModel(), new ProjectsViewModel())
     {
     }
 
     public MainWindowViewModel(AiCapacityViewModel aiCapacity)
-        : this(aiCapacity, new ProjectsViewModel())
+        : this(new MissionControlViewModel(), aiCapacity, new ProjectsViewModel())
     {
     }
 
     public MainWindowViewModel(
         AiCapacityViewModel aiCapacity,
         ProjectsViewModel projects)
+        : this(new MissionControlViewModel(), aiCapacity, projects)
     {
+    }
+
+    public MainWindowViewModel(
+        MissionControlViewModel missionControl,
+        AiCapacityViewModel aiCapacity,
+        ProjectsViewModel projects)
+    {
+        MissionControl = missionControl ?? throw new ArgumentNullException(nameof(missionControl));
         AiCapacity = aiCapacity ?? throw new ArgumentNullException(nameof(aiCapacity));
         Projects = projects ?? throw new ArgumentNullException(nameof(projects));
-        Overview = new OverviewViewModel();
-        _activeWorkspace = AiCapacity;
-        _isAiCapacitySelected = true;
-        ShowOverviewCommand = new RelayCommand(ShowOverview);
+        _activeWorkspace = MissionControl;
+        _isMissionControlSelected = true;
+        ShowMissionControlCommand = new RelayCommand(ShowMissionControl);
         ShowProjectsCommand = new RelayCommand(ShowProjects);
         ShowAiCapacityCommand = new RelayCommand(ShowAiCapacity);
     }
 
-    public OverviewViewModel Overview { get; }
+    public MissionControlViewModel MissionControl { get; }
 
     public AiCapacityViewModel AiCapacity { get; }
 
@@ -89,10 +53,10 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _activeWorkspace, value);
     }
 
-    public bool IsOverviewSelected
+    public bool IsMissionControlSelected
     {
-        get => _isOverviewSelected;
-        private set => SetProperty(ref _isOverviewSelected, value);
+        get => _isMissionControlSelected;
+        private set => SetProperty(ref _isMissionControlSelected, value);
     }
 
     public bool IsAiCapacitySelected
@@ -107,7 +71,7 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _isProjectsSelected, value);
     }
 
-    public ICommand ShowOverviewCommand { get; }
+    public ICommand ShowMissionControlCommand { get; }
 
     public ICommand ShowProjectsCommand { get; }
 
@@ -116,12 +80,14 @@ public sealed class MainWindowViewModel : ObservableObject
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await Task.WhenAll(
+            MissionControl.InitializeAsync(cancellationToken),
             AiCapacity.InitializeAsync(cancellationToken),
             Projects.InitializeAsync(cancellationToken)).ConfigureAwait(true);
     }
 
     public async Task InitializeDegradedAsync(CancellationToken cancellationToken = default)
     {
+        MissionControl.SetPersistenceAvailability(false);
         await AiCapacity.InitializeDegradedAsync(cancellationToken).ConfigureAwait(true);
         Projects.SetPersistenceAvailability(false);
         await Projects.InitializeAsync(cancellationToken).ConfigureAwait(true);
@@ -129,14 +95,14 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public void SetPersistenceAvailability(bool persistenceAvailable)
     {
-        Overview.SetPersistenceAvailability(persistenceAvailable);
+        MissionControl.SetPersistenceAvailability(persistenceAvailable);
         Projects.SetPersistenceAvailability(persistenceAvailable);
     }
 
-    private void ShowOverview()
+    private void ShowMissionControl()
     {
-        ActiveWorkspace = Overview;
-        IsOverviewSelected = true;
+        ActiveWorkspace = MissionControl;
+        IsMissionControlSelected = true;
         IsProjectsSelected = false;
         IsAiCapacitySelected = false;
     }
@@ -144,7 +110,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void ShowProjects()
     {
         ActiveWorkspace = Projects;
-        IsOverviewSelected = false;
+        IsMissionControlSelected = false;
         IsProjectsSelected = true;
         IsAiCapacitySelected = false;
     }
@@ -152,7 +118,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void ShowAiCapacity()
     {
         ActiveWorkspace = AiCapacity;
-        IsOverviewSelected = false;
+        IsMissionControlSelected = false;
         IsProjectsSelected = false;
         IsAiCapacitySelected = true;
     }

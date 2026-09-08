@@ -30,88 +30,164 @@
             </Style.Triggers>
         </Style>
 
-        <DataTemplate DataType="{x:Type vm:OverviewViewModel}">
+        <DataTemplate DataType="{x:Type vm:MissionControlViewModel}">
             <ScrollViewer Padding="28" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
-                    <Border Style="{StaticResource CardStyle}" Padding="26">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="220" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="APO / OVERVIEW" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBlock Text="A clear starting point for orchestrated work." Margin="0,10,0,0" TextWrapping="Wrap" Style="{StaticResource DisplayTitleStyle}" />
-                                <TextBlock Text="{Binding ShellStatusText}" Margin="0,16,20,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
-                                <Border Margin="0,20,0,0" HorizontalAlignment="Left" Style="{StaticResource StatusChipStyle}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse Width="8" Height="8" VerticalAlignment="Center">
-                                            <Ellipse.Style>
-                                                <Style TargetType="Ellipse">
-                                                    <Setter Property="Fill" Value="{StaticResource BrandSuccessBrush}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsPersistenceAvailable}" Value="False">
-                                                            <Setter Property="Fill" Value="{StaticResource BrandWarningBrush}" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Ellipse.Style>
-                                        </Ellipse>
-                                        <TextBlock Text="{Binding PersistenceStateText}" Margin="8,0,0,0" Foreground="{StaticResource BrandTextBrush}" FontWeight="SemiBold" />
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                            <Border Grid.Column="1" Width="220" Height="220" Margin="20,0,0,0" Padding="8" HorizontalAlignment="Right" Background="{StaticResource BrandSoftGlowBrush}" CornerRadius="18">
-                                <Image Source="/Assets/Logo.png" Stretch="Uniform" />
-                            </Border>
-                        </Grid>
-                    </Border>
-
-                    <Grid Margin="0,18,0,0">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="18" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="18" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Style="{StaticResource CardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="LOCAL-FIRST" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBlock Text="Persistence" Margin="0,9,0,0" Style="{StaticResource SectionHeadingStyle}" />
-                                <TextBlock Text="{Binding PersistenceText}" Margin="0,10,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                        <StackPanel>
+                            <TextBlock Text="MISSION CONTROL" Style="{StaticResource EyebrowTextStyle}" />
+                            <TextBlock Text="One truthful view of project progress" Margin="0,8,0,0" Style="{StaticResource DisplayTitleStyle}" FontSize="27" />
+                            <TextBlock Text="Evidence first. Unknown stays visible until an authoritative source says more." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                            <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding RefreshStateText}" HorizontalAlignment="Right" Style="{StaticResource CaptionTextStyle}" />
+                                <TextBlock Text="{Binding LastEvidenceText}" HorizontalAlignment="Right" Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" />
                             </StackPanel>
-                        </Border>
-                        <Border Grid.Column="2" Style="{StaticResource CardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="TRUTHFUL STATE" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBlock Text="Provider connections" Margin="0,9,0,0" Style="{StaticResource SectionHeadingStyle}" />
-                                <TextBlock Text="Open AI Capacity to inspect detected, configured, and unavailable provider states." Margin="0,10,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.Column="4" Style="{StaticResource CardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="QUALITY GATE" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBlock Text="Execution runtime" Margin="0,9,0,0" Style="{StaticResource SectionHeadingStyle}" />
-                                <TextBlock Text="Planned. Review, validation, and approval remain explicit product boundaries." Margin="0,10,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
-                            </StackPanel>
-                        </Border>
+                            <Button Content="Refresh" Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh Mission Control" Style="{StaticResource PrimaryButtonStyle}" />
+                        </StackPanel>
                     </Grid>
 
-                    <Border Margin="0,18,0,0" Style="{StaticResource CardStyle}" Background="{StaticResource BrandNavyBlueBrush}">
+                    <Border Margin="0,18,0,0" Style="{StaticResource CardStyle}" Padding="16">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <Border Width="4" Background="{StaticResource BrandAccentGradientBrush}" CornerRadius="2" />
-                            <StackPanel Grid.Column="1" Margin="16,0,0,0">
-                                <TextBlock Text="PRODUCT PROMISE" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBlock Text="Quality before quota. Evidence before confidence." Margin="0,8,0,0" Style="{StaticResource SectionHeadingStyle}" />
-                                <TextBlock Text="APO is being built as a local-first Windows engineering tool: readable at a glance, explicit about uncertainty, and careful about every handoff." Margin="0,9,0,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
-                            </StackPanel>
+                            <TextBlock Text="PROJECT" VerticalAlignment="Center" Style="{StaticResource EyebrowTextStyle}" />
+                            <ComboBox Grid.Column="1" Margin="16,0,16,0" ItemsSource="{Binding ProjectOptions}" SelectedItem="{Binding SelectedProject, Mode=TwoWay}" DisplayMemberPath="DisplayText" Style="{StaticResource BrandComboBoxStyle}" AutomationProperties.Name="Mission Control project selector" />
+                            <Border Grid.Column="2" Style="{StaticResource StatusChipStyle}" Padding="10,6">
+                                <TextBlock Text="{Binding OverallStateText}" Foreground="{StaticResource BrandTextBrush}" FontWeight="SemiBold" AutomationProperties.Name="Mission Control overall state" />
+                            </Border>
                         </Grid>
                     </Border>
+
+                    <Border Margin="0,16,0,0" Style="{StaticResource CardStyle}" Padding="22" Visibility="{Binding ShowStorageUnavailableState, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="DEGRADED MODE" Style="{StaticResource EyebrowTextStyle}" />
+                            <TextBlock Text="Mission Control is usable, but persisted orchestration truth is unavailable." Margin="0,8,0,0" Style="{StaticResource SectionHeadingStyle}" />
+                            <TextBlock Text="{Binding StateReasonText}" Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Margin="0,16,0,0" Style="{StaticResource CardStyle}" Padding="22" Visibility="{Binding ShowSelectProjectState, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="SELECT A PROJECT" Style="{StaticResource EyebrowTextStyle}" />
+                            <TextBlock Text="Mission Control will not guess between multiple active projects." Margin="0,8,0,0" Style="{StaticResource SectionHeadingStyle}" />
+                            <TextBlock Text="Choose a project above to load its project-scoped evidence." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Margin="0,16,0,0" Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="14" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource CardStyle}" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="CURRENT WORK" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="{Binding CurrentWorkText}" Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource SectionHeadingStyle}" />
+                                <TextBlock Text="{Binding CurrentStepText}" Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
+                                <TextBlock Text="Next safe action" Margin="0,16,0,0" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="{Binding NextSafeActionText}" Margin="0,5,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="STATE REASON" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="{Binding StateReasonText}" Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
+                                <TextBlock Text="Last evidence" Margin="0,16,0,0" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="{Binding LastEvidenceText}" Margin="0,5,0,0" Style="{StaticResource CaptionTextStyle}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Margin="0,16,0,0" Style="{StaticResource CardStyle}" Padding="20" Visibility="{Binding HasAttention, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="OWNER ATTENTION" Style="{StaticResource EyebrowTextStyle}" />
+                            <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding AttentionItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,0,8" Padding="12" Background="{StaticResource BrandNavyBlueBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="1" CornerRadius="9">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" Style="{StaticResource BodyTextStyle}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Reason}" Margin="0,4,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                                <TextBlock Text="{Binding NextSafeAction, StringFormat=Next safe action: {0}}" Margin="0,5,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                                <TextBlock Text="{Binding Source, StringFormat=Source: {0}}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Expander Margin="0,16,0,0" Header="Evidence &amp; details" IsExpanded="True" AutomationProperties.Name="Mission Control evidence and details">
+                        <StackPanel Margin="0,10,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="14" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource CardStyle}" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="ROLES" Style="{StaticResource EyebrowTextStyle}" />
+                                        <TextBlock Text="{Binding RolesText}" Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" />
+                                        <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Snapshot.Roles.Assignments}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Margin="0,0,0,4">
+                                                        <TextBlock Text="{Binding Role}" Style="{StaticResource CaptionTextStyle}" Foreground="{StaticResource BrandTextBrush}" />
+                                                        <TextBlock Text="{Binding DisplayName, StringFormat={}{0} — configured}" Margin="0,2,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="REPOSITORY / TRACKER" Style="{StaticResource EyebrowTextStyle}" />
+                                        <TextBlock Text="{Binding RepositoryText}" Margin="0,6,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                        <TextBlock Text="{Binding TrackerText}" Margin="0,5,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="14" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource CardStyle}" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="QUALITY / APPROVAL" Style="{StaticResource EyebrowTextStyle}" />
+                                        <TextBlock Text="{Binding ValidationText}" Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" />
+                                        <TextBlock Text="{Binding ReviewText}" Margin="0,5,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                        <TextBlock Text="{Binding ApprovalText}" Margin="0,5,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="RUNTIME / PROCESS" Style="{StaticResource EyebrowTextStyle}" />
+                                        <TextBlock Text="{Binding RuntimeText}" Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" />
+                                        <TextBlock Text="{Binding Snapshot.Runtime.ProcessEvidenceText}" Margin="0,5,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Border Margin="0,14,0,0" Style="{StaticResource CardStyle}" Padding="16" Visibility="{Binding HasLimitations, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="LIMITATIONS" Style="{StaticResource EyebrowTextStyle}" />
+                                    <ItemsControl Margin="0,7,0,0" ItemsSource="{Binding Limitations}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Message}" Margin="0,0,0,6" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Expander>
                 </StackPanel>
             </ScrollViewer>
         </DataTemplate>
@@ -871,11 +947,11 @@
                         <TextBlock Text="Command surfaces" Margin="0,5,0,0" Style="{StaticResource SectionHeadingStyle}" />
                     </StackPanel>
                     <StackPanel Grid.Row="1" Margin="0,24,0,0">
-                        <Button Tag="{Binding IsOverviewSelected}" Command="{Binding ShowOverviewCommand}" AutomationProperties.Name="Overview" Style="{StaticResource WorkspaceNavButtonStyle}">
+                        <Button Tag="{Binding IsMissionControlSelected}" Command="{Binding ShowMissionControlCommand}" AutomationProperties.Name="Mission Control" Style="{StaticResource WorkspaceNavButtonStyle}">
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <TextBlock Text="◈" FontSize="17" Foreground="{StaticResource BrandCyanBrush}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="Overview" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="Mission Control" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
                         <Button Tag="{Binding IsProjectsSelected}" Command="{Binding ShowProjectsCommand}" AutomationProperties.Name="Projects" Style="{StaticResource WorkspaceNavButtonStyle}">
