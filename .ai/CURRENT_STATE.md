@@ -1,8 +1,37 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 9 September 2026 (APO-50 R1 executor remediation; Sol exact-head review pending)
+**Last Updated:** 9 September 2026 (APO-50 R2 final truthfulness correction; Sol exact-head R2 review pending)
 
-## APO-50 R1 executor remediation
+## APO-50 R2 final truthfulness correction
+
+`APO-50 R2 FINAL TRUTHFULNESS CORRECTION = COMPLETE / PENDING SOL EXACT-HEAD R2 REVIEW`; executor
+completion is not Sol acceptance, merge, or Jira completion.
+
+- Branch: `feat/APO-50-mission-control`.
+- R2 functional commit: `4a154d7e6b50381b1cb2a863bd2234332028b458`; parent
+  `a4142af970bba72487f9ddb2603374b61c532f8f`; tree
+  `f3245d9d953466c9273a5a07a1c4ec2371e7fc8f`.
+- SOL-50-01 = V1 limitation accepted by Sol; SOL-50-01R is remediated pending Sol review. Unknown
+  approval history is summarized as unavailable current context, has zero proven current pending
+  approvals, preserves `CorrelationUnavailable`, and adds bounded owner-attention guidance without
+  promoting overall state or fabricating current approval authority.
+- SOL-50-02 = remediated and preserved; SOL-50-02R is remediated pending Sol review. Stale Running
+  checkpoints no longer populate authoritative Current Work, while fresh Running and exact
+  `BoundRunId` review correlation remain supported. SOL-50-03 is closed and preserved.
+- Functional scope remains bounded to the Mission Control Application read model and focused
+  Connection tests; no new approval/current-action/delivery persistence, provider reads, polling, or
+  UI redesign was added.
+- Focused Mission Control tests: `21 passed / 0 failed / 0 skipped`.
+- Canonical serial solution tests: `1,249 passed / 0 failed / 0 skipped` (`Domain 28`, `Provider 171`,
+  `Infrastructure 672`, `Desktop 88`, `Connection 290`). Restore passed; build passed with `0
+  warnings / 0 errors`; `git diff --check` and changed-scope secret scan are clean.
+- Draft PR #35 remains open against `main` and unmerged; the R2 branch push was completed. Jira R2
+  handoff was not performed because the connected Atlassian site returned issue-not-found/no-permission
+  for APO-50 and APO-33; no status transition was attempted.
+- `APO-33 = NOT STARTED`; GitHub Actions remains `NONE / NOT CLAIMED`.
+- Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
+
+## APO-50 R1 executor remediation baseline
 
 `APO-50 R1 REMEDIATION = PARTIAL / PENDING SOL EXACT-HEAD RE-REVIEW`; executor completion is not
 Sol acceptance, merge, or Jira completion.

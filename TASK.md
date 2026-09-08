@@ -8,7 +8,8 @@ This file is a short planner handoff, not an executable executor prompt.
 ## Current authority
 
 - `FAST V1 CURRENT GATE = APO-50`.
-- `APO-50 R1 executor remediation = PARTIAL; Sol exact-head re-review pending`.
+- `APO-50 R2 executor correction complete; Sol exact-head R2 review pending`.
+- `SOL-50-01 exact current approval promotion = accepted V1 limitation`.
 - `APO-33 = NOT STARTED`.
 - `PR #35 remains Draft/unmerged`.
 
