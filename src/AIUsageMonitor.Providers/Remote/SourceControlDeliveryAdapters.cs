@@ -547,15 +547,19 @@ public sealed class AzureReposRemoteSourceControlDeliveryAdapter : RemoteSourceC
                 response = await SendAsync(HttpMethod.Post, target.Api($"pullRequests/{number}/threads?api-version=7.1"), authorization, new { comments = new[] { new { content = command.DeliveryComment, commentType = 1 } }, status = 1 }, cancellationToken).ConfigureAwait(false);
                 break;
             case SourceControlDeliveryOperationKind.RequestReviewers:
+            {
                 foreach (var reviewer in command.Reviewers)
                 {
                     response = await SendAsync(HttpMethod.Put, target.Api($"pullRequests/{number}/reviewers/{Uri.EscapeDataString(reviewer)}?api-version=7.1"), authorization, new { }, cancellationToken).ConfigureAwait(false);
                     if (response.State is not RemoteEvidenceState.Available) return MapFailure(response);
                 }
                 var reviewerEvidence = await ReadAfterMutationAsync(command, number, cancellationToken).ConfigureAwait(false);
+                var reviewerTargetFailure = VerifyExactPostWriteTarget(command, reviewerEvidence);
+                if (reviewerTargetFailure is not null) return reviewerTargetFailure;
                 return command.Reviewers.All(reviewer => reviewerEvidence.RepositoryEvidence.Reviews.Any(value => value.Requested && string.Equals(value.Reviewer, reviewer, StringComparison.OrdinalIgnoreCase)))
                     ? new(SourceControlDeliveryStatus.Verified, PullRequestId: number, MutationSent: true, Evidence: reviewerEvidence)
                     : new(SourceControlDeliveryStatus.ReconciliationRequired, "Azure reviewer requests were sent but exact requested-reviewer evidence is incomplete.", PullRequestId: number, MutationSent: true, MayHaveModifiedRemote: true, Evidence: reviewerEvidence);
+            }
             case SourceControlDeliveryOperationKind.MarkReadyForReview:
                 response = await SendAsync(HttpMethod.Patch, target.Api($"pullRequests/{number}?api-version=7.1"), authorization, new { isDraft = false }, cancellationToken).ConfigureAwait(false);
                 break;

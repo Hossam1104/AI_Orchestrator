@@ -165,6 +165,54 @@ public sealed class ControlledDeliveryAdapterTests
         Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
     }
 
+    [Fact]
+    public async Task AzureReviewerPostWriteHeadDrift_IsNotVerifiedAndDoesNotReplay()
+    {
+        var handler = new DeliveryHandler
+        {
+            Provider = RemoteRepositoryProvider.AzureRepos,
+            PullRequestId = "7",
+            DriftHeadAfterReviewerMutation = true
+        };
+        var adapter = new AzureReposRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.AzureRepos, handler), new SingleClientFactory(handler), new StaticCredentials());
+
+        var result = await adapter.MutateAsync(Command(Target(RemoteRepositoryProvider.AzureRepos, "https://dev.azure.com/org/project/_git/repository", "7"), SourceControlDeliveryOperationKind.RequestReviewers, handler, reviewers: ["reviewer-guid"], credentialReference: "azure:test"), defaultEvidence(handler));
+
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+        Assert.NotEqual(SourceControlDeliveryStatus.Verified, result.Status);
+        Assert.Equal(1, handler.Requests.Count(value => value.Method == HttpMethod.Put && value.Path.Contains("reviewers", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task AzureReviewerPostWriteBaseDrift_IsNotVerifiedAndDoesNotReplay()
+    {
+        var handler = new DeliveryHandler
+        {
+            Provider = RemoteRepositoryProvider.AzureRepos,
+            PullRequestId = "7",
+            DriftBaseAfterReviewerMutation = true
+        };
+        var adapter = new AzureReposRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.AzureRepos, handler), new SingleClientFactory(handler), new StaticCredentials());
+
+        var result = await adapter.MutateAsync(Command(Target(RemoteRepositoryProvider.AzureRepos, "https://dev.azure.com/org/project/_git/repository", "7"), SourceControlDeliveryOperationKind.RequestReviewers, handler, reviewers: ["reviewer-guid"], credentialReference: "azure:test"), defaultEvidence(handler));
+
+        Assert.Equal(SourceControlDeliveryStatus.ReconciliationRequired, result.Status);
+        Assert.NotEqual(SourceControlDeliveryStatus.Verified, result.Status);
+        Assert.Equal(1, handler.Requests.Count(value => value.Method == HttpMethod.Put && value.Path.Contains("reviewers", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task AzureReviewerExactTargetAndEvidence_IsVerified()
+    {
+        var handler = new DeliveryHandler { Provider = RemoteRepositoryProvider.AzureRepos, PullRequestId = "7" };
+        var adapter = new AzureReposRemoteSourceControlDeliveryAdapter(new FakeEvidenceProvider(RemoteRepositoryProvider.AzureRepos, handler), new SingleClientFactory(handler), new StaticCredentials());
+
+        var result = await adapter.MutateAsync(Command(Target(RemoteRepositoryProvider.AzureRepos, "https://dev.azure.com/org/project/_git/repository", "7"), SourceControlDeliveryOperationKind.RequestReviewers, handler, reviewers: ["reviewer-guid"], credentialReference: "azure:test"), defaultEvidence(handler));
+
+        Assert.Equal(SourceControlDeliveryStatus.Verified, result.Status);
+        Assert.Equal(1, handler.Requests.Count(value => value.Method == HttpMethod.Put && value.Path.Contains("reviewers", StringComparison.Ordinal)));
+    }
+
     private static SourceControlDeliveryCommand Command(RemoteRepositoryProvider provider, string url, string? pullRequestId, SourceControlDeliveryOperationKind operation, DeliveryHandler handler) =>
         Command(Target(provider, url, pullRequestId), operation, handler, highRisk: operation is SourceControlDeliveryOperationKind.MarkReadyForReview or SourceControlDeliveryOperationKind.MergePullRequest);
 
@@ -240,6 +288,8 @@ public sealed class ControlledDeliveryAdapterTests
         public bool SuppressMergeEvidence { get; init; }
         public bool SuppressMergeBaseAdvance { get; init; }
         public bool DriftHeadAfterMutation { get; init; }
+        public bool DriftHeadAfterReviewerMutation { get; init; }
+        public bool DriftBaseAfterReviewerMutation { get; init; }
         public List<RecordedRequest> Requests { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -329,6 +379,8 @@ public sealed class ControlledDeliveryAdapterTests
             {
                 var reviewer = request.RequestUri.Segments[^1].Split('?', StringSplitOptions.RemoveEmptyEntries)[0].Trim('/');
                 RequestedReviewers.Add(Uri.UnescapeDataString(reviewer));
+                if (DriftHeadAfterReviewerMutation) CurrentHeadSha = "4444444444444444444444444444444444444444";
+                if (DriftBaseAfterReviewerMutation) CurrentBaseSha = "5555555555555555555555555555555555555555";
                 return Json("{}");
             }
             return Json("{}");
