@@ -13,7 +13,7 @@ Canonical model portfolio, routing, quota, and execution-policy detail live in
 `.ai/AI_MODEL_ROUTING.md` and `.ai/AI_EXECUTION_POLICY.md`. This section summarizes only the
 Claude-relevant slice; do not duplicate the canonical files here.
 
-- **GPT-5.6 Sol:** planner, architect, model router, quota governor, Jira decomposition owner,
+- **GPT-5.6 Sol:** planner, architect, model router, quota governor, work-item decomposition owner,
   acceptance authority, and executor prompt authority (chat mode only).
 - **GPT-5.6 Luna xHigh:** the normal primary executor for bounded repository work across routine,
   difficult, cross-cutting, integration-sensitive, and high-blast-radius tasks.
@@ -75,12 +75,15 @@ scrape cookies, log tokens, or treat a CLI as a whole-application prerequisite.
 
 ## Jira and Work Items
 
-Jira project `APO` is the work-tracking authority. `docs/BRD.md`, approved architecture decisions,
-and repository evidence remain the governance source of truth. Follow:
+GitHub Issues in `Hossam1104/AI_Orchestrator` are the active APO work tracker. Jira project `APO` is
+historical provenance and a migration reference. `docs/BRD.md`, approved architecture decisions,
+and repository evidence remain the governance source of truth. APO product integrations may still
+support configured GitHub, Jira, Azure DevOps, and other tracker providers; that capability does not
+change the active workspace tracker. Follow:
 
 ```text
-Jira work item -> Sol contract -> TASK.md -> executor -> validation
--> independent review -> Sol acceptance -> Jira/Git synchronization
+GitHub Issue -> Sol contract -> TASK.md -> executor -> validation
+-> independent review -> Sol acceptance -> GitHub/Jira synchronization where configured
 ```
 
 Do not create duplicate Epics or speculative Stories. Work on one assigned item at a time. The old

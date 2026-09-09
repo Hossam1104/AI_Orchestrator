@@ -8,10 +8,13 @@ direction and sequencing after the accepted APO foundation; it is not a runtime 
 does not authorize a new Story. Each implementation boundary still requires a Sol-authored
 `TASK.md` contract.
 
-## Current status (9 September 2026)
+## Current status (10 September 2026)
 
-APO-38 through APO-47 and APO-68 are implemented and marked Done in Jira. APO-69 is also Done.
-APO-62 (remote SCM and CI evidence) is also Done. APO-48 is **FINAL ACCEPTED / MERGED / DONE**
+APO GitHub migration is **COMPLETE** through accepted PR #38, squash-merged at
+`8db77673f850cd3234650e3bef1de2a59b908fb7`. GitHub Issues are the active APO tracker and Jira
+project `APO` is historical provenance. APO-38 through APO-47 and APO-68 are implemented and
+marked Done in Jira. APO-69 is also Done. APO-62 (remote SCM and CI evidence) is also Done.
+APO-48 is **FINAL ACCEPTED / MERGED / DONE**
 with product merge SHA `7fe179844ceb056c542067485843bc892ebdefcc`, accepted product head
 `caed10d0486994e9235a66ef44ec6137649dd347`, accepted tree
 `f152699b89b4c1f498c3dbb4357ee07ac00fda77`, canonical suite 1,136 passed / 0 failed / 0 skipped,
@@ -22,23 +25,24 @@ SHA `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`, accepted head
 product merge SHA `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6`, accepted head
 `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`, and accepted tree
 `09a35856723723dd59da9424d4c1b2b3b0576b8a`. APO-63 and APO-50 are accepted and done; APO-33 is
-the sole current gate, open/Ready/not started. `GITHUB ACTIONS CI = NONE / NOT CLAIMED`. The live
-authority snapshot is maintained in `.ai/CURRENT_STATE.md` and `TASK.md`.
+the sole current gate, open/Ready/not started. `GITHUB ACTIONS CI = NONE / NOT CLAIMED`. GitHub
+Project #2 contains 69 / 69 canonical Issues. The live authority snapshot is maintained in
+`.ai/CURRENT_STATE.md` and `TASK.md`.
 
 ## FAST V1 closeout baseline
 
 ### MUST SHIP
 
-1. APO-51 - minimal Review Inbox / bounded remediation loop (delivered and accepted)
-2. APO-49 - minimal Human Approval + Delivery Gates (delivered and accepted)
-3. APO-63 - controlled remote source-control delivery
-4. APO-50 - Mission Control read model + UI
-5. APO-33 - GitHub Actions CI + build/test/package
+1. APO-48 - independent QA and evidence gates (delivered and accepted)
+2. APO-51 - minimal Review Inbox / bounded remediation loop (delivered and accepted)
+3. APO-49 - minimal Human Approval + Delivery Gates (delivered and accepted)
+4. APO-63 - controlled remote source-control delivery (delivered and accepted)
+5. APO-50 - Mission Control read model + UI (delivered and accepted)
+6. APO-33 - GitHub Actions CI + build/test/package (current; not started)
 
-The exact FAST V1 order is `APO-51 -> APO-49 -> APO-63 -> APO-50 -> APO-33 -> Final V1 Release
-Audit -> v1.0.0`. APO-51 and APO-49 are complete; the remaining three implementation Stories are
-To Do. This
-roadmap does not authorize implementation.
+The accepted FAST V1 sequence is `APO-48 -> APO-51 -> APO-49 -> APO-63 -> APO-50 -> APO-33 ->
+Final V1 Release Audit -> v1.0.0`. APO-48, APO-51, APO-49, APO-63, and APO-50 are complete;
+APO-33 is the sole remaining implementation gate. This roadmap does not authorize implementation.
 
 ### ACTIVE V1 AI RESOURCE BOUNDARY
 
@@ -300,8 +304,9 @@ explicit human gates. No remote write may silently bypass the evidence or approv
 
 ## 11. APO tracker identity and roadmap provenance
 
-The approved APO-1 through APO-17 Epic structure is reused. APO-48 is delivered and the remaining
-FAST V1 must-ship backlog remaining after accepted APO-51 and APO-49 is APO-63, APO-50, and APO-33.
+The approved APO-1 through APO-17 Epic structure is reused. APO-48, APO-51, APO-49, APO-63, and
+APO-50 are delivered and accepted. The remaining FAST V1 must-ship backlog is APO-33, followed by
+the Final V1 Release Audit and v1.0.0.
 APO-52 through APO-61 are post-V1 deferred scope. APO-38 through APO-47 are delivered. APO-64 through APO-67 are Done, VOID,
 `no-project-work`, and `connector-correction` artifacts retained only as transparent Jira connector
 history; they have zero product scope and are excluded from roadmap totals, dependencies, sequencing,
@@ -333,14 +338,18 @@ APO-44 → APO-46 → APO-45                 recovery context
                               APO-51..56 → APO-57..58
 ```
 
-Authoritative planner sequence for the remaining backlog:
+Authoritative planner sequence and current boundary:
 
 ```text
-Accepted APO-38..49 and APO-51 foundation
+APO-48 independent QA/evidence gates
         v
-APO-63 controlled remote delivery
+APO-51 Review Inbox / bounded remediation
         v
-APO-50 Mission Control
+APO-49 owner approval policy
+        v
+APO-63 controlled remote delivery (accepted)
+        v
+APO-50 Mission Control (accepted)
         v
 APO-33 GitHub Actions CI + build/test/package
         v
@@ -349,7 +358,7 @@ Final V1 Release Audit
 v1.0.0
 ```
 
-Remaining implementation order: `APO-63 -> APO-50 -> APO-33 -> Final V1 Release Audit -> v1.0.0`.
+Remaining implementation order: `APO-33 -> Final V1 Release Audit -> v1.0.0`.
 
 Read-only remote evidence must precede controlled remote writes because APO cannot safely mutate a
 remote target without independently knowing the current repository, ref, review/check, validation,
@@ -360,8 +369,7 @@ planner sequencing, not a claim that every adjacent pair is a Jira hard dependen
 ## 13. Current planner boundary
 
 APO-69 is complete, APO-47 is merged and Jira Done, and APO-62 (remote SCM and CI evidence) is
-delivered and Jira Done. APO-48 and APO-51 are final accepted, merged, and Jira Done. APO-49 is
-final accepted and merged at the product level. The current FAST V1 gate is APO-63, which remains
-To Do and not started; APO-50 and APO-33 also remain To Do. No implementation is authorized by
-this roadmap. GPT-5.6 Sol must provide a fresh, self-contained contract for each Story, and no
-automatic roadmap execution is permitted.
+delivered and Jira Done. APO-48, APO-51, APO-49, APO-63, and APO-50 are final accepted, merged,
+and Done. The current FAST V1 gate is APO-33, which remains Open/Ready and not started. No
+implementation is authorized by this roadmap. GPT-5.6 Sol must provide a fresh, self-contained
+contract for APO-33, and no automatic roadmap execution is permitted.
