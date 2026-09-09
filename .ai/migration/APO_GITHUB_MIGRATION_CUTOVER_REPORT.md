@@ -107,9 +107,9 @@ RUNTIME BEHAVIOR CHANGED = NO
 
 - Migration branch: `docs/APO-github-workspace-migration-cutover`
 - Starting branch commit: `184f0cf2d504ec102851b0bdf0176af01e537e8c`
-- Migration commit SHA: `1a1603fc02b8e35b23ee76d94885ff20a4ba6387`
-- Final metadata tip: verified after the follow-up whitespace-only commit and push
-- Remote branch SHA: verified after push
+- Migration commit SHA: `63e6a4c9655fe947992628a1fa8246f916ca90f8`
+- Migration tree: `695964d00e99de6178a87380113870c318a379a4`
+- Remote branch SHA: `63e6a4c9655fe947992628a1fa8246f916ca90f8`
 - PR #38: OPEN
 - PR #38 draft: YES
 - PR #38 merged: NO

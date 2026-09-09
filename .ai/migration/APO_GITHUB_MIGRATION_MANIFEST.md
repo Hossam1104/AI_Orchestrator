@@ -737,7 +737,7 @@ No claim is made that the application is running or stopped on the owner’s mac
 All 69 existing canonical GitHub Issues (`#39` through `#107`) were normalized in place on
 `docs/APO-github-workspace-migration-cutover`; no new or replacement Issues were created.
 
-Repository governance commit recording this remediation: `be40e22`.
+Repository governance commit recording this remediation: `63e6a4c9655fe947992628a1fa8246f916ca90f8`.
 
 - Titles now exactly follow `[APO-N] <canonical Jira summary>` for all 69 mapped keys.
 - Bodies contain contributor-readable scope/context, Jira provenance, lifecycle/reconciliation

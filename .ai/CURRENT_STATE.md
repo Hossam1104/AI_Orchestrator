@@ -29,8 +29,7 @@ The final in-place normalization pass is complete on
   semantics, Jira provenance, and the unique APO-33 current-gate marker.
 - Remote verification: 69 Issues, 69 unique Jira keys, 42 closed, 27 open; title errors `0`, stale
   placeholder bodies `0`, missing required body fields `0`.
-- Repository governance commit recording the prior normalization baseline: `be40e22`; this final
-  authority-cutover session records its own commit below.
+- Repository governance commit for this authority-cutover session: `63e6a4c9655fe947992628a1fa8246f916ca90f8`.
 - APO-33 is GitHub #71, open, Ready/current-gate, FAST V1, and not started. APO-50 is GitHub #88,
   closed and reconciled Done while retaining Jira In Progress as provenance.
 - GitHub Project V2 creation succeeded for this final session; item population was attempted but
