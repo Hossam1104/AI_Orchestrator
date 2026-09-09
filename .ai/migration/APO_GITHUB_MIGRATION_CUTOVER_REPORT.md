@@ -106,10 +106,11 @@ RUNTIME BEHAVIOR CHANGED = NO
 ## 12. Repository Result
 
 - Migration branch: `docs/APO-github-workspace-migration-cutover`
-- Starting branch commit: `184f0cf2d504ec102851b0bdf0176af01e537e8c`
+- Starting branch commit: `aa5e86c9ca4c5bcbf1cc927c22572f1de00fc174`
 - Migration commit SHA: `63e6a4c9655fe947992628a1fa8246f916ca90f8`
 - Migration tree: `695964d00e99de6178a87380113870c318a379a4`
-- Remote branch SHA: `63e6a4c9655fe947992628a1fa8246f916ca90f8`
+- Follow-up evidence commit SHA: `7329e3314dc282a40a4304671213cd6df19d600c`
+- Branch and PR head were verified live after the follow-up evidence push; PR #38 remained OPEN/DRAFT.
 - PR #38: OPEN
 - PR #38 draft: YES
 - PR #38 merged: NO
@@ -165,7 +166,7 @@ GPT-5.6 Sol — final migration acceptance/adjudication and controlled integrati
 ## 17. Final Issue normalization evidence
 
 - Existing Issues updated in place: `69` (`#39`–`#107`); new Issues: `0`.
-- Repository governance commit recording this remediation: `be40e22`.
+- Repository governance commit recording this remediation: `63e6a4c9655fe947992628a1fa8246f916ca90f8`.
 - Final remote state: `42 closed / 27 open`; `69` unique Jira keys; `0` duplicates; `0` unmapped.
 - Required body metadata present on `69/69`: Jira URL, original Jira status, parent Jira key, and
   dependency/relationship section.
