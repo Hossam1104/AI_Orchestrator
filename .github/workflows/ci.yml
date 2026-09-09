@@ -53,7 +53,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path TestResults | Out-Null
           dotnet test $env:SOLUTION --configuration $env:CONFIGURATION --no-build --no-restore --nologo `
-            --logger trx --results-directory TestResults
+            --logger trx --results-directory TestResults `
+            -- xUnit.ParallelizeTestCollections=false RunConfiguration.MaxCpuCount=1
 
       - name: Upload test results
         if: ${{ always() }}
