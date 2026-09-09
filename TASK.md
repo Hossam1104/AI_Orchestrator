@@ -15,10 +15,13 @@ This file is a short planner handoff, not an executable executor prompt.
 - `APO-33 = OPEN / READY / NOT STARTED / CURRENT GATE`.
 - `SOL-50-01 exact current approval promotion = ACCEPTED V1 LIMITATION`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+- `PR #38 = ACCEPTED / MERGED / INTEGRATED INTO MAIN`.
+- `POST-MERGE GOVERNANCE CLOSEOUT = COMPLETE`.
+- `GITHUB PROJECT #2 = 69 / 69 CANONICAL ISSUES VERIFIED`.
 
 ## Execution boundary
 
 - Next authority belongs to GPT-5.6 Sol.
 - No executor prompt is authorized by `TASK.md`.
 - Do not implement APO-33 automatically or advance the roadmap without a fresh Sol contract.
-- `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
+- The tracker migration is integrated into `main`; Jira remains historical provenance.
