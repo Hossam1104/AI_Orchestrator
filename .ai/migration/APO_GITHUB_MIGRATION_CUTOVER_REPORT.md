@@ -165,6 +165,7 @@ GPT-5.6 Sol — final migration acceptance/adjudication and controlled integrati
 ## 17. Final Issue normalization evidence
 
 - Existing Issues updated in place: `69` (`#39`–`#107`); new Issues: `0`.
+- Repository governance commit recording this remediation: `be40e22`.
 - Final remote state: `42 closed / 27 open`; `69` unique Jira keys; `0` duplicates; `0` unmapped.
 - Required body metadata present on `69/69`: Jira URL, original Jira status, parent Jira key, and
   dependency/relationship section.
