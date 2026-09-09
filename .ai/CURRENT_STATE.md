@@ -2,6 +2,27 @@
 
 **Last Updated:** 9 September 2026 (APO-50 controlled integration and finalization)
 
+## APO GitHub workspace migration — Prompt 2 execution boundary
+
+The Prompt 2 migration preflight reached the live Jira freshness boundary and is `BLOCKED`.
+The fresh migration base is `origin/main` at `a396a0f29125fe3471f3007b553205ca37837ed9` with
+tree `ea7faf34f97c34995586ee8681a46b9dce006501`; the bounded branch is
+`docs/APO-github-workspace-migration-cutover`.
+
+- GitHub Issue inventory was `0` non-PR Issues; no GitHub Issues, Project, Jira records, or product
+  files were mutated.
+- The available Atlassian connector is authenticated to `pssmena.atlassian.net`, where project
+  `APO` is not visible. The canonical `hossamsqa.atlassian.net` endpoint returned HTTP `404`.
+- The required live Jira 69-item inventory and freshness reconciliation therefore could not be
+  performed; Jira writes and tracker-authority cutover were intentionally skipped.
+- GitHub Project V2 administration also remains unavailable because the GitHub token lacks
+  `read:project`.
+- `APO-33` remains current gate / not started; product implementation and runtime mutation are none.
+
+Resume only after authenticated read access to the canonical Jira `APO` project is restored. See
+[the migration cutover report](migration/APO_GITHUB_MIGRATION_CUTOVER_REPORT.md) and the blocker
+record in the migration manifest for exact evidence.
+
 ## APO-50 final integration closeout
 
 `APO-50 PRODUCT ACCEPTANCE = FINAL`; `APO-50 INTEGRATION = COMPLETE`; `APO-50 = MERGED / DONE`.
