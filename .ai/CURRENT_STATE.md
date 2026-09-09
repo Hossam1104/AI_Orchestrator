@@ -23,6 +23,22 @@ Resume only after authenticated read access to the canonical Jira `APO` project 
 [the migration cutover report](migration/APO_GITHUB_MIGRATION_CUTOVER_REPORT.md) and the blocker
 record in the migration manifest for exact evidence.
 
+## APO GitHub workspace migration — remediation result
+
+Sol-provided Jira freshness authority confirmed the canonical APO inventory is current: 69 items,
+17 Epics, 47 Stories, 1 Bug, 4 Tasks, with zero updates since the Phase 1 baseline query.
+The migration was resumed on `docs/APO-github-workspace-migration-cutover`.
+
+- 69 canonical GitHub Issues were created and verified one-to-one for APO-1 through APO-69.
+- Final Issue state is 42 closed and 27 open. APO-33 is the sole current FAST V1 gate, open with
+  Ready/current-gate metadata; APO-50 is closed and reconciled to Done despite Jira In Progress.
+- Parent and dependency references were preserved in Issue bodies using GitHub Issue numbers.
+- GitHub Project V2 remains unavailable because the token lacks `read:project`; standardized labels
+  are the durable fallback. Jira was not modified.
+- Product source, tests, workflows, packages, and runtime behavior were not changed.
+
+The migration remains pending Sol acceptance and controlled merge of PR #38.
+
 ## APO-50 final integration closeout
 
 `APO-50 PRODUCT ACCEPTANCE = FINAL`; `APO-50 INTEGRATION = COMPLETE`; `APO-50 = MERGED / DONE`.
