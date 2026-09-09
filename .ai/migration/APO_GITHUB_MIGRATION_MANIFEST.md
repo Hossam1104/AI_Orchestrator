@@ -3,7 +3,7 @@
 **Project:** AI_Orchestrator (APO)  
 **Migration phase:** Prompt 1 of 2 — Reconciliation + Inventory + Migration Design  
 **Prepared:** 2026-09-09 12:47 +03:00 (Africa/Cairo)  
-**Status:** PREPARED LOCALLY — REPOSITORY COMMIT BLOCKED  
+**Status:** PHASE 1 COMPLETE — DURABLE ON GITHUB — MIGRATION PHASE 2 READY  
 **Target repository path:** `.ai/migration/APO_GITHUB_MIGRATION_MANIFEST.md`
 
 ---
@@ -33,6 +33,17 @@ This phase does **not** perform bulk GitHub issue creation, GitHub Project cutov
 - Parents:
   - `8a60ce17a22493a7be240c96d59e652772cffce1`
   - `8d19618ecdf7033b755f7191d8a387ebd0f00716`
+
+### Prompt 2 entry refresh
+
+After Phase 1 delivery:
+
+- PR #37 merged the durable manifest into `main`.
+- Verified live `main` after PR #37: `a396a0f29125fe3471f3007b553205ca37837ed9`
+- Verified live tree: `ea7faf34f97c34995586ee8681a46b9dce006501`
+- Entry-gate reconciliation timestamp: `2026-09-09 15:24 +03:00`
+- `MIGRATION PHASE 2 READY`
+- `APO-33 IMPLEMENTATION = NOT STARTED`
 
 ### Recent accepted delivery evidence
 
@@ -524,19 +535,24 @@ Target artifact:
 
 `.ai/migration/APO_GITHUB_MIGRATION_MANIFEST.md`
 
-Planned branch:
+Actual delivery branch used by the owner:
 
-`docs/APO-github-migration-phase1`
+`docs/APO-50-final-closeout`
 
-The branch did not exist and a branch creation request was attempted from exact current `main`.
+The owner manually pushed the manifest and opened PR #37.
 
-Result:
+Verified result:
 
-`403 Resource not accessible by integration`
+- PR #37: `MERGED`
+- Base: `main`
+- Changed files: `1`
+- Manifest path: `.ai/migration/APO_GITHUB_MIGRATION_MANIFEST.md`
+- Merge commit: `a396a0f29125fe3471f3007b553205ca37837ed9`
+- Post-merge main tree: `ea7faf34f97c34995586ee8681a46b9dce006501`
 
-Therefore the migration manifest could not be durably committed to the repository without violating the repository’s no-direct-main governance.
+The connected GitHub integration still returns `403 Resource not accessible by integration` for direct branch/ref create/update operations, but this no longer blocks the durable Phase 1 artifact because the owner completed the governed branch/PR merge manually.
 
-This local file is a prepared fallback artifact only. It is **not** a substitute for the required durable repository manifest.
+`PHASE 1 MANIFEST = DURABLE ON MAIN`
 
 ---
 
@@ -546,24 +562,38 @@ The connected GitHub integration exposes repository, PR, issue, file, branch, an
 
 No suitable installed GitHub Projects-specific plugin was found.
 
-Therefore Phase 2 currently lacks a connected tool surface for deterministic GitHub Projects configuration even after issue migration.
+Prompt 2 explicitly permits safe GitHub API/CLI use where available and explicitly states that Issue migration must not be blocked solely because a visual GitHub Projects v2 field/view requires separate setup.
+
+Therefore:
+
+- GitHub Issues migration may proceed under Prompt 2.
+- GitHub Projects v2 setup must use a safe supported CLI/API execution surface if available.
+- If Project v2 configuration cannot be completed, the migration result must be `PARTIAL`, not falsely reported as `SUCCESS`.
 
 ---
 
 ## 17. Prompt 2 entry criteria
 
-Prompt 2 becomes executable only after:
+Entry-gate reconciliation completed after the owner manually delivered this manifest through PR #37.
 
-1. GitHub branch/ref creation permission is available so this manifest can be committed through a normal branch/PR path; and
-2. A supported GitHub Projects v2 management surface is available, or the owner explicitly approves a revised GitHub-native target that uses GitHub Issues/labels/milestones without Projects v2.
+Verified:
 
-Until then:
+1. Durable migration manifest exists on `main`.
+2. PR #37 is merged.
+3. The current migration prompt explicitly authorizes Prompt 2 execution.
+4. Prompt 2 explicitly permits Issue migration to proceed even when some GitHub Projects v2 administration requires a separate safe CLI/API surface.
+5. `APO-33` remains current gate / ready / not started.
+6. Product implementation remains frozen during migration.
 
-`MIGRATION PHASE 2 BLOCKED`
+Final Prompt 2 gate:
 
-Smallest immediate blocker:
+`MIGRATION PHASE 2 READY`
 
-`GitHub integration cannot create a branch/ref (403), so the required durable Phase 1 migration manifest cannot be committed without bypassing repository governance.`
+Remaining tool limitation:
+
+`GITHUB PROJECTS V2 CONNECTOR ADMINISTRATION = NOT AVAILABLE`
+
+This limitation must be handled factually under Prompt 2 and may force a `PARTIAL` result if no safe CLI/API execution surface is available. It does not by itself block canonical GitHub Issue migration.
 
 ---
 
