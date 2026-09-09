@@ -2,9 +2,10 @@
 
 ## 1. Result
 
-PARTIAL — all 69 GitHub Issues migrated and validated; GitHub Project V2 remains unavailable due
-the current token's missing `read:project` scope. The Phase 1 manifest also lacked verbatim Jira
-summaries and most priorities; those values are marked `UNKNOWN` where not captured.
+COMPLETE FOR CANONICAL ISSUE NORMALIZATION — all 69 existing GitHub Issues were normalized in
+place and independently verified. GitHub Project V2 remains unavailable due the current token's
+missing `read:project` scope; standardized labels and durable Issue-body metadata are the fallback.
+No replacement Issues were created.
 
 ## 2. Exact Start State
 
@@ -93,6 +94,7 @@ summaries and most priorities; those values are marked `UNKNOWN` where not captu
 - `.ai/CURRENT_STATE.md`
 - `.ai/migration/APO_GITHUB_MIGRATION_MANIFEST.md`
 - `.ai/migration/APO_GITHUB_MIGRATION_CUTOVER_REPORT.md`
+- PR #38 description updated with the final normalization evidence
 
 PRODUCT SOURCE CHANGED = NO
 TESTS CHANGED = NO
@@ -133,12 +135,19 @@ RUNTIME BEHAVIOR CHANGED = NO
 - `PRODUCT IMPLEMENTATION PERFORMED = NO` — PASS
 - `GITHUB ACTIONS WORKFLOW CREATED = NO` — PASS
 - `PRODUCT RUNTIME MUTATION = NONE` — PASS
+- `ISSUE_TITLE_ERRORS = 0` — PASS
+- `STALE_PLACEHOLDER_BODIES = 0` — PASS
+- `MISSING_REQUIRED_BODY_FIELDS = 0` — PASS
+- `CURRENT_GATE_COUNT = 1` — PASS (`APO-33` / GitHub #71)
+- `APO-50_RECONCILED_STATE = DONE` — PASS (GitHub #88 closed)
 
 ## 14. Remaining Limitation
 
-GitHub Project V2 remains unavailable due the current token scope. The Phase 1 manifest did not
-retain verbatim Jira summaries, most priorities, timestamps, or complete labels; migrated bodies
-identify those omissions as `UNKNOWN` rather than guessing.
+GitHub Project V2 remains unavailable due the current token scope. The canonical Jira tenant is
+also unavailable to this executor; the supplied Sol freshness authority was used, the exact
+APO-1–58 summaries came from the remediation contract, and the APO-59–69 names came from the
+preserved migration ledger. No unsupported Jira values were guessed, and no `UNKNOWN` placeholders
+remain in the normalized GitHub bodies.
 
 ## 15. Runtime / Product Boundary
 
@@ -152,3 +161,12 @@ APPLICATION LEFT RUNNING = NO
 ## 16. Next Authority
 
 GPT-5.6 Sol — final migration acceptance/adjudication and controlled integration decision.
+
+## 17. Final Issue normalization evidence
+
+- Existing Issues updated in place: `69` (`#39`–`#107`); new Issues: `0`.
+- Final remote state: `42 closed / 27 open`; `69` unique Jira keys; `0` duplicates; `0` unmapped.
+- Required body metadata present on `69/69`: Jira URL, original Jira status, parent Jira key, and
+  dependency/relationship section.
+- Label taxonomy is consistent across all 69 records; APO-33 is the only `current-gate` record.
+- Product implementation, tests, workflows, packages, and runtime mutation: `NONE`.

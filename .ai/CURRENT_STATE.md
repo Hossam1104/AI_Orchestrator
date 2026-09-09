@@ -1,6 +1,31 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 9 September 2026 (APO-50 controlled integration and finalization)
+**Last Updated:** 9 September 2026 (final GitHub Issue normalization remediation)
+
+## APO GitHub tracker normalization remediation — final Issue cutover
+
+The final in-place normalization pass is complete on
+`docs/APO-github-workspace-migration-cutover` and PR #38. The 69 existing canonical GitHub Issues
+`#39` through `#107` remain the only migrated Issues; no replacement Issues were created.
+
+- Every title now uses `[APO-N] <canonical Jira summary>` for APO-1 through APO-69.
+- Every body now has contributor-readable scope/context, Jira provenance, lifecycle and
+  reconciliation truth, parent/grouping, dependency relationships, delivery evidence, and the
+  product safety boundary. Stale `UNKNOWN`/placeholder text was removed.
+- Standardized labels preserve lifecycle status, work type, delivery grouping, historical/void
+  semantics, Jira provenance, and the unique APO-33 current-gate marker.
+- Remote verification: 69 Issues, 69 unique Jira keys, 42 closed, 27 open; title errors `0`, stale
+  placeholder bodies `0`, missing required body fields `0`.
+- APO-33 is GitHub #71, open, Ready/current-gate, FAST V1, and not started. APO-50 is GitHub #88,
+  closed and reconciled Done while retaining Jira In Progress as provenance.
+- GitHub Project V2 remains unavailable because the current token lacks `read:project`; labels and
+  durable Issue-body metadata are the fallback. Jira was not modified.
+- The supplied Sol freshness authority reports 69 live Jira records with no updates after the
+  Phase 1 baseline. This executor could not independently access the canonical Jira tenant, so
+  APO-1–58 summaries came from the supplied contract and APO-59–69 names from the preserved ledger.
+
+Product source, tests, workflows, packages, and runtime behavior remain unchanged. PR #38 remains
+OPEN and DRAFT for Sol acceptance and controlled integration.
 
 ## APO GitHub workspace migration — Prompt 2 execution boundary
 

@@ -3,12 +3,12 @@
 **Project:** AI_Orchestrator (APO)  
 **Migration phase:** Prompt 1 of 2 — Reconciliation + Inventory + Migration Design  
 **Prepared:** 2026-09-09 12:47 +03:00 (Africa/Cairo)  
-**Status:** PROMPT 2 REMEDIATION COMPLETE — 69 ISSUES MIGRATED — PROJECT V2 PARTIAL
+**Status:** FINAL ISSUE NORMALIZATION COMPLETE — 69 EXISTING ISSUES NORMALIZED — PROJECT V2 PARTIAL
 **Target repository path:** `.ai/migration/APO_GITHUB_MIGRATION_MANIFEST.md`
 
-**Current Prompt 2 execution status:** PARTIAL — 69 canonical GitHub Issues migrated; Project V2
-`hossamsqa.atlassian.net` Jira project is unavailable. The Phase 1 preparation status below is
-historical and is superseded for this execution attempt by the blocker record in §19.
+**Current Prompt 2 execution status:** COMPLETE FOR ISSUE NORMALIZATION — all 69 canonical GitHub
+Issues were updated in place; Project V2 remains unavailable. The Phase 1 preparation status below
+is historical and is superseded by the final normalization ledger in §21.
 
 ---
 
@@ -304,11 +304,12 @@ Also preserve:
    - Canonical product: `AI_Orchestrator`.
 
 9. **Local workspace truth**
-   - Current local path/branch/HEAD/status/worktrees cannot be verified from this chat environment.
-   - Treat as `UNKNOWN / REQUIRES LOCAL READ`.
+   - Verified for this remediation: local root, branch, HEAD, remote state, and clean status were
+     read before the GitHub Issue writes.
 
 10. **GitHub metadata inventory limits**
-    - Existing labels, milestones, and Projects v2 inventory are `NOT AVAILABLE` through the current connected tool surface.
+    - Existing labels were inventoried and normalized. Milestones and Projects v2 remain unavailable
+      through the current connected tool surface.
 
 ---
 
@@ -583,10 +584,11 @@ Current local process count cannot be read from this chat environment and is the
 
 ---
 
-## 19. Prompt 2 execution boundary — 2026-09-09
+## 19. Prompt 2 execution boundary — 2026-09-09 (historical pre-normalization record)
 
-Prompt 2 read-only preflight was executed from a fresh branch based on live `origin/main`.
-The migration did not create or modify GitHub Issues, GitHub Projects, Jira issues/comments,
+Prompt 2 read-only preflight was executed from a fresh branch based on live `origin/main`. This
+section is a historical pre-normalization record and is superseded by Section 21.
+At that point the migration had not created or modified GitHub Issues, GitHub Projects, Jira issues/comments,
 milestones, labels, product source, tests, workflows, or runtime behavior.
 
 - Preflight checkout before branching: `docs/APO-50-final-closeout`, clean,
@@ -604,9 +606,9 @@ milestones, labels, product source, tests, workflows, or runtime behavior.
   inventory, issue fields, comments, attachments, and relationship freshness pass could not be
   performed.
 - Jira writes: intentionally skipped.
-- GitHub Issue migration: not started; last successful batch/key: none.
+- GitHub Issue migration: not started at the preflight boundary; final in-place normalization is recorded in Section 21.
 - GitHub Project creation/configuration: not attempted.
-- Repository tracker-authority cutover: not attempted because migration validation did not pass.
+- Repository tracker-authority cutover: deferred to Sol acceptance after the final Issue normalization.
 - Product implementation: `NO`; APO-33 implementation: `NOT STARTED`; product runtime mutation: `NONE`.
 
 Current status is `BLOCKED` until authenticated read access to the canonical `hossamsqa.atlassian.net`
@@ -625,10 +627,8 @@ Sol freshness authority supplied for this remediation:
 - Freshness query: `project = APO AND updated >= "2026-09-09 12:47" ORDER BY updated ASC`.
 - Changes since Phase 1: `0`.
 
-GitHub Issue migration completed on the existing branch. The Phase 1 manifest did not retain
-verbatim Jira summaries, most priorities, timestamps, or complete labels; migrated Issue bodies
-mark those values `UNKNOWN` where they were not captured, and titles use repository-backed
-capability names without claiming they are verbatim Jira summaries.
+GitHub Issue migration completed on the existing branch. This section records the pre-normalization
+state and is superseded by Section 21 for the final human-readable Issue content.
 
 - Canonical Issues: `69`; unique Jira keys: `69`; duplicates: `0`; unmapped: `0`.
 - Final state: `42 closed`, `27 open`.
@@ -720,4 +720,30 @@ Final active authority cutover remains pending Sol acceptance and controlled mer
 
 
 No claim is made that the application is running or stopped on the owner’s machine.
+
+## 21. Final Issue normalization remediation — 2026-09-09
+
+All 69 existing canonical GitHub Issues (`#39` through `#107`) were normalized in place on
+`docs/APO-github-workspace-migration-cutover`; no new or replacement Issues were created.
+
+- Titles now exactly follow `[APO-N] <canonical Jira summary>` for all 69 mapped keys.
+- Bodies contain contributor-readable scope/context, Jira provenance, lifecycle/reconciliation
+  truth, parent/grouping, dependency relationships, delivery evidence, and safety boundaries.
+- Stale `UNKNOWN`, `not captured`, and placeholder-summary text was removed from all normalized
+  bodies. Values unavailable to this executor were described truthfully without inference.
+- Labels were reset to the standardized taxonomy: Jira provenance, lifecycle status, work type,
+  delivery grouping, historical/void semantics, and the unique APO-33 current-gate marker.
+- Remote verification passed: `69` canonical Issues, `69` unique Jira keys, `42 closed`, `27 open`,
+  `0` duplicate keys, `0` unmapped keys, `0` title errors, `0` stale placeholder bodies, and
+  `0` missing required body fields.
+- APO-33 remains the sole current gate (`#71`, open, Ready, FAST V1, not started). APO-50 remains
+  closed and reconciled Done (`#88`) while preserving Jira In Progress as provenance.
+- GitHub Project V2 remains unavailable because the token lacks `read:project`; labels and durable
+  Issue-body metadata are the fallback. Jira was not modified.
+- Product source, tests, workflows, packages, runtime behavior, and APO-33 implementation remain
+  unchanged.
+
+The supplied Sol snapshot established the live 69-item Jira inventory and freshness boundary. This
+executor could not independently access the canonical Jira tenant; APO-1–58 summaries were taken
+from the supplied remediation contract and APO-59–69 names from the preserved migration ledger.
 
