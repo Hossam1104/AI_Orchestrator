@@ -1,37 +1,32 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 9 September 2026 (APO-50 R2 final truthfulness correction; Sol exact-head R2 review pending)
+**Last Updated:** 9 September 2026 (APO-50 controlled integration and finalization)
 
-## APO-50 R2 final truthfulness correction
+## APO-50 final integration closeout
 
-`APO-50 R2 FINAL TRUTHFULNESS CORRECTION = COMPLETE / PENDING SOL EXACT-HEAD R2 REVIEW`; executor
-completion is not Sol acceptance, merge, or Jira completion.
+`APO-50 PRODUCT ACCEPTANCE = FINAL`; `APO-50 INTEGRATION = COMPLETE`; `APO-50 = MERGED / DONE`.
+`SOL FINAL APO-50 ADJUDICATION = PASS`.
 
-- Branch: `feat/APO-50-mission-control`.
-- R2 functional commit: `4a154d7e6b50381b1cb2a863bd2234332028b458`; parent
-  `a4142af970bba72487f9ddb2603374b61c532f8f`; tree
+- Accepted final head: `67a0a6b48e67bc4333b1e2611fd39763592e7867`.
+- Accepted final tree: `57bc762c6ccf95e19d38a7dfe95a72e533a21013`.
+- R2 functional commit: `4a154d7e6b50381b1cb2a863bd2234332028b458`; tree
   `f3245d9d953466c9273a5a07a1c4ec2371e7fc8f`.
-- SOL-50-01 = V1 limitation accepted by Sol; SOL-50-01R is remediated pending Sol review. Unknown
-  approval history is summarized as unavailable current context, has zero proven current pending
-  approvals, preserves `CorrelationUnavailable`, and adds bounded owner-attention guidance without
-  promoting overall state or fabricating current approval authority.
-- SOL-50-02 = remediated and preserved; SOL-50-02R is remediated pending Sol review. Stale Running
-  checkpoints no longer populate authoritative Current Work, while fresh Running and exact
-  `BoundRunId` review correlation remain supported. SOL-50-03 is closed and preserved.
-- Functional scope remains bounded to the Mission Control Application read model and focused
-  Connection tests; no new approval/current-action/delivery persistence, provider reads, polling, or
-  UI redesign was added.
-- Focused Mission Control tests: `21 passed / 0 failed / 0 skipped`.
-- Canonical serial solution tests: `1,249 passed / 0 failed / 0 skipped` (`Domain 28`, `Provider 171`,
-  `Infrastructure 672`, `Desktop 88`, `Connection 290`). Restore passed; build passed with `0
-  warnings / 0 errors`; `git diff --check` and changed-scope secret scan are clean.
-- Draft PR #35 remains open against `main` and unmerged; the R2 branch push was completed. Jira R2
-  handoff was not performed because the connected Atlassian site returned issue-not-found/no-permission
-  for APO-50 and APO-33; no status transition was attempted.
-- `APO-33 = NOT STARTED`; GitHub Actions remains `NONE / NOT CLAIMED`.
+- Product merge SHA: `8a60ce17a22493a7be240c96d59e652772cffce1`.
+- Product merge tree: `57bc762c6ccf95e19d38a7dfe95a72e533a21013`.
+- PR #35 is merged through a normal merge commit with the accepted head bound exactly.
+- `SOL-50-01 = ACCEPTED V1 LIMITATION / NON-BLOCKING`.
+- `SOL-50-01R = CLOSED`; `SOL-50-02 = CLOSED`; `SOL-50-02R = CLOSED`; `SOL-50-03 = CLOSED`.
+- The accepted limitation remains: unknown approval current context fails closed as
+  `Current approval context unavailable`, with no false `HumanApprovalRequired` and no false
+  `Approved`; no current-action authority remediation was performed during finalization.
+- Accepted candidate evidence remains: focused Mission Control `21 passed / 0 failed / 0 skipped`;
+  canonical `1,249 passed / 0 failed / 0 skipped`; build `0 warnings / 0 errors`.
+- `FAST V1 CURRENT GATE = APO-33`; `APO-33 = NEXT / TO DO / NOT STARTED`.
+- GitHub Actions remains `NONE / NOT CLAIMED`; `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED /
+  NOT CLAIMED`.
 - Application runtime end state: `APO PROCESS COUNT = 0`; `APPLICATION LEFT RUNNING = NO`.
 
-## APO-50 R1 executor remediation baseline
+## Historical APO-50 R1 executor remediation baseline
 
 `APO-50 R1 REMEDIATION = PARTIAL / PENDING SOL EXACT-HEAD RE-REVIEW`; executor completion is not
 Sol acceptance, merge, or Jira completion.
@@ -106,7 +101,7 @@ Sol acceptance, merge, or Jira completion.
   `6601d556d73e93b93c88d0d433db1b5b96eba580`.
 - `SOL FINAL APO-63 ADJUDICATION = PASS`; `OPUS TARGETED CHECKPOINT = PASS`.
 - `OPUS-63-04/05/06 = LOW / NON-BLOCKING / POST-V1-DEFERRED`.
-- `FAST V1 CURRENT GATE = APO-50`; `APO-50 = NEXT / TO DO / NOT STARTED`; `APO-33 = TO DO / NOT STARTED`.
+- `FAST V1 CURRENT GATE = APO-33`; `APO-50 = FINAL ACCEPTED / MERGED / DONE`; `APO-33 = NEXT / TO DO / NOT STARTED`.
 - PR #33 is `MERGED`; its accepted head remains `feat/APO-63-controlled-remote-delivery`.
 - `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`

@@ -7,16 +7,15 @@ This file is a short planner handoff, not an executable executor prompt.
 
 ## Current authority
 
-- `FAST V1 CURRENT GATE = APO-50`.
-- `APO-50 R2 executor correction complete; Sol exact-head R2 review pending`.
-- `SOL-50-01 exact current approval promotion = accepted V1 limitation`.
-- `APO-33 = NOT STARTED`.
-- `PR #35 remains Draft/unmerged`.
+- `FAST V1 CURRENT GATE = APO-33`.
+- `APO-50 = FINAL ACCEPTED / MERGED / DONE`.
+- `APO-33 = TO DO / NOT STARTED / CURRENT GATE`.
+- `SOL-50-01 exact current approval promotion = ACCEPTED V1 LIMITATION`.
+- `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
 
 ## Execution boundary
 
-- Next action authority belongs to GPT-5.6 Sol.
-- No Ready promotion, merge, or automatic roadmap execution is authorized here.
-- No feature creep or automatic roadmap execution.
-- GitHub Actions remains APO-33 and is not delivered.
+- Next authority belongs to GPT-5.6 Sol.
+- No executor prompt is authorized by `TASK.md`.
+- Do not implement APO-33 automatically or advance the roadmap without a fresh Sol contract.
 - `LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED`.
