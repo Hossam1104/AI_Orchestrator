@@ -1,18 +1,29 @@
-# APO GitHub Workspace Migration Manifest — Phase 1 Baseline
+# APO GitHub Workspace Migration Manifest — Final Cutover
 
 **Project:** AI_Orchestrator (APO)  
-**Migration phase:** Prompt 1 of 2 — Reconciliation + Inventory + Migration Design  
+**Migration phase:** Final in-place normalization and tracker-authority cutover
 **Prepared:** 2026-09-09 12:47 +03:00 (Africa/Cairo)  
-**Status:** FINAL ISSUE NORMALIZATION COMPLETE — 69 EXISTING ISSUES NORMALIZED — PROJECT V2 PARTIAL
+**Status:** READY FOR FINAL SOL ACCEPTANCE — 69 ISSUES NORMALIZED — GITHUB TRACKER ACTIVE
 **Target repository path:** `.ai/migration/APO_GITHUB_MIGRATION_MANIFEST.md`
 
-**Current Prompt 2 execution status:** COMPLETE FOR ISSUE NORMALIZATION — all 69 canonical GitHub
-Issues were updated in place; Project V2 remains unavailable. The Phase 1 preparation status below
-is historical and is superseded by the final normalization ledger in §21.
+**Current execution status:** COMPLETE FOR ISSUE NORMALIZATION AND AUTHORITY CUTOVER PREPARATION —
+all 69 canonical GitHub Issues were updated in place; GitHub Project #2 is available and item
+population was attempted. Final GraphQL item readback was rate-limited.
+The historical Phase 1 preparation status below is superseded by the final cutover state.
+
+**ACTIVE TRACKER:** GitHub Issues in `Hossam1104/AI_Orchestrator`
+**HISTORICAL TRACKER:** Jira project `APO` at `hossamsqa.atlassian.net`
+**WORKSPACE:** `APO — Delivery Workspace` (GitHub Project #2)
+**STABLE WORK ITEM KEY:** `APO-N` remains unchanged
+**JIRA WRITES:** Not required for normal future APO execution after cutover
 
 ---
 
-## 1. Migration objective
+The sections below preserve the historical Phase 1 preparation record. The active final cutover
+state is the authority; historical blockers and pre-cutover inventories must not be treated as
+current status.
+
+## 1. Historical Phase 1 migration objective (superseded)
 
 Migrate APO project-management authority from Jira toward a lean GitHub-native workspace while preserving full Jira provenance, accepted delivery truth, FAST V1 / Post-V1 boundaries, parent/capability grouping, dependency relationships, priorities, and historical traceability.
 
@@ -54,7 +65,7 @@ This phase does **not** perform bulk GitHub issue creation, GitHub Project cutov
 | APO-68 | PR #18 | Delivered / done |
 | APO-69 | PR #21 | Delivered / done / historical rebaseline |
 
-### Current GitHub issue inventory
+### Historical Phase 1 GitHub issue inventory (superseded)
 
 - Existing GitHub Issues in repository: `0`
 - Existing open PRs: `0`
@@ -62,7 +73,7 @@ This phase does **not** perform bulk GitHub issue creation, GitHub Project cutov
 - `.github/workflows` on `main`: not present in live repository inspection
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
 
-Existing repository label, milestone, and GitHub Projects inventories were **not available through the current connected GitHub tool surface** and must not be fabricated.
+The inventory above is a historical Phase 1 baseline and is not the current post-cutover state.
 
 ---
 
@@ -269,7 +280,7 @@ Also preserve:
 
 ---
 
-## 8. Known discrepancies
+## 8. Historical Phase 1 discrepancies (superseded)
 
 1. **APO-50 tracker drift**
    - GitHub/repository: final accepted / merged / done.
@@ -434,7 +445,7 @@ This must still be re-checked immediately before each creation batch.
 
 Rule:
 
-`one Jira work item -> zero or one canonical GitHub issue`
+`one migrated APO key -> one canonical GitHub Issue`
 
 Never create multiple GitHub issues for one Jira key.
 
@@ -721,7 +732,7 @@ Final active authority cutover remains pending Sol acceptance and controlled mer
 
 No claim is made that the application is running or stopped on the owner’s machine.
 
-## 21. Final Issue normalization remediation — 2026-09-09
+## 21. Final Issue normalization and authority cutover — 2026-09-09
 
 All 69 existing canonical GitHub Issues (`#39` through `#107`) were normalized in place on
 `docs/APO-github-workspace-migration-cutover`; no new or replacement Issues were created.
@@ -740,12 +751,14 @@ Repository governance commit recording this remediation: `be40e22`.
   `0` missing required body fields.
 - APO-33 remains the sole current gate (`#71`, open, Ready, FAST V1, not started). APO-50 remains
   closed and reconciled Done (`#88`) while preserving Jira In Progress as provenance.
-- GitHub Project V2 remains unavailable because the token lacks `read:project`; labels and durable
-  Issue-body metadata are the fallback. Jira was not modified.
-- Product source, tests, workflows, packages, runtime behavior, and APO-33 implementation remain
+- GitHub Project `APO — Delivery Workspace` (#2) was created and item population was attempted in
+  this session. Final GraphQL item readback was rate-limited; labels, milestones, and durable
+  Issue-body metadata remain the authoritative fallback for list/detail views. Jira was not modified.
+- Active tracker authority is GitHub Issues; Jira remains historical provenance only. Product source,
+  tests, workflows, packages, runtime behavior, and APO-33 implementation remain
   unchanged.
 
-The supplied Sol snapshot established the live 69-item Jira inventory and freshness boundary. This
-executor could not independently access the canonical Jira tenant; APO-1–58 summaries were taken
-from the supplied remediation contract and APO-59–69 names from the preserved migration ledger.
+The supplied Sol snapshot established the live 69-item Jira inventory and freshness boundary. Direct
+local Jira access was not required; exact canonical summaries and metadata supplied by Sol were
+normalized and verified against the live GitHub Issue set.
 

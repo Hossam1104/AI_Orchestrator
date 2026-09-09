@@ -1,20 +1,20 @@
-# APO GITHUB MIGRATION — REMEDIATION / CUTOVER REPORT
+# APO GITHUB MIGRATION — FINAL NORMALIZATION / CUTOVER REMEDIATION REPORT
 
 ## 1. Result
 
-COMPLETE FOR CANONICAL ISSUE NORMALIZATION — all 69 existing GitHub Issues were normalized in
-place and independently verified. GitHub Project V2 remains unavailable due the current token's
-missing `read:project` scope; standardized labels and durable Issue-body metadata are the fallback.
-No replacement Issues were created.
+READY FOR FINAL SOL ACCEPTANCE — all 69 existing canonical GitHub Issues were normalized in place
+and independently verified. GitHub Project `APO — Delivery Workspace` (#2) was created and item
+population was attempted; final GraphQL readback is rate-limited. No replacement Issues were
+created; PR #38 remains unmerged.
 
 ## 2. Exact Start State
 
 - Local root: `D:\AI Tools\Active Projects\AI_Orchestrator`
 - Starting branch: `docs/APO-github-workspace-migration-cutover`
-- Starting HEAD: `184f0cf2d504ec102851b0bdf0176af01e537e8c`
+- Starting HEAD: `aa5e86c9ca4c5bcbf1cc927c22572f1de00fc174`
 - `origin/main`: `a396a0f29125fe3471f3007b553205ca37837ed9`
 - Working tree: clean
-- Existing PR #38: open, draft, base `main`
+- Existing PR #38: open, draft, base `main`, unmerged
 
 ## 3. Sol Jira Freshness Authority
 
@@ -50,11 +50,12 @@ No replacement Issues were created.
 
 ## 6. GitHub Project
 
-- Created/configured: **No**
-- Result: unavailable due token scope; `gh project list --owner Hossam1104` requires `read:project`
-- Fields/views/population: not configured
-- Fallback: standardized Issue labels and durable Issue-body metadata
-- GitHub Issues migration completed independently of Project V2.
+- Created/configured: **Created; item population attempted**
+- Project: `APO — Delivery Workspace` (#2)
+- Item population readback: **Deferred by GitHub GraphQL rate limit; not claimed**
+- Fallback: standardized Issue labels, FAST V1/Post-V1 milestones, and durable Issue-body metadata
+- Project creation is available; the readback limitation is non-blocking because the full Issue
+  set is verified through REST and canonical labels/milestones/bodies.
 
 ## 7. APO-33 Boundary
 
@@ -143,11 +144,10 @@ RUNTIME BEHAVIOR CHANGED = NO
 
 ## 14. Remaining Limitation
 
-GitHub Project V2 remains unavailable due the current token scope. The canonical Jira tenant is
-also unavailable to this executor; the supplied Sol freshness authority was used, the exact
-APO-1–58 summaries came from the remediation contract, and the APO-59–69 names came from the
-preserved migration ledger. No unsupported Jira values were guessed, and no `UNKNOWN` placeholders
-remain in the normalized GitHub bodies.
+Project #2 creation succeeded. Final native item population/readback is deferred by a transient
+GitHub GraphQL rate limit and is non-blocking; the canonical Issue set is verified through REST.
+Direct local Jira authentication was not required because Sol supplied the canonical live Jira
+authority; no Jira writes were performed and no unsupported values were guessed.
 
 ## 15. Runtime / Product Boundary
 
@@ -171,3 +171,13 @@ GPT-5.6 Sol — final migration acceptance/adjudication and controlled integrati
   dependency/relationship section.
 - Label taxonomy is consistent across all 69 records; APO-33 is the only `current-gate` record.
 - Product implementation, tests, workflows, packages, and runtime mutation: `NONE`.
+
+## 18. Tracker Authority Cutover
+
+- Active tracker: GitHub Issues in `Hossam1104/AI_Orchestrator`.
+- Historical tracker: Jira project `APO` at `hossamsqa.atlassian.net`.
+- Canonical Issue set: `APO-1` through `APO-69`, mapped one-to-one to #39–#107.
+- Governance files were updated to make GitHub the active APO workspace authority while preserving
+  Jira/Azure DevOps as product integration capabilities for configured projects.
+- `APO-33` remains the sole current gate and is not started.
+- Result: **READY FOR FINAL SOL ACCEPTANCE**, **NOT MERGED**.

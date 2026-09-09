@@ -4,7 +4,8 @@
 **Date:** 30 August 2026
 **Product:** AI_Orchestrator (APO)
 **Primary Requirements:** `docs/BRD.md`
-**Jira Project:** `APO`
+**Active Work Tracker:** GitHub Issues in `Hossam1104/AI_Orchestrator`
+**Historical Jira Project:** `APO` at `hossamsqa.atlassian.net`
 **Repository:** `https://github.com/Hossam1104/AI_Orchestrator`
 **Default Branch:** `main`
 **Planner / Architect / Acceptance / Prompt Authority:** GPT-5.6 Sol (chat mode only)
@@ -24,16 +25,16 @@ not override those canonical files.
 ## 1. Purpose and Authority
 
 This plan explains how APO will be delivered from the existing repository. It is subordinate to
-`docs/BRD.md` and does not create product scope by itself. Jira `APO` is the authoritative
-work-tracking system; repository documentation and evidence remain the architecture/governance
-source of truth.
+`docs/BRD.md` and does not create product scope by itself. GitHub Issues carrying stable APO keys
+are the active work-tracking system; repository documentation and evidence remain the
+architecture/governance source of truth. Jira `APO` is historical provenance for migrated records.
 
 Authority order for execution is:
 
 1. `docs/BRD.md`;
 2. `AGENTS.md`;
 3. planner-approved architecture decisions and `.ai/CURRENT_STATE.md`;
-4. assigned Jira Story/Task acceptance scope;
+4. assigned canonical GitHub APO Issue acceptance scope;
 5. this plan;
 6. root `TASK.md`; and
 7. executor preference.
@@ -41,15 +42,16 @@ Authority order for execution is:
 The active execution flow is:
 
 ```text
-Jira Epic -> Jira Story/Task -> Sol planning/architecture
+GitHub APO Epic -> canonical GitHub Story/Task -> Sol planning/architecture
 -> TASK.md execution contract -> assigned executor -> validation
--> independent review where required -> Sol acceptance -> Jira/Git synchronization
+-> independent review where required -> Sol acceptance -> GitHub Issue/repository synchronization
 ```
 
 Only one bounded assigned work item is active at a time. Detailed Stories/Tasks are progressively
 decomposed by Sol after repository evidence and acceptance dependencies are understood. The
-strategic rebaseline now records the approved bounded backlog in Jira APO-38 through APO-63; their
-presence does not authorize implementation.
+strategic rebaseline now records the approved bounded backlog in canonical GitHub Issues APO-38
+through APO-63; their presence does not authorize implementation. Jira remains historical
+provenance for the migrated keys.
 
 ---
 
@@ -157,8 +159,8 @@ revived without an explicit architecture decision.
 
 ## 5. Delivery Approach and Dependencies
 
-Delivery proceeds in capability families, but actual work is always driven by one assigned Jira
-Story/Task and its Sol-authored `TASK.md` contract.
+Delivery proceeds in capability families, but actual work is always driven by one assigned
+canonical GitHub Story/Task and its Sol-authored `TASK.md` contract.
 
 ### Phase A - Governance and accepted foundation
 
@@ -214,8 +216,8 @@ APO-60 covers aggregate verification bounds and truthful path-state UX (OPUS-04/
 explicit unavailable/skipped semantics for real-Git integration evidence (OPUS-07). Rejected
 OPUS-06 and OPUS-08 are not backlog work.
 
-No family is considered complete merely because code exists. Acceptance requires the Jira scope,
-BRD requirements, validation, review, and Sol decision to align.
+No family is considered complete merely because code exists. Acceptance requires the canonical
+GitHub Issue scope, BRD requirements, validation, review, and Sol decision to align.
 
 ---
 
@@ -254,17 +256,18 @@ and self-contained publish smoke checks. CI uses sanitized fixtures and no live 
 
 ## 7. Review, Security, and Release Gates
 
-Every applicable implementation Story defines its validation and review requirements in Jira and
-`TASK.md`. At minimum:
+Every applicable implementation Story defines its validation and review requirements in its
+canonical GitHub Issue and `TASK.md`. At minimum:
 
 1. Sol confirms scope, dependencies, and acceptance criteria before execution.
 2. The executor validates the change and records evidence.
 3. Opus independently reviews high-value or high-risk implementation.
 4. Findings are classified BLOCKER/HIGH/MEDIUM/LOW, fixed in a bounded loop, and revalidated.
-5. Sol accepts or rejects the result against the BRD, Jira scope, diff, validation, and review.
+5. Sol accepts or rejects the result against the BRD, GitHub Issue scope, diff, validation, and review.
 6. Human approval is required for protected-branch merges and other high-risk actions unless the
    explicit owner-approved execution contract provides the applicable authorization.
-7. Git and Jira are synchronized only after the required gate.
+7. The GitHub Issue and repository are synchronized only after the required gate; configured
+   external trackers follow their own explicit integration policy.
 
 Release review must explicitly check zero-prerequisite deployment, active WPF/JSON/JSONL
 architecture, no hidden database/runtime prerequisites, credential safety, project isolation,
@@ -283,7 +286,7 @@ A Story/Task is complete only when:
 - secrets/debug artifacts are absent;
 - the diff and changed-file list are reviewed;
 - `.ai/CURRENT_STATE.md` is updated;
-- Jira status/evidence is synchronized by the authorized workflow;
+- GitHub Issue status/evidence is synchronized by the authorized workflow;
 - the branch is committed and pushed;
 - one Draft PR is opened or updated against `main`;
 - the exact branch head and unchanged `origin/main` base are recorded;

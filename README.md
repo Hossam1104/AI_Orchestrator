@@ -326,7 +326,7 @@ authorize the next Story automatically.
 APO work is evidence-led and branch-scoped. A contributor or executor should:
 
 1. read `AGENTS.md`, the BRD, current state, implementation plan, and the active `TASK.md`;
-2. work only within the assigned Jira Story and preserve unrelated owner changes;
+2. work only within the assigned canonical GitHub APO Issue and preserve unrelated owner changes;
 3. validate the relevant build, tests, security, compatibility, and documentation surfaces;
 4. update `.ai/CURRENT_STATE.md` with factual evidence and limitations; and
 5. commit and push the branch, open or update one Draft PR, and stop at the planner boundary so
