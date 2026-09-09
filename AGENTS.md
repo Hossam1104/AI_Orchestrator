@@ -90,8 +90,8 @@ Terra is a risk-triggered specialist for security, trust boundaries, concurrency
 data integrity, credential boundaries, and destructive operations. Terra is not the default
 reviewer or a general executor.
 
-One assigned Jira work item is the maximum active scope for one executor. No executor may choose a
-different work item, combine unrelated Stories, or continue automatically.
+One assigned canonical GitHub APO Issue is the maximum active scope for one executor. No executor
+may choose a different work item, combine unrelated Issues, or continue automatically.
 
 ---
 
@@ -128,19 +128,21 @@ When instructions conflict, use this order:
 1. `docs/BRD.md`;
 2. `AGENTS.md`;
 3. planner-approved architecture decisions and `.ai/CURRENT_STATE.md`;
-4. the assigned Jira Story/Task acceptance scope;
+4. the assigned canonical GitHub APO Issue and its accepted planning/architecture scope;
 5. `docs/IMPLEMENTATION_PLAN.md`;
 6. the root `TASK.md`; and
 7. executor preference.
 
-Jira is the authoritative work-tracking system for APO. Repository documentation, the BRD,
-approved architecture decisions, and validation evidence are the architecture/governance source of
-truth. A Jira issue must never override the BRD or approved architecture.
+GitHub Issues in `Hossam1104/AI_Orchestrator` are the active work-tracking system for APO.
+Repository documentation, the BRD, approved architecture decisions, and validation evidence remain
+the architecture/governance source of truth. Jira project `APO` at `hossamsqa.atlassian.net` is
+historical provenance and a migration reference; it must not override the BRD or approved
+architecture.
 
 The required execution flow is:
 
 ```text
-Jira Work Item
+GitHub APO Issue
       |
       v
 Sol execution contract / architecture checkpoint
@@ -161,12 +163,13 @@ Independent review where required
 Sol acceptance
       |
       v
-Jira / Git synchronization
+GitHub Issue / repository synchronization
 ```
 
-Every meaningful implementation and historical foundation must be traceable to a Jira Epic and
-Story/Task with repository evidence. Do not create speculative Jira work items unless the assigned
-planner scope explicitly requires them.
+Every meaningful implementation and historical foundation must be traceable to a canonical GitHub
+APO Issue with repository evidence. Stable APO keys and Jira provenance are preserved for migrated
+records. Do not create speculative GitHub Issues unless the assigned planner scope explicitly
+requires them.
 
 ---
 
@@ -362,16 +365,18 @@ generated artifacts, and update `.ai/CURRENT_STATE.md` honestly.
 
 ---
 
-# 11. Jira and Work-Item Discipline
+# 11. GitHub APO Issue and Work-Item Discipline
 
-Jira project `APO` is the work-tracking authority. The approved initial Epic structure is APO-1
-through APO-17 as listed in `docs/BRD.md` and `docs/IMPLEMENTATION_PLAN.md`. Sol progressively
-decomposes Epics into Stories/Tasks and backfills historical implementation with evidence.
+GitHub Issues carrying stable APO keys are the operational work-tracking authority. The approved
+initial Epic structure is APO-1 through APO-17 as listed in `docs/BRD.md` and
+`docs/IMPLEMENTATION_PLAN.md`; migrated Jira project `APO` remains historical provenance.
+Sol progressively decomposes Epics into canonical GitHub Stories/Tasks and backfills historical
+implementation with evidence.
 
 Do not create duplicate Epics or speculative Stories during an assigned Story unless instructed.
 Do not start source refactoring, a provider, runtime, routing engine, or another Epic early. Use one
-bounded work item at a time. When a Story is complete, synchronize Jira/Git state and stop at the
-planner boundary.
+bounded work item at a time. When an Issue is complete, synchronize the GitHub Issue/repository
+state and any explicitly configured external tracker, then stop at the planner boundary.
 
 ---
 

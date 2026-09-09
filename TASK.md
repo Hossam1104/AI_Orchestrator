@@ -7,9 +7,12 @@ This file is a short planner handoff, not an executable executor prompt.
 
 ## Current authority
 
+- `ACTIVE WORK TRACKER = GitHub Issues` in `Hossam1104/AI_Orchestrator`.
+- `HISTORICAL TRACKER = Jira project APO` at `hossamsqa.atlassian.net`.
+- `CANONICAL APO ISSUE SET = GitHub Issues #39-#107 carrying APO-1 through APO-69`.
 - `FAST V1 CURRENT GATE = APO-33`.
 - `APO-50 = FINAL ACCEPTED / MERGED / DONE`.
-- `APO-33 = TO DO / NOT STARTED / CURRENT GATE`.
+- `APO-33 = OPEN / READY / NOT STARTED / CURRENT GATE`.
 - `SOL-50-01 exact current approval promotion = ACCEPTED V1 LIMITATION`.
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
 

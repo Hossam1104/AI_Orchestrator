@@ -1,6 +1,83 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 9 September 2026 (APO-50 controlled integration and finalization)
+**Last Updated:** 9 September 2026 (final GitHub Issue normalization remediation)
+
+## APO GitHub tracker normalization remediation — final Issue cutover
+
+### ACTIVE AUTHORITY AFTER CUTOVER
+
+- Active operational tracker: GitHub Issues in `Hossam1104/AI_Orchestrator`.
+- Canonical APO Issue set: stable-key Issues `#39` through `#107` for APO-1 through APO-69.
+- Workspace: GitHub Project `APO — Delivery Workspace` (#2) was created; native item population was
+  attempted, but final GraphQL readback was rate-limited. Labels, milestones, and durable Issue-body
+  metadata are verified for the full canonical set.
+- Fallback workspace representation: standardized labels, FAST V1/Post-V1 milestones, and durable
+  Issue-body metadata.
+- Historical tracker: Jira project `APO` at `hossamsqa.atlassian.net`; Jira writes are not required
+  for normal future APO execution after cutover.
+- PR #38 is OPEN/DRAFT and READY FOR FINAL SOL ACCEPTANCE; it is not merged.
+
+The final in-place normalization pass is complete on
+`docs/APO-github-workspace-migration-cutover` and PR #38. The 69 existing canonical GitHub Issues
+`#39` through `#107` remain the only migrated Issues; no replacement Issues were created.
+
+- Every title now uses `[APO-N] <canonical Jira summary>` for APO-1 through APO-69.
+- Every body now has contributor-readable scope/context, Jira provenance, lifecycle and
+  reconciliation truth, parent/grouping, dependency relationships, delivery evidence, and the
+  product safety boundary. Stale `UNKNOWN`/placeholder text was removed.
+- Standardized labels preserve lifecycle status, work type, delivery grouping, historical/void
+  semantics, Jira provenance, and the unique APO-33 current-gate marker.
+- Remote verification: 69 Issues, 69 unique Jira keys, 42 closed, 27 open; title errors `0`, stale
+  placeholder bodies `0`, missing required body fields `0`.
+- Repository governance commit for this authority-cutover session: `63e6a4c9655fe947992628a1fa8246f916ca90f8`.
+- Follow-up evidence commit: `7329e3314dc282a40a4304671213cd6df19d600c`.
+- APO-33 is GitHub #71, open, Ready/current-gate, FAST V1, and not started. APO-50 is GitHub #88,
+  closed and reconciled Done while retaining Jira In Progress as provenance.
+- GitHub Project V2 creation succeeded for this final session; item population was attempted but
+  final GraphQL verification was rate-limited. Jira was not modified.
+- The supplied Sol freshness authority reports 69 live Jira records with no updates after the
+  Phase 1 baseline. Direct local Jira authentication was not required; the supplied canonical
+  authority and live GitHub verification were used.
+
+Product source, tests, workflows, packages, and runtime behavior remain unchanged. PR #38 remains
+OPEN and DRAFT for Sol acceptance and controlled integration.
+
+## HISTORICAL / SUPERSEDED — APO GitHub workspace migration — Prompt 2 execution boundary
+
+The Prompt 2 migration preflight reached the live Jira freshness boundary and is `BLOCKED`.
+The fresh migration base is `origin/main` at `a396a0f29125fe3471f3007b553205ca37837ed9` with
+tree `ea7faf34f97c34995586ee8681a46b9dce006501`; the bounded branch is
+`docs/APO-github-workspace-migration-cutover`.
+
+- GitHub Issue inventory was `0` non-PR Issues; no GitHub Issues, Project, Jira records, or product
+  files were mutated.
+- The available Atlassian connector is authenticated to `pssmena.atlassian.net`, where project
+  `APO` is not visible. The canonical `hossamsqa.atlassian.net` endpoint returned HTTP `404`.
+- The required live Jira 69-item inventory and freshness reconciliation therefore could not be
+  performed; Jira writes and tracker-authority cutover were intentionally skipped.
+- GitHub Project V2 administration also remains unavailable because the GitHub token lacks
+  `read:project`.
+- `APO-33` remains current gate / not started; product implementation and runtime mutation are none.
+
+Resume only after authenticated read access to the canonical Jira `APO` project is restored. See
+[the migration cutover report](migration/APO_GITHUB_MIGRATION_CUTOVER_REPORT.md) and the blocker
+record in the migration manifest for exact evidence.
+
+## HISTORICAL / SUPERSEDED — APO GitHub workspace migration — remediation result
+
+Sol-provided Jira freshness authority confirmed the canonical APO inventory is current: 69 items,
+17 Epics, 47 Stories, 1 Bug, 4 Tasks, with zero updates since the Phase 1 baseline query.
+The migration was resumed on `docs/APO-github-workspace-migration-cutover`.
+
+- 69 canonical GitHub Issues were created and verified one-to-one for APO-1 through APO-69.
+- Final Issue state is 42 closed and 27 open. APO-33 is the sole current FAST V1 gate, open with
+  Ready/current-gate metadata; APO-50 is closed and reconciled to Done despite Jira In Progress.
+- Parent and dependency references were preserved in Issue bodies using GitHub Issue numbers.
+- GitHub Project V2 remains unavailable because the token lacks `read:project`; standardized labels
+  are the durable fallback. Jira was not modified.
+- Product source, tests, workflows, packages, and runtime behavior were not changed.
+
+The migration remains pending Sol acceptance and controlled merge of PR #38.
 
 ## APO-50 final integration closeout
 

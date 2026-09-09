@@ -62,7 +62,7 @@ product functionality, not orchestration-executor policy.
 - **Terra** - specialist assurance for security, trust boundaries, concurrency, authorization, data
   integrity, credential boundaries, destructive operations. Not a general executor.
 
-One assigned Jira work item remains the maximum active scope for one executor.
+One assigned canonical GitHub APO Issue remains the maximum active scope for one executor.
 
 ---
 
@@ -189,7 +189,7 @@ routed at Tier 3/4, not by size alone.
 ## 8. Required Sol Route Declaration
 
 After the prompt gate (see `.ai/AI_EXECUTION_POLICY.md`) opens, Sol's generated executor/reviewer
-prompt must declare: the assigned Jira work item, the selected model/role/effort, the provider
+prompt must declare: the assigned canonical GitHub APO Issue, the selected model/role/effort, the provider
 pool, the current quota state used to inform (not override) the choice, and the risk tier
 justification.
 

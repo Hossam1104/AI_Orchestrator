@@ -9,7 +9,8 @@
 **Previous Product Identity:** AI Usage Monitor, AI Project Orchestrator
 **Repository:** `https://github.com/Hossam1104/AI_Orchestrator`
 **Local Project Root:** `D:\AI Tools\Active Projects\AI_Orchestrator`
-**Jira Project:** `APO`
+**Active Work Tracker:** GitHub Issues in `Hossam1104/AI_Orchestrator`
+**Historical Jira Project:** `APO` at `hossamsqa.atlassian.net`
 **Product Owner:** Hossam
 **Planner / Architect / Acceptance Authority:** GPT-5.6 Sol
 
@@ -424,7 +425,7 @@ already implemented the full orchestration runtime.
 The default lifecycle is:
 
 ```text
-Owner intent / Jira work item
+Owner intent / canonical GitHub APO Issue
         |
         v
 Project and repository verification
@@ -453,7 +454,7 @@ Sol acceptance
 Human approval gate where required
         |
         v
-Git / Jira / delivery synchronization
+GitHub Issue / repository / configured-tracker synchronization
 ```
 
 The workflow stops safely when required state, requirements, credentials, repository integrity,
@@ -664,13 +665,15 @@ project isolation, security, WPF accessibility/responsiveness, x64 primary relea
 targets to the level actually performed. Do not claim unperformed OS, architecture, or clean-machine
 validation.
 
-# 15. Jira Traceability and Approved Epic Structure
+# 15. APO Issue Traceability and Approved Epic Structure
 
-Jira project `APO` is the authoritative work-tracking system. Repository documentation, this BRD,
-architecture decisions, and validation evidence remain the architecture/governance source of truth;
-Jira issues must not override them.
+GitHub Issues carrying stable APO keys are the active APO work-tracking system. Repository
+documentation, this BRD, architecture decisions, and validation evidence remain the
+architecture/governance source of truth. Jira project `APO` is historical provenance and a
+migration reference; Jira issues must not override them.
 
-All meaningful new and historical work is progressively mapped to Jira with repository evidence.
+All meaningful new and historical work is progressively mapped to the canonical GitHub APO Issue
+set with repository evidence; migrated Jira keys remain preserved as provenance.
 Stories/Tasks should record BRD requirement IDs, Epic, current/new/refactor classification, scope,
 acceptance criteria, executor role, validation, reviewer requirement, branch/PR/commit evidence,
 and final acceptance result. Sol owns detailed decomposition and may refine ordering without
@@ -704,9 +707,9 @@ decomposes the approved direction into bounded Stories APO-38 through APO-63. Th
 roadmap backlog items, not implementation authorization; each still requires a Sol-authored
 TASK.md contract. No competitor-named Epic is created.
 
-### 15.1 Strategic capability-to-Jira mapping
+### 15.1 Strategic capability-to-APO Issue mapping
 
-| Strategic capability | Roadmap band | Jira mapping |
+| Strategic capability | Roadmap band | APO Issue mapping |
 |---|---:|---|
 | Agent/model registry and truthful connectivity | P0 | APO-38 under APO-8 |
 | Progressive onboarding and canonical context resolution | P0 | APO-39 under APO-5 |
@@ -734,8 +737,9 @@ OPUS-06 and OPUS-08 are intentionally not represented as Jira defects.
 
 ### 15.2 Canonical strategic dependency semantics
 
-Jira `Blocks` is reserved for a real architectural prerequisite. The repaired strategic backlog has
-exactly 18 hard dependency pairs:
+The canonical APO dependency graph reserves `Blocks` for a real architectural prerequisite. The
+repaired strategic backlog has exactly 18 hard dependency pairs; the migrated Jira `Blocks` values
+remain historical provenance:
 
 ```text
 APO-38 -> APO-39                 APO-38 -> APO-44
@@ -755,7 +759,7 @@ The arrows mean the left Story blocks the right Story. APO-46 precedes APO-45 so
 project-isolated repository/worktree preparation exists before autonomous repository
 implementation. APO-37 to APO-59/60/61 remains accepted `Relates` traceability rather than a hard
 dependency. Recommended delivery sequencing remains planner guidance and does not imply additional
-Jira `Blocks` links.
+GitHub Issue dependency state unless a future contract proves a real prerequisite.
 
 # 16. Initial Legacy-to-APO Mapping
 
@@ -803,7 +807,8 @@ The following are baseline decisions unless explicitly changed by the owner/plan
    established the local-root target while preserving technical identifiers for a later
    controlled migration. A later reconciliation phase normalized the interim display identity
    AI Project Orchestrator to the current canonical identity AI_Orchestrator.
-2. Jira project `APO` is authoritative for work tracking and traceability.
+2. GitHub Issues carrying stable APO keys are authoritative for APO work tracking and traceability;
+   Jira project `APO` remains historical provenance for migrated records.
 3. Existing code and history are preserved and classified before refactoring.
 4. AI usage/capacity monitoring remains a first-class capability.
 5. Project orchestration is a primary capability.

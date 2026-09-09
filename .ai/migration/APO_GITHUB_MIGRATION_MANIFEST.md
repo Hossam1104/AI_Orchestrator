@@ -1,14 +1,29 @@
-# APO GitHub Workspace Migration Manifest — Phase 1 Baseline
+# APO GitHub Workspace Migration Manifest — Final Cutover
 
 **Project:** AI_Orchestrator (APO)  
-**Migration phase:** Prompt 1 of 2 — Reconciliation + Inventory + Migration Design  
+**Migration phase:** Final in-place normalization and tracker-authority cutover
 **Prepared:** 2026-09-09 12:47 +03:00 (Africa/Cairo)  
-**Status:** PREPARED LOCALLY — REPOSITORY COMMIT BLOCKED  
+**Status:** READY FOR FINAL SOL ACCEPTANCE — 69 ISSUES NORMALIZED — GITHUB TRACKER ACTIVE
 **Target repository path:** `.ai/migration/APO_GITHUB_MIGRATION_MANIFEST.md`
+
+**Current execution status:** COMPLETE FOR ISSUE NORMALIZATION AND AUTHORITY CUTOVER PREPARATION —
+all 69 canonical GitHub Issues were updated in place; GitHub Project #2 is available and item
+population was attempted. Final GraphQL item readback was rate-limited.
+The historical Phase 1 preparation status below is superseded by the final cutover state.
+
+**ACTIVE TRACKER:** GitHub Issues in `Hossam1104/AI_Orchestrator`
+**HISTORICAL TRACKER:** Jira project `APO` at `hossamsqa.atlassian.net`
+**WORKSPACE:** `APO — Delivery Workspace` (GitHub Project #2)
+**STABLE WORK ITEM KEY:** `APO-N` remains unchanged
+**JIRA WRITES:** Not required for normal future APO execution after cutover
 
 ---
 
-## 1. Migration objective
+The sections below preserve the historical Phase 1 preparation record. The active final cutover
+state is the authority; historical blockers and pre-cutover inventories must not be treated as
+current status.
+
+## 1. Historical Phase 1 migration objective (superseded)
 
 Migrate APO project-management authority from Jira toward a lean GitHub-native workspace while preserving full Jira provenance, accepted delivery truth, FAST V1 / Post-V1 boundaries, parent/capability grouping, dependency relationships, priorities, and historical traceability.
 
@@ -50,7 +65,7 @@ This phase does **not** perform bulk GitHub issue creation, GitHub Project cutov
 | APO-68 | PR #18 | Delivered / done |
 | APO-69 | PR #21 | Delivered / done / historical rebaseline |
 
-### Current GitHub issue inventory
+### Historical Phase 1 GitHub issue inventory (superseded)
 
 - Existing GitHub Issues in repository: `0`
 - Existing open PRs: `0`
@@ -58,7 +73,7 @@ This phase does **not** perform bulk GitHub issue creation, GitHub Project cutov
 - `.github/workflows` on `main`: not present in live repository inspection
 - `GITHUB ACTIONS CI = NONE / NOT CLAIMED`
 
-Existing repository label, milestone, and GitHub Projects inventories were **not available through the current connected GitHub tool surface** and must not be fabricated.
+The inventory above is a historical Phase 1 baseline and is not the current post-cutover state.
 
 ---
 
@@ -265,7 +280,7 @@ Also preserve:
 
 ---
 
-## 8. Known discrepancies
+## 8. Historical Phase 1 discrepancies (superseded)
 
 1. **APO-50 tracker drift**
    - GitHub/repository: final accepted / merged / done.
@@ -300,11 +315,12 @@ Also preserve:
    - Canonical product: `AI_Orchestrator`.
 
 9. **Local workspace truth**
-   - Current local path/branch/HEAD/status/worktrees cannot be verified from this chat environment.
-   - Treat as `UNKNOWN / REQUIRES LOCAL READ`.
+   - Verified for this remediation: local root, branch, HEAD, remote state, and clean status were
+     read before the GitHub Issue writes.
 
 10. **GitHub metadata inventory limits**
-    - Existing labels, milestones, and Projects v2 inventory are `NOT AVAILABLE` through the current connected tool surface.
+    - Existing labels were inventoried and normalized. Milestones and Projects v2 remain unavailable
+      through the current connected tool surface.
 
 ---
 
@@ -429,7 +445,7 @@ This must still be re-checked immediately before each creation batch.
 
 Rule:
 
-`one Jira work item -> zero or one canonical GitHub issue`
+`one migrated APO key -> one canonical GitHub Issue`
 
 Never create multiple GitHub issues for one Jira key.
 
@@ -552,6 +568,8 @@ Therefore Phase 2 currently lacks a connected tool surface for deterministic Git
 
 ## 17. Prompt 2 entry criteria
 
+Historical Phase 1 entry record. Superseded by the completed remediation ledger in Section 20.
+
 Prompt 2 becomes executable only after:
 
 1. GitHub branch/ref creation permission is available so this manifest can be committed through a normal branch/PR path; and
@@ -575,5 +593,172 @@ Current local process count cannot be read from this chat environment and is the
 
 `APO PROCESS COUNT = NOT AVAILABLE`
 
+---
+
+## 19. Prompt 2 execution boundary — 2026-09-09 (historical pre-normalization record)
+
+Prompt 2 read-only preflight was executed from a fresh branch based on live `origin/main`. This
+section is a historical pre-normalization record and is superseded by Section 21.
+At that point the migration had not created or modified GitHub Issues, GitHub Projects, Jira issues/comments,
+milestones, labels, product source, tests, workflows, or runtime behavior.
+
+- Preflight checkout before branching: `docs/APO-50-final-closeout`, clean,
+  `570dd8275e42f2634a5d62b95300cdcd46c0c927`.
+- Fresh migration base: `origin/main` / `a396a0f29125fe3471f3007b553205ca37837ed9`.
+- Fresh migration base tree: `ea7faf34f97c34995586ee8681a46b9dce006501`.
+- Migration branch: `docs/APO-github-workspace-migration-cutover`.
+- GitHub authentication: repository admin access available; Project V2 CLI access rejected because
+  the token lacks `read:project`.
+- GitHub pre-migration Issue inventory: `0` non-PR Issues; labels and milestones are the default
+  repository set; no repository-owned Actions workflow is present.
+- Jira connector authentication: available only for `https://pssmena.atlassian.net`; project `APO`
+  is not visible there.
+- Canonical Jira endpoint `https://hossamsqa.atlassian.net` returned HTTP `404`; the required live
+  inventory, issue fields, comments, attachments, and relationship freshness pass could not be
+  performed.
+- Jira writes: intentionally skipped.
+- GitHub Issue migration: not started at the preflight boundary; final in-place normalization is recorded in Section 21.
+- GitHub Project creation/configuration: not attempted.
+- Repository tracker-authority cutover: deferred to Sol acceptance after the final Issue normalization.
+- Product implementation: `NO`; APO-33 implementation: `NOT STARTED`; product runtime mutation: `NONE`.
+
+Current status is `BLOCKED` until authenticated read access to the canonical `hossamsqa.atlassian.net`
+APO project is restored. The Phase 1 baseline remains preserved as historical planning input and must
+not be treated as a substitute for the required live Jira freshness pass.
+
+---
+
+## 20. Prompt 2 remediation execution ledger — final Issue migration
+
+Sol freshness authority supplied for this remediation:
+
+- Canonical Jira: `https://hossamsqa.atlassian.net`
+- Cloud ID: `faf30621-ff37-4141-a474-72dcc3a6ea20`
+- Live total: `69` (17 Epics, 47 Stories, 1 Bug, 4 Tasks).
+- Freshness query: `project = APO AND updated >= "2026-09-09 12:47" ORDER BY updated ASC`.
+- Changes since Phase 1: `0`.
+
+GitHub Issue migration completed on the existing branch. This section records the pre-normalization
+state and is superseded by Section 21 for the final human-readable Issue content.
+
+- Canonical Issues: `69`; unique Jira keys: `69`; duplicates: `0`; unmapped: `0`.
+- Final state: `42 closed`, `27 open`.
+- APO-33: Issue `#71`, open, Ready, current gate Yes, FAST V1, implementation not started.
+- APO-50: Issue `#88`, closed, Done; original Jira status In Progress preserved.
+- Parent metadata: 48 parented records plus 21 root records, all represented.
+- Dependencies: 21 Blocks relationships and 3 Relates relationships represented in Issue bodies.
+- Comments migrated: `0`; attachments migrated: `0`; Jira writes: `NO`.
+- Project V2: unavailable because the current token lacks `read:project`; standardized labels are the fallback.
+- Product implementation and runtime mutation: `NONE`.
+- Migration content commit: `1a1603fc02b8e35b23ee76d94885ff20a4ba6387`.
+- Final metadata tip: verified after the follow-up whitespace-only commit and push.
+
+### Final Jira-to-GitHub Issue map
+
+| Jira Key | GitHub Issue | GitHub URL | State | Workflow | Delivery | Current Gate | Relationship / Duplicate |
+|---|---:|---|---|---|---|---|---|
+| APO-1 | #39 | https://github.com/Hossam1104/AI_Orchestrator/issues/39 | closed | Done | Foundation | No | Root; duplicate none |
+| APO-2 | #40 | https://github.com/Hossam1104/AI_Orchestrator/issues/40 | open | In Progress | Foundation | No | Root; duplicate none |
+| APO-3 | #41 | https://github.com/Hossam1104/AI_Orchestrator/issues/41 | open | In Progress | Foundation | No | Root; duplicate none |
+| APO-4 | #42 | https://github.com/Hossam1104/AI_Orchestrator/issues/42 | open | In Progress | Foundation | No | Root; duplicate none |
+| APO-5 | #43 | https://github.com/Hossam1104/AI_Orchestrator/issues/43 | open | In Progress | Foundation | No | Root; duplicate none |
+| APO-6 | #44 | https://github.com/Hossam1104/AI_Orchestrator/issues/44 | open | In Progress | Foundation | No | Root; duplicate none |
+| APO-7 | #45 | https://github.com/Hossam1104/AI_Orchestrator/issues/45 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-8 | #46 | https://github.com/Hossam1104/AI_Orchestrator/issues/46 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-9 | #47 | https://github.com/Hossam1104/AI_Orchestrator/issues/47 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-10 | #48 | https://github.com/Hossam1104/AI_Orchestrator/issues/48 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-11 | #49 | https://github.com/Hossam1104/AI_Orchestrator/issues/49 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-12 | #50 | https://github.com/Hossam1104/AI_Orchestrator/issues/50 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-13 | #51 | https://github.com/Hossam1104/AI_Orchestrator/issues/51 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-14 | #52 | https://github.com/Hossam1104/AI_Orchestrator/issues/52 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-15 | #53 | https://github.com/Hossam1104/AI_Orchestrator/issues/53 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-16 | #54 | https://github.com/Hossam1104/AI_Orchestrator/issues/54 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-17 | #55 | https://github.com/Hossam1104/AI_Orchestrator/issues/55 | open | Backlog | Foundation | No | Root; duplicate none |
+| APO-18 | #56 | https://github.com/Hossam1104/AI_Orchestrator/issues/56 | closed | Done | Foundation | No | Parent APO-1; duplicate none |
+| APO-19 | #57 | https://github.com/Hossam1104/AI_Orchestrator/issues/57 | closed | Done | Foundation | No | Parent APO-1; duplicate none |
+| APO-20 | #58 | https://github.com/Hossam1104/AI_Orchestrator/issues/58 | closed | Done | Foundation | No | Parent APO-1; duplicate none |
+| APO-21 | #59 | https://github.com/Hossam1104/AI_Orchestrator/issues/59 | closed | Done | Foundation | No | Parent APO-2; duplicate none |
+| APO-22 | #60 | https://github.com/Hossam1104/AI_Orchestrator/issues/60 | closed | Done | Foundation | No | Parent APO-2; duplicate none |
+| APO-23 | #61 | https://github.com/Hossam1104/AI_Orchestrator/issues/61 | closed | Done | Foundation | No | Parent APO-2; duplicate none |
+| APO-24 | #62 | https://github.com/Hossam1104/AI_Orchestrator/issues/62 | closed | Done | Foundation | No | Parent APO-3; duplicate none |
+| APO-25 | #63 | https://github.com/Hossam1104/AI_Orchestrator/issues/63 | closed | Done | Foundation | No | Parent APO-3; duplicate none |
+| APO-26 | #64 | https://github.com/Hossam1104/AI_Orchestrator/issues/64 | closed | Done | Foundation | No | Parent APO-3; duplicate none |
+| APO-27 | #65 | https://github.com/Hossam1104/AI_Orchestrator/issues/65 | closed | Done | Foundation | No | Parent APO-3; duplicate none |
+| APO-28 | #66 | https://github.com/Hossam1104/AI_Orchestrator/issues/66 | closed | Done | Foundation | No | Parent APO-4; duplicate none |
+| APO-29 | #67 | https://github.com/Hossam1104/AI_Orchestrator/issues/67 | closed | Done | Foundation | No | Parent APO-4; duplicate none |
+| APO-30 | #68 | https://github.com/Hossam1104/AI_Orchestrator/issues/68 | closed | Done | Foundation | No | Parent APO-4; duplicate none |
+| APO-31 | #69 | https://github.com/Hossam1104/AI_Orchestrator/issues/69 | closed | Done | Foundation | No | Parent APO-4; duplicate none |
+| APO-32 | #70 | https://github.com/Hossam1104/AI_Orchestrator/issues/70 | closed | Done | Foundation | No | Parent APO-17; duplicate none |
+| APO-33 | #71 | https://github.com/Hossam1104/AI_Orchestrator/issues/71 | open | Ready | FAST V1 | Yes | Parent APO-17; duplicate none |
+| APO-34 | #72 | https://github.com/Hossam1104/AI_Orchestrator/issues/72 | closed | Done | Foundation | No | Parent APO-4; duplicate none |
+| APO-35 | #73 | https://github.com/Hossam1104/AI_Orchestrator/issues/73 | closed | Done | Foundation | No | Parent APO-5; duplicate none |
+| APO-36 | #74 | https://github.com/Hossam1104/AI_Orchestrator/issues/74 | closed | Done | Foundation | No | Parent APO-4; duplicate none |
+| APO-37 | #75 | https://github.com/Hossam1104/AI_Orchestrator/issues/75 | closed | Done | Foundation | No | Parent APO-6; duplicate none |
+| APO-38 | #76 | https://github.com/Hossam1104/AI_Orchestrator/issues/76 | closed | Done | Foundation | No | Parent APO-8; duplicate none |
+| APO-39 | #77 | https://github.com/Hossam1104/AI_Orchestrator/issues/77 | closed | Done | Foundation | No | Parent APO-5; duplicate none |
+| APO-40 | #78 | https://github.com/Hossam1104/AI_Orchestrator/issues/78 | closed | Done | Foundation | No | Parent APO-10; duplicate none |
+| APO-41 | #79 | https://github.com/Hossam1104/AI_Orchestrator/issues/79 | closed | Done | Foundation | No | Parent APO-10; duplicate none |
+| APO-42 | #80 | https://github.com/Hossam1104/AI_Orchestrator/issues/80 | closed | Done | Foundation | No | Parent APO-10; duplicate none |
+| APO-43 | #81 | https://github.com/Hossam1104/AI_Orchestrator/issues/81 | closed | Done | Foundation | No | Parent APO-3; duplicate none |
+| APO-44 | #82 | https://github.com/Hossam1104/AI_Orchestrator/issues/82 | closed | Done | Foundation | No | Parent APO-9; duplicate none |
+| APO-45 | #83 | https://github.com/Hossam1104/AI_Orchestrator/issues/83 | closed | Done | Foundation | No | Parent APO-11; duplicate none |
+| APO-46 | #84 | https://github.com/Hossam1104/AI_Orchestrator/issues/84 | closed | Done | Foundation | No | Parent APO-6; duplicate none |
+| APO-47 | #85 | https://github.com/Hossam1104/AI_Orchestrator/issues/85 | closed | Done | Foundation | No | Parent APO-7; duplicate none |
+| APO-48 | #86 | https://github.com/Hossam1104/AI_Orchestrator/issues/86 | closed | Done | FAST V1 | No | Parent APO-12; duplicate none |
+| APO-49 | #87 | https://github.com/Hossam1104/AI_Orchestrator/issues/87 | closed | Done | FAST V1 | No | Parent APO-14; duplicate none |
+| APO-50 | #88 | https://github.com/Hossam1104/AI_Orchestrator/issues/88 | closed | Done | FAST V1 | No | Parent APO-15; duplicate none |
+| APO-51 | #89 | https://github.com/Hossam1104/AI_Orchestrator/issues/89 | closed | Done | FAST V1 | No | Parent APO-13; duplicate none |
+| APO-52 | #90 | https://github.com/Hossam1104/AI_Orchestrator/issues/90 | open | Backlog | Post-V1 | No | Parent APO-8; duplicate none |
+| APO-53 | #91 | https://github.com/Hossam1104/AI_Orchestrator/issues/91 | open | Backlog | Post-V1 | No | Parent APO-15; duplicate none |
+| APO-54 | #92 | https://github.com/Hossam1104/AI_Orchestrator/issues/92 | open | Backlog | Post-V1 | No | Parent APO-16; duplicate none |
+| APO-55 | #93 | https://github.com/Hossam1104/AI_Orchestrator/issues/93 | open | Backlog | Post-V1 | No | Parent APO-12; duplicate none |
+| APO-56 | #94 | https://github.com/Hossam1104/AI_Orchestrator/issues/94 | open | Backlog | Post-V1 | No | Parent APO-10; duplicate none |
+| APO-57 | #95 | https://github.com/Hossam1104/AI_Orchestrator/issues/95 | open | Backlog | Post-V1 | No | Parent APO-11; duplicate none |
+| APO-58 | #96 | https://github.com/Hossam1104/AI_Orchestrator/issues/96 | open | Backlog | Post-V1 | No | Parent APO-14; duplicate none |
+| APO-59 | #97 | https://github.com/Hossam1104/AI_Orchestrator/issues/97 | open | Backlog | Post-V1 | No | Parent APO-6; duplicate none |
+| APO-60 | #98 | https://github.com/Hossam1104/AI_Orchestrator/issues/98 | open | Backlog | Post-V1 | No | Parent APO-6; duplicate none |
+| APO-61 | #99 | https://github.com/Hossam1104/AI_Orchestrator/issues/99 | open | Backlog | Post-V1 | No | Parent APO-6; duplicate none |
+| APO-62 | #100 | https://github.com/Hossam1104/AI_Orchestrator/issues/100 | closed | Done | Foundation | No | Parent APO-6; duplicate none |
+| APO-63 | #101 | https://github.com/Hossam1104/AI_Orchestrator/issues/101 | closed | Done | FAST V1 | No | Parent APO-6; duplicate none |
+| APO-64 | #102 | https://github.com/Hossam1104/AI_Orchestrator/issues/102 | closed | Done | Historical | No | Root; duplicate none |
+| APO-65 | #103 | https://github.com/Hossam1104/AI_Orchestrator/issues/103 | closed | Done | Historical | No | Root; duplicate none |
+| APO-66 | #104 | https://github.com/Hossam1104/AI_Orchestrator/issues/104 | closed | Done | Historical | No | Root; duplicate none |
+| APO-67 | #105 | https://github.com/Hossam1104/AI_Orchestrator/issues/105 | closed | Done | Historical | No | Root; duplicate none |
+| APO-68 | #106 | https://github.com/Hossam1104/AI_Orchestrator/issues/106 | closed | Done | Foundation | No | Parent APO-6; duplicate none |
+| APO-69 | #107 | https://github.com/Hossam1104/AI_Orchestrator/issues/107 | closed | Done | Historical | No | Parent APO-1; duplicate none |
+
+Final active authority cutover remains pending Sol acceptance and controlled merge of PR #38.
+
+
 No claim is made that the application is running or stopped on the owner’s machine.
+
+## 21. Final Issue normalization and authority cutover — 2026-09-09
+
+All 69 existing canonical GitHub Issues (`#39` through `#107`) were normalized in place on
+`docs/APO-github-workspace-migration-cutover`; no new or replacement Issues were created.
+
+Repository governance commit recording this remediation: `63e6a4c9655fe947992628a1fa8246f916ca90f8`.
+
+- Titles now exactly follow `[APO-N] <canonical Jira summary>` for all 69 mapped keys.
+- Bodies contain contributor-readable scope/context, Jira provenance, lifecycle/reconciliation
+  truth, parent/grouping, dependency relationships, delivery evidence, and safety boundaries.
+- Stale `UNKNOWN`, `not captured`, and placeholder-summary text was removed from all normalized
+  bodies. Values unavailable to this executor were described truthfully without inference.
+- Labels were reset to the standardized taxonomy: Jira provenance, lifecycle status, work type,
+  delivery grouping, historical/void semantics, and the unique APO-33 current-gate marker.
+- Remote verification passed: `69` canonical Issues, `69` unique Jira keys, `42 closed`, `27 open`,
+  `0` duplicate keys, `0` unmapped keys, `0` title errors, `0` stale placeholder bodies, and
+  `0` missing required body fields.
+- APO-33 remains the sole current gate (`#71`, open, Ready, FAST V1, not started). APO-50 remains
+  closed and reconciled Done (`#88`) while preserving Jira In Progress as provenance.
+- GitHub Project `APO — Delivery Workspace` (#2) was created and item population was attempted in
+  this session. Final GraphQL item readback was rate-limited; labels, milestones, and durable
+  Issue-body metadata remain the authoritative fallback for list/detail views. Jira was not modified.
+- Active tracker authority is GitHub Issues; Jira remains historical provenance only. Product source,
+  tests, workflows, packages, runtime behavior, and APO-33 implementation remain
+  unchanged.
+
+The supplied Sol snapshot established the live 69-item Jira inventory and freshness boundary. Direct
+local Jira access was not required; exact canonical summaries and metadata supplied by Sol were
+normalized and verified against the live GitHub Issue set.
 

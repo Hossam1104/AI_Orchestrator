@@ -2,13 +2,13 @@
 
 ## 1. Purpose
 
-This roadmap is the concise bridge between the approved BRD, the implementation plan, Jira
-Stories, and the owner experience APO is being built to provide. It records the strategic
+This roadmap is the concise bridge between the approved BRD, the implementation plan, canonical
+GitHub APO Issues, and the owner experience APO is being built to provide. It records the strategic
 direction and sequencing after the accepted APO foundation; it is not a runtime feature claim and
 does not authorize a new Story. Each implementation boundary still requires a Sol-authored
 `TASK.md` contract.
 
-## Current status (7 September 2026)
+## Current status (9 September 2026)
 
 APO-38 through APO-47 and APO-68 are implemented and marked Done in Jira. APO-69 is also Done.
 APO-62 (remote SCM and CI evidence) is also Done. APO-48 is **FINAL ACCEPTED / MERGED / DONE**
@@ -21,8 +21,8 @@ SHA `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`, accepted head
 `56053615c679fc64464464c9b856a5cf52a50860`. APO-49 is **FINAL ACCEPTED / MERGED / CLOSED** with
 product merge SHA `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6`, accepted head
 `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`, and accepted tree
-`09a35856723723dd59da9424d4c1b2b3b0576b8a`. APO-63, APO-50, and APO-33 remain To Do and not
-started; APO-63 is the current next gate. `GITHUB ACTIONS CI = NONE / NOT CLAIMED`. The live
+`09a35856723723dd59da9424d4c1b2b3b0576b8a`. APO-63 and APO-50 are accepted and done; APO-33 is
+the sole current gate, open/Ready/not started. `GITHUB ACTIONS CI = NONE / NOT CLAIMED`. The live
 authority snapshot is maintained in `.ai/CURRENT_STATE.md` and `TASK.md`.
 
 ## FAST V1 closeout baseline
@@ -131,7 +131,7 @@ Continue/recovery contract and state boundary; its complete owner-facing experie
 
 | Model | Default role |
 |---|---|
-| GPT-5.6 Sol High | Planner, architect, router, quota governor, Jira decomposition, acceptance and prompt authority (chat only) |
+| GPT-5.6 Sol High | Planner, architect, router, quota governor, GitHub APO Issue decomposition, acceptance and prompt authority (chat only) |
 | GPT-5.6 Luna xHigh | Primary bounded implementation executor |
 | Claude Sonnet 5 Medium | Fallback / special-need bounded implementation when explicitly selected by Sol |
 | Claude Sonnet 5 High | Fallback / special-need difficult bounded implementation when explicitly selected by Sol |
@@ -140,7 +140,7 @@ Continue/recovery contract and state boundary; its complete owner-facing experie
 | GPT-5.6 Terra Medium/High | Optional risk-triggered security, concurrency, and data-integrity assurance |
 | Claude Haiku 4.5 | Disabled from active routing |
 
-One assigned Jira work item is the maximum active scope for an executor. A roadmap Story is not
+One assigned canonical GitHub APO Issue is the maximum active scope for an executor. A roadmap Story is not
 implementation authorization, and completing one Story never automatically starts the next.
 
 ## 5. Current shipped foundation
@@ -160,10 +160,11 @@ evidence-based QA gates and APO-49 human approval policy are accepted. Provider 
 automation, controlled delivery, and Mission Control are not shipped by this documentation
 checkpoint.
 
-## 6. Strategic Jira roadmap
+## 6. Strategic APO roadmap
 
-The active strategic roadmap is APO-38 through APO-63 under the approved APO-1 through APO-17
-Epics. APO-33 remains a complementary existing CI/release Story.
+The active strategic roadmap is represented by GitHub Issues APO-38 through APO-63 under the
+approved APO-1 through APO-17 Epics. Jira statuses/labels remain historical provenance. APO-33
+remains a complementary existing CI/release Story.
 
 ### P0 control plane — APO-38..43
 
@@ -209,8 +210,9 @@ availability evidence semantics.
 
 ### Canonical hard dependency DAG
 
-Jira `Blocks` records only real architectural prerequisites. The repaired strategic graph contains
-exactly 18 hard dependencies:
+The canonical APO dependency graph records only real architectural prerequisites. The repaired
+strategic graph contains exactly 18 hard dependencies; migrated Jira `Blocks` values remain
+historical provenance:
 
 ```text
 APO-38 -> APO-39                 APO-38 -> APO-44
@@ -296,7 +298,7 @@ Protected/default-branch merges, production actions, destructive changes, creden
 actions, material architecture changes, and other owner-defined high-risk actions remain behind
 explicit human gates. No remote write may silently bypass the evidence or approval policy.
 
-## 11. Jira hygiene / roadmap identity
+## 11. APO tracker identity and roadmap provenance
 
 The approved APO-1 through APO-17 Epic structure is reused. APO-48 is delivered and the remaining
 FAST V1 must-ship backlog remaining after accepted APO-51 and APO-49 is APO-63, APO-50, and APO-33.
@@ -308,7 +310,8 @@ is the current repository rebaseline/cleanup Story and is not a product-runtime 
 
 ## 12. Near-term ordering
 
-The following compact map is retained as a historical visual only; it is not the Jira DAG or the
+The following compact map is retained as a historical visual only; it is not the canonical APO
+dependency graph or the
 authoritative implementation sequence. Use the canonical DAG above and the explicit sequence below.
 
 ```text
