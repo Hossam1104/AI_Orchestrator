@@ -1,0 +1,120 @@
+name: AI_Orchestrator CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  CONFIGURATION: Release
+  SOLUTION: AIUsageMonitor.sln
+  DESKTOP_PROJECT: src/AIUsageMonitor.Desktop/AIUsageMonitor.Desktop.csproj
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  validate:
+    name: Restore, build, and test
+    runs-on: windows-2022
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Report SDK
+        shell: pwsh
+        run: dotnet --info
+
+      - name: Restore solution
+        shell: pwsh
+        run: dotnet restore $env:SOLUTION --nologo
+
+      - name: Build Release solution
+        shell: pwsh
+        run: dotnet build $env:SOLUTION --configuration $env:CONFIGURATION --no-restore --nologo
+
+      - name: Run canonical test suite
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path TestResults | Out-Null
+          dotnet test $env:SOLUTION --configuration $env:CONFIGURATION --no-build --no-restore --nologo `
+            --logger trx --results-directory TestResults
+
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI_Orchestrator-test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish:
+    name: Publish ${{ matrix.rid }}
+    needs: validate
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        rid:
+          - win-x86
+          - win-x64
+          - win-arm64
+    env:
+      RID: ${{ matrix.rid }}
+      PUBLISH_DIRECTORY: artifacts/publish/${{ matrix.rid }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Report SDK and publish target
+        shell: pwsh
+        run: |
+          dotnet --info
+          Write-Host "Configuration: $env:CONFIGURATION"
+          Write-Host "Runtime identifier: $env:RID"
+
+      - name: Restore desktop project for publish
+        shell: pwsh
+        run: dotnet restore $env:DESKTOP_PROJECT --nologo
+
+      - name: Publish ${{ matrix.rid }}
+        shell: pwsh
+        run: |
+          dotnet publish $env:DESKTOP_PROJECT --configuration $env:CONFIGURATION --no-restore --nologo `
+            -p:PublishProfile=$env:RID -o $env:PUBLISH_DIRECTORY
+
+      - name: Validate single-file publish output
+        shell: pwsh
+        run: |
+          ./scripts/Validate-PublishOutput.ps1 `
+            -PublishDirectory $env:PUBLISH_DIRECTORY `
+            -RuntimeIdentifier $env:RID
+
+      - name: Upload ${{ matrix.rid }} package
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI_Orchestrator-Release-${{ matrix.rid }}
+          path: ${{ env.PUBLISH_DIRECTORY }}
+          if-no-files-found: error
+          retention-days: 14

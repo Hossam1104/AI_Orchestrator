@@ -290,6 +290,15 @@ The matching profiles for `win-x86` and `win-arm64` are in
 `src/AIUsageMonitor.Desktop/Properties/PublishProfiles/`. Build, test, and publish output should
 be treated as evidence only after the command completes successfully on the current checkout.
 
+### Continuous integration
+
+GitHub Actions runs on pull requests targeting `main`, pushes to `main`, and manual dispatches.
+The `AI_Orchestrator CI` workflow restores and builds the solution in Release, runs the canonical
+test suite with TRX results, and publishes independently validated artifacts for every runtime
+identifier declared by the desktop project: `win-x86`, `win-x64`, and `win-arm64`. Downloadable
+artifacts are named `AI_Orchestrator-Release-<rid>`; the publish profiles remain the source of
+truth for their self-contained, single-file settings.
+
 ## Documentation
 
 - [Business Requirements Document](docs/BRD.md)
