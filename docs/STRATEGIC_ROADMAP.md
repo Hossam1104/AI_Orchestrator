@@ -25,8 +25,9 @@ SHA `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`, accepted head
 product merge SHA `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6`, accepted head
 `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`, and accepted tree
 `09a35856723723dd59da9424d4c1b2b3b0576b8a`. APO-63 and APO-50 are accepted and done; APO-33 is
-the sole current gate, open/Ready/not started. `GITHUB ACTIONS CI = NONE / NOT CLAIMED`. GitHub
-Project #2 contains 69 / 69 canonical Issues. The live authority snapshot is maintained in
+the sole current gate, open/Review with an implementation candidate under review. GitHub Actions CI
+is implemented on the feature branch and has executed successfully on the candidate; Sol acceptance
+is pending. GitHub Project #2 contains 69 / 69 canonical Issues. The live authority snapshot is maintained in
 `.ai/CURRENT_STATE.md` and `TASK.md`.
 
 ## FAST V1 closeout baseline
@@ -38,7 +39,7 @@ Project #2 contains 69 / 69 canonical Issues. The live authority snapshot is mai
 3. APO-49 - minimal Human Approval + Delivery Gates (delivered and accepted)
 4. APO-63 - controlled remote source-control delivery (delivered and accepted)
 5. APO-50 - Mission Control read model + UI (delivered and accepted)
-6. APO-33 - GitHub Actions CI + build/test/package (current; not started)
+6. APO-33 - GitHub Actions CI + build/test/package (current; implementation candidate under review)
 
 The accepted FAST V1 sequence is `APO-48 -> APO-51 -> APO-49 -> APO-63 -> APO-50 -> APO-33 ->
 Final V1 Release Audit -> v1.0.0`. APO-48, APO-51, APO-49, APO-63, and APO-50 are complete;
@@ -158,11 +159,11 @@ local Git repository verification. APO-37 provides bounded local branch/HEAD/sta
 for a selected configured path; it does not call a remote SCM service, read repository file contents,
 or perform Git writes.
 
-APO-33 remains the existing repository-owned GitHub Actions CI/release Story. Local validation in
-this roadmap session is not a GitHub CI result. APO-48 independent validation evidence and
-evidence-based QA gates and APO-49 human approval policy are accepted. Provider execution, tracker
-automation, controlled delivery, and Mission Control are not shipped by this documentation
-checkpoint.
+APO-33 remains the existing repository-owned GitHub Actions CI/release Story. Its implementation
+candidate is on PR #109, and the validator-remediation workflow has executed successfully on the
+candidate; Sol acceptance remains pending. APO-48 independent validation evidence and evidence-based
+QA gates and APO-49 human approval policy are accepted. Provider execution and tracker automation are
+not shipped by this documentation checkpoint.
 
 ## 6. Strategic APO roadmap
 
@@ -370,6 +371,7 @@ planner sequencing, not a claim that every adjacent pair is a Jira hard dependen
 
 APO-69 is complete, APO-47 is merged and Jira Done, and APO-62 (remote SCM and CI evidence) is
 delivered and Jira Done. APO-48, APO-51, APO-49, APO-63, and APO-50 are final accepted, merged,
-and Done. The current FAST V1 gate is APO-33, which remains Open/Ready and not started. No
-implementation is authorized by this roadmap. GPT-5.6 Sol must provide a fresh, self-contained
-contract for APO-33, and no automatic roadmap execution is permitted.
+and Done. The current FAST V1 gate is APO-33, which remains Open/Review/current-gate with an
+implementation candidate on PR #109. Its validator-remediation CI run passed, but Sol acceptance is
+still pending. The roadmap does not authorize merge or the Final V1 Release Audit, and no automatic
+roadmap execution is permitted.

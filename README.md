@@ -25,13 +25,15 @@
 
 `FAST V1 CLOSEOUT MODE` is active. APO-48 is delivered, independently reviewed, Sol-accepted,
 merged, and Done. APO-51 is delivered, Sol-accepted, merged, and Done. APO-49 is delivered and
-accepted. The remaining three V1 Stories are `APO-63`, `APO-50`, and `APO-33`; `APO-63` is the
-current next gate and is not started.
+accepted. APO-63 and APO-50 are delivered and accepted. APO-33 is the sole remaining V1 gate;
+its implementation candidate is on PR #109 and remains open for review. GitHub Actions CI has
+executed successfully on the candidate, and Sol final acceptance is pending. The Final V1 Release
+Audit has not started.
 
 V1 execution is focused on OpenAI, Claude, and Antigravity Plus. `COPILOT = POST-V1`, and all new
 inactive-provider-specific work is deferred until after V1. No new provider integration enters V1
 unless it is strictly required for release safety. GitHub remains V1 infrastructure; GitHub Actions
-remains APO-33 and is not yet delivered.
+is implemented on the APO-33 feature branch and remains pending Sol acceptance.
 
 ## What is AI_Orchestrator?
 
@@ -107,28 +109,28 @@ APO is an active foundation, not a finished orchestration product.
 | :white_check_mark: Delivered / accepted | APO-48 independent validation evidence and evidence-based QA gates; accepted merge `7fe179844ceb056c542067485843bc892ebdefcc` |
 | :white_check_mark: Delivered / accepted | APO-51 Review Inbox and bounded remediation loop; accepted merge `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c` |
 | :white_check_mark: Delivered / accepted | APO-49 human approval policy and gates; accepted merge `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6` |
-| :construction: Planned | Local Git evidence is partially implemented through APO-37; controlled remote delivery (APO-63) remains unimplemented |
-| :construction: Planned | Mission Control (APO-50), controlled remote delivery (APO-63), and GitHub Actions CI (APO-33) |
+| :white_check_mark: Delivered / accepted | APO-63 controlled remote source-control delivery with explicit gates and exact-target evidence |
+| :construction: Candidate / under review | APO-33 repository-owned GitHub Actions CI and multi-RID packaging; PR #109 is open pending Sol acceptance |
 | :compass: Strategic roadmap | Mission Control, Smart Continue, recovery, dependency-aware work, isolated workspaces, decision ledger, project health, skills, bounded automation, and optional remote approval design |
 
 APO-48 was accepted on product head `caed10d0486994e9235a66ef44ec6137649dd347`, with product
 tree `f152699b89b4c1f498c3dbb4357ee07ac00fda77`, merge SHA
 `7fe179844ceb056c542067485843bc892ebdefcc`, canonical independent suite **1,136 passed / 0 failed /
-0 skipped**, and build **0 warnings / 0 errors**. This is local deterministic validation evidence;
-`GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+0 skipped**, and build **0 warnings / 0 errors**. This is historical APO-48 validation evidence;
+at that earlier acceptance point, `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
 
 Not yet implemented: full consumer capacity surfaces beyond the documented adapter boundaries,
-end-to-end autonomous provider execution, tracker automation, controlled remote delivery, Mission
-Control, GitHub Actions CI, and the full APO-15 dashboard.
+end-to-end autonomous provider execution, tracker automation, and the full APO-15 dashboard.
 The durable control-plane contracts, bounded execution safeguards, and bounded Jira tracker slice in
 APO-38 through APO-47 and APO-68 are implemented; APO-62 provider-independent, read-only remote
 SCM/CI evidence (GitHub and Azure Repos) is also delivered. APO-48 independent validation evidence
 and QA gates, APO-49 human approval policy and gates, and APO-51 Review Inbox and bounded remediation
-are delivered and accepted. Remaining capability boundaries not yet delivered: APO-50 Mission
-Control, APO-63 controlled remote delivery, and APO-33 repository-owned GitHub Actions CI. APO-37
-verifies a selected registered local path only when the owner clicks Verify repository; it does not
-inspect file contents, use credentials, contact a remote service, or perform Git writes. APO does
-not fabricate provider numbers or claim CI status before the relevant Story is delivered.
+are delivered and accepted. APO-50 Mission Control and APO-63 controlled remote delivery are also
+delivered and accepted. APO-33 repository-owned GitHub Actions CI is implemented as a candidate on
+PR #109 and remains pending Sol acceptance. APO-37 verifies a selected registered local path only
+when the owner clicks Verify repository; it does not inspect file contents, use credentials, contact
+a remote service, or perform Git writes. APO does not fabricate provider numbers or treat local
+state as a substitute for official remote CI evidence.
 
 ## Smart Continue and integration boundaries
 
@@ -289,6 +291,17 @@ dotnet publish src/AIUsageMonitor.Desktop/AIUsageMonitor.Desktop.csproj `
 The matching profiles for `win-x86` and `win-arm64` are in
 `src/AIUsageMonitor.Desktop/Properties/PublishProfiles/`. Build, test, and publish output should
 be treated as evidence only after the command completes successfully on the current checkout.
+
+### Continuous integration
+
+GitHub Actions runs on pull requests targeting `main`, pushes to `main`, and manual dispatches.
+The `AI_Orchestrator CI` workflow restores and builds the solution in Release, runs the canonical
+test suite with TRX results, and publishes independently validated artifacts for every runtime
+identifier declared by the desktop project: `win-x86`, `win-x64`, and `win-arm64`. Downloadable
+artifacts are named `AI_Orchestrator-Release-<rid>`; the publish profiles remain the source of
+truth for their self-contained, single-file settings. The current APO-33 candidate is on PR #109;
+the validator-remediation workflow has executed successfully, while Sol final acceptance remains
+pending.
 
 ## Documentation
 
