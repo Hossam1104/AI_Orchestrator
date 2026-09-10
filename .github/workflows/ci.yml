@@ -52,9 +52,23 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path TestResults | Out-Null
-          dotnet test $env:SOLUTION --configuration $env:CONFIGURATION --no-build --no-restore --nologo `
-            --logger trx --results-directory TestResults `
-            -- xUnit.ParallelizeTestCollections=false RunConfiguration.MaxCpuCount=1
+          $testProjects = @(
+            @{ Path = 'tests/AIUsageMonitor.Domain.Tests/AIUsageMonitor.Domain.Tests.csproj'; Arguments = @() },
+            @{ Path = 'tests/AIUsageMonitor.Connection.Tests/AIUsageMonitor.Connection.Tests.csproj'; Arguments = @() },
+            @{ Path = 'tests/AIUsageMonitor.Provider.Tests/AIUsageMonitor.Provider.Tests.csproj'; Arguments = @() },
+            @{ Path = 'tests/AIUsageMonitor.Desktop.Tests/AIUsageMonitor.Desktop.Tests.csproj'; Arguments = @('-p:Platform=x64') },
+            @{ Path = 'tests/AIUsageMonitor.Infrastructure.Tests/AIUsageMonitor.Infrastructure.Tests.csproj'; Arguments = @() }
+          )
+          foreach ($testProject in $testProjects) {
+            Write-Host "Running tests in $($testProject.Path)"
+            dotnet test $testProject.Path --configuration $env:CONFIGURATION --no-build --no-restore --nologo `
+              $testProject.Arguments `
+              --logger trx --results-directory TestResults `
+              -- xUnit.ParallelizeTestCollections=false
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+          }
 
       - name: Upload test results
         if: ${{ always() }}
