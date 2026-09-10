@@ -24,11 +24,13 @@ SHA `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c`, accepted head
 `56053615c679fc64464464c9b856a5cf52a50860`. APO-49 is **FINAL ACCEPTED / MERGED / CLOSED** with
 product merge SHA `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6`, accepted head
 `2ff96bb6f297ae9fef8fca2fd50e56b08eb7bd26`, and accepted tree
-`09a35856723723dd59da9424d4c1b2b3b0576b8a`. APO-63 and APO-50 are accepted and done; APO-33 is
-the sole current gate, open/Review with an implementation candidate under review. GitHub Actions CI
-is implemented on the feature branch and has executed successfully on the candidate; Sol acceptance
-is pending. GitHub Project #2 contains 69 / 69 canonical Issues. The live authority snapshot is maintained in
-`.ai/CURRENT_STATE.md` and `TASK.md`.
+`09a35856723723dd59da9424d4c1b2b3b0576b8a`. APO-63, APO-50, and APO-33 are accepted and done.
+APO-33 merged through PR #109 at `c139ce188b71ebbc8035f0d1046ec15e2419cf4b`; GitHub Actions CI
+is active on `main`, and the post-merge workflow passed as run `34486056095`. GitHub Project #2
+contains 69 / 69 canonical Issues, with APO-33 marked Done. There is no active implementation
+current gate. The next planner boundary is the Final V1 Release Audit; it has not started, and
+v1.0.0 has not been released. The live authority snapshot is maintained in `.ai/CURRENT_STATE.md`
+and `TASK.md`.
 
 ## FAST V1 closeout baseline
 
@@ -39,11 +41,12 @@ is pending. GitHub Project #2 contains 69 / 69 canonical Issues. The live author
 3. APO-49 - minimal Human Approval + Delivery Gates (delivered and accepted)
 4. APO-63 - controlled remote source-control delivery (delivered and accepted)
 5. APO-50 - Mission Control read model + UI (delivered and accepted)
-6. APO-33 - GitHub Actions CI + build/test/package (current; implementation candidate under review)
+6. APO-33 - GitHub Actions CI + build/test/package (complete and accepted)
 
 The accepted FAST V1 sequence is `APO-48 -> APO-51 -> APO-49 -> APO-63 -> APO-50 -> APO-33 ->
-Final V1 Release Audit -> v1.0.0`. APO-48, APO-51, APO-49, APO-63, and APO-50 are complete;
-APO-33 is the sole remaining implementation gate. This roadmap does not authorize implementation.
+Final V1 Release Audit -> v1.0.0`. APO-48, APO-51, APO-49, APO-63, APO-50, and APO-33 are
+complete. Final V1 Release Audit is the next planner boundary and is not started. This roadmap
+does not authorize implementation or release work.
 
 ### ACTIVE V1 AI RESOURCE BOUNDARY
 
@@ -159,9 +162,9 @@ local Git repository verification. APO-37 provides bounded local branch/HEAD/sta
 for a selected configured path; it does not call a remote SCM service, read repository file contents,
 or perform Git writes.
 
-APO-33 remains the existing repository-owned GitHub Actions CI/release Story. Its implementation
-candidate is on PR #109, and the validator-remediation workflow has executed successfully on the
-candidate; Sol acceptance remains pending. APO-48 independent validation evidence and evidence-based
+APO-33 is the completed repository-owned GitHub Actions CI/release Story. PR #109 is merged at
+`c139ce188b71ebbc8035f0d1046ec15e2419cf4b`; the accepted PR and post-merge workflows passed, and
+the canonical suite reported 1,249 passed / 0 failed / 0 skipped. APO-48 independent validation evidence and evidence-based
 QA gates and APO-49 human approval policy are accepted. Provider execution and tracker automation are
 not shipped by this documentation checkpoint.
 
@@ -306,8 +309,8 @@ explicit human gates. No remote write may silently bypass the evidence or approv
 ## 11. APO tracker identity and roadmap provenance
 
 The approved APO-1 through APO-17 Epic structure is reused. APO-48, APO-51, APO-49, APO-63, and
-APO-50 are delivered and accepted. The remaining FAST V1 must-ship backlog is APO-33, followed by
-the Final V1 Release Audit and v1.0.0.
+APO-50 and APO-33 are delivered and accepted. The remaining FAST V1 path is the Final V1 Release
+Audit, followed by v1.0.0.
 APO-52 through APO-61 are post-V1 deferred scope. APO-38 through APO-47 are delivered. APO-64 through APO-67 are Done, VOID,
 `no-project-work`, and `connector-correction` artifacts retained only as transparent Jira connector
 history; they have zero product scope and are excluded from roadmap totals, dependencies, sequencing,
@@ -352,14 +355,14 @@ APO-63 controlled remote delivery (accepted)
         v
 APO-50 Mission Control (accepted)
         v
-APO-33 GitHub Actions CI + build/test/package
+APO-33 GitHub Actions CI + build/test/package (accepted)
         v
 Final V1 Release Audit
         v
 v1.0.0
 ```
 
-Remaining implementation order: `APO-33 -> Final V1 Release Audit -> v1.0.0`.
+Remaining FAST V1 path: `Final V1 Release Audit -> v1.0.0`.
 
 Read-only remote evidence must precede controlled remote writes because APO cannot safely mutate a
 remote target without independently knowing the current repository, ref, review/check, validation,
@@ -370,8 +373,7 @@ planner sequencing, not a claim that every adjacent pair is a Jira hard dependen
 ## 13. Current planner boundary
 
 APO-69 is complete, APO-47 is merged and Jira Done, and APO-62 (remote SCM and CI evidence) is
-delivered and Jira Done. APO-48, APO-51, APO-49, APO-63, and APO-50 are final accepted, merged,
-and Done. The current FAST V1 gate is APO-33, which remains Open/Review/current-gate with an
-implementation candidate on PR #109. Its validator-remediation CI run passed, but Sol acceptance is
-still pending. The roadmap does not authorize merge or the Final V1 Release Audit, and no automatic
-roadmap execution is permitted.
+delivered and Jira Done. APO-48, APO-51, APO-49, APO-63, APO-50, and APO-33 are final accepted,
+merged, and Done. There is no active FAST V1 implementation gate. The next planner boundary is
+the Final V1 Release Audit, which has not started; no automatic audit or release execution is
+permitted.
