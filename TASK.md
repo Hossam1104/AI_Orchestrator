@@ -17,7 +17,7 @@
 
 - Branch: `feature/APO-33-github-actions-ci`.
 - PR: #109, `OPEN / READY FOR REVIEW / UNMERGED`, base `main`.
-- Implementation head before this metadata handoff: `33571daed8c342226f4f0640146ad3073c86b4ea`.
+- Implementation head before this metadata handoff: `7b2c438a55df9c6eabc006103997e5aae04e237a`.
 - `origin/main` remains `693145a4a4d17f13ee87e327bcbdfde70e4071c2`.
 - Workflow: `.github/workflows/ci.yml`.
 - Publish validator: `scripts/Validate-PublishOutput.ps1`.
@@ -34,7 +34,7 @@
   RIDs.
 - Workflow YAML formatting/static policy checks, PowerShell parsing, RID-source comparison,
   `git diff --check`, and changed-scope secret scan passed.
-- Successful remote PR workflow: run `34413038272` at implementation head above. Restore/build/test,
+- Successful remote PR workflow: run `34461322934` at implementation head above. Restore/build/test,
   TRX upload, all three publish matrix jobs, package validation, and all four artifact uploads passed.
 - Remote artifacts: `AI_Orchestrator-test-results`, `AI_Orchestrator-Release-win-x86`,
   `AI_Orchestrator-Release-win-x64`, and `AI_Orchestrator-Release-win-arm64`, all non-zero and

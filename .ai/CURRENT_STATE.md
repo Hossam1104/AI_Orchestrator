@@ -30,8 +30,8 @@ APO-33 is the sole FAST V1 gate and remains open for Sol acceptance.
 - GitHub Issue #71: `OPEN / REVIEW / CURRENT GATE`.
 - Branch: `feature/APO-33-github-actions-ci`.
 - PR #109: `OPEN / READY FOR REVIEW / UNMERGED`, based on `main`.
-- Implementation head before this metadata handoff: `33571daed8c342226f4f0640146ad3073c86b4ea`.
-- Successful PR workflow: run `34413038272`, with restore/build/test and `win-x86`, `win-x64`,
+- Implementation head before this metadata handoff: `7b2c438a55df9c6eabc006103997e5aae04e237a`.
+- Successful PR workflow: run `34461322934`, with restore/build/test and `win-x86`, `win-x64`,
   and `win-arm64` publish matrix jobs all passing; four non-expired artifacts were reported.
 - Local evidence: Release restore/build passed with `0 warnings / 0 errors`; canonical tests passed
   `1,249 / 0 failed / 0 skipped`; all three supported publish profiles passed structural checks.
