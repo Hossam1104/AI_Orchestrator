@@ -1,0 +1,15 @@
+[mcp_servers.context7]
+command = "npx"
+args = [
+    "-y",
+    "@upstash/context7-mcp",
+]
+
+[mcp_servers.serena]
+command = "serena"
+args = [
+    "start-mcp-server",
+    "--context",
+    "claude-code",
+    "--project-from-cwd",
+]
