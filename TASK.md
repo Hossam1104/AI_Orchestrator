@@ -8,7 +8,7 @@
 - Active tracker: GitHub Issues in `Hossam1104/AI_Orchestrator`.
 - Current and sole FAST V1 gate: APO-33 / GitHub Issue #71.
 - Issue state: `OPEN / REVIEW / CURRENT GATE`.
-- Implementation state: `CANDIDATE COMPLETE / AWAITING SOL ACCEPTANCE`.
+- Implementation state: `IMPLEMENTATION CANDIDATE / AWAITING SOL ACCEPTANCE`.
 - GitHub Actions CI: implemented on the feature branch; not yet Sol accepted.
 - Final V1 Release Audit: `NOT STARTED`.
 - v1.0.0: `NOT RELEASED`.
@@ -17,7 +17,7 @@
 
 - Branch: `feature/APO-33-github-actions-ci`.
 - PR: #109, `OPEN / READY FOR REVIEW / UNMERGED`, base `main`.
-- Implementation head before this metadata handoff: `7b2c438a55df9c6eabc006103997e5aae04e237a`.
+- Validator remediation head before this documentation reconciliation: `bc58fc51133ad517b63742580df52d1a01718aa0`.
 - `origin/main` remains `693145a4a4d17f13ee87e327bcbdfde70e4071c2`.
 - Workflow: `.github/workflows/ci.yml`.
 - Publish validator: `scripts/Validate-PublishOutput.ps1`.
@@ -34,8 +34,12 @@
   RIDs.
 - Workflow YAML formatting/static policy checks, PowerShell parsing, RID-source comparison,
   `git diff --check`, and changed-scope secret scan passed.
-- Successful remote PR workflow: run `34461322934` at implementation head above. Restore/build/test,
-  TRX upload, all three publish matrix jobs, package validation, and all four artifact uploads passed.
+- Successful remote PR workflow for the validator remediation: run `34476950590` at the remediation
+  head above. Restore/build/test, TRX upload, all three publish matrix jobs, package validation, and
+  all four artifact uploads passed.
+- Remote validator evidence reported PE Machines `0x014C`, `0x8664`, and `0xAA64` and passed
+  self-contained runtime-marker validation for all three RIDs. Negative wrong-architecture,
+  corrupt-executable, and framework-dependent cases failed with exit code `1` locally.
 - Remote artifacts: `AI_Orchestrator-test-results`, `AI_Orchestrator-Release-win-x86`,
   `AI_Orchestrator-Release-win-x64`, and `AI_Orchestrator-Release-win-arm64`, all non-zero and
   non-expired. Direct local extraction stalled in the GitHub CLI; validator logs and artifact API
