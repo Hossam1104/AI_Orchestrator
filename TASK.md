@@ -1,6 +1,6 @@
 # TASK.md - AI_Orchestrator APO-33 Handoff
 
-**Project:** `AI_Orchestrator`  
+**Project:** `AI_Orchestrator`
 **Mode:** `FAST V1 CLOSEOUT MODE`
 
 ## Current authority
