@@ -13,32 +13,32 @@ namespace AIUsageMonitor.Desktop.Tests;
 public sealed class CapacityViewModelTests
 {
     [Fact]
-    public void DegradedWorkspace_ContainsExactlyFiveProvidersInStableOrder()
+    public void DegradedWorkspace_ContainsTheThreeSupportedProviderSurfacesInStableOrder()
     {
         var viewModel = new AiCapacityViewModel();
 
-        Assert.Equal(5, viewModel.Cards.Count);
+        Assert.Equal(3, viewModel.Cards.Count);
         Assert.Equal(
-            Enum.GetValues<ProviderCode>().OrderBy(code => code),
-            viewModel.Cards.Select(card => card.Code));
+            new[] { ProviderCode.Codex, ProviderCode.Claude, ProviderCode.Antigravity },
+            viewModel.Cards.Select(card => card.Code!.Value));
         Assert.Equal(
-            ["Codex", "Claude / Anthropic", "Kimi", "GitHub Copilot", "Antigravity"],
+            ["Codex", "Claude", "Antigravity"],
             viewModel.Cards.Select(card => card.DisplayName));
     }
 
     [Fact]
     public async Task DegradedWorkspace_UsesOnlyLocalExecutableDetectionAndDisablesConfiguredActions()
     {
-        var locator = new FakeExecutableLocator("codex", "claude", "kimi", "agy");
+        var locator = new FakeExecutableLocator("codex", "claude", "agy");
         var viewModel = new AiCapacityViewModel(locator);
 
         await viewModel.InitializeDegradedAsync();
 
         Assert.True(viewModel.IsDegraded);
         Assert.All(
-            new[] { ProviderCode.Codex, ProviderCode.Claude, ProviderCode.Kimi, ProviderCode.Antigravity },
+            new[] { ProviderCode.Codex, ProviderCode.Claude },
             code => Assert.Equal("Local Detected", Assert.Single(viewModel.Cards, card => card.Code == code).StatusText));
-        Assert.Equal("Not Configured", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Copilot).StatusText);
+        Assert.Equal("Detected", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Antigravity).StatusText);
         Assert.All(viewModel.Cards, card => Assert.False(card.CanEditConnection));
         Assert.False(viewModel.RefreshAllCommand.CanExecute(null));
     }
@@ -50,10 +50,9 @@ public sealed class CapacityViewModelTests
 
         await viewModel.InitializeDegradedAsync();
 
-        Assert.Equal("Unsupported / Manual", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Codex).StatusText);
-        Assert.Equal("Unsupported / Manual", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Antigravity).StatusText);
-        Assert.Equal("Not Configured", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Claude).StatusText);
-        Assert.Equal("Not Configured", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Kimi).StatusText);
+        Assert.Equal("Not Detected", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Codex).StatusText);
+        Assert.Equal("Not Detected", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Antigravity).StatusText);
+        Assert.Equal("Not Detected", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Claude).StatusText);
     }
 
     [Fact]
@@ -257,7 +256,7 @@ public sealed class CapacityViewModelTests
 
         card.ApplyResult(ProviderRefreshResult.Unsupported(ProviderCode.Codex, DateTimeOffset.UtcNow.AddMinutes(1)));
 
-        Assert.Equal("Unsupported / Manual", card.StatusText);
+        Assert.Equal("Manual", card.StatusText);
         Assert.Empty(card.QuotaWindows);
         Assert.Null(card.AccountDisplayName);
         Assert.Null(card.SubscriptionText);
@@ -325,7 +324,7 @@ public sealed class CapacityViewModelTests
         unsupportedCard.ApplyResult(ProviderRefreshResult.Unsupported(ProviderCode.Codex, DateTimeOffset.UtcNow));
 
         Assert.Equal("Authentication Required", authCard.StatusText);
-        Assert.Equal("Unsupported / Manual", unsupportedCard.StatusText);
+        Assert.Equal("Manual", unsupportedCard.StatusText);
     }
 
     [Fact]
@@ -382,12 +381,27 @@ public sealed class CapacityViewModelTests
                 "Usage-only.",
                 DateTimeOffset.UtcNow)
         };
-        var connectionService = new FakeConnectionService { ThrowOnRecordRefresh = true };
+        var connectionService = new FakeConnectionService
+        {
+            ThrowOnRecordRefresh = true,
+            Connection = new ProviderConnection(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                ProviderConnectionType.ApiKey,
+                ProviderConnectionStatus.Connected,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "opaque-reference")
+        };
         var card = new ProviderCapacityCardViewModel(
             ProviderCode.Copilot,
             "GitHub Copilot",
             provider,
             connectionService);
+        card.SetConnection(connectionService.Connection);
 
         await card.RefreshAsync();
 
@@ -554,6 +568,20 @@ public sealed class CapacityViewModelTests
         public IReadOnlyList<IAiUsageProvider> GetAll() => _providers;
 
         public IAiUsageProvider? Find(ProviderCode code) => _providers.FirstOrDefault(provider => provider.Code == code);
+
+        public IReadOnlyList<ProviderDefinition> GetDefinitions() => _providers.Select(provider =>
+            ProviderDefinition.BuiltIn(
+                Guid.NewGuid(),
+                provider.Code,
+                AiCapacityViewModel.DisplayNameFor(provider.Code),
+                ProviderAuthenticationMode.LocalSession,
+                provider.Code is ProviderCode.Codex or ProviderCode.Antigravity
+                    ? ProviderCapacityMode.Manual
+                    : ProviderCapacityMode.Automatic,
+                provider.Code is ProviderCode.Codex or ProviderCode.Antigravity
+                    ? ProviderCapabilities.SupportsConfiguration
+                    : ProviderCapabilities.SupportsCapacityRefresh | ProviderCapabilities.SupportsConfiguration,
+                (int)provider.Code)).ToArray();
 
     }
 

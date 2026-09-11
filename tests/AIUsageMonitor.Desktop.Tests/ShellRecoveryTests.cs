@@ -64,7 +64,7 @@ public sealed class ShellRecoveryTests
         Assert.Contains("AI PROJECT ORCHESTRATOR", shell);
         Assert.Contains("Add Existing Project", shell);
         Assert.Contains("Mission Control", shell);
-        Assert.Contains("AI capacity", shell);
+        Assert.Contains("AI Providers", shell);
         Assert.Contains("Projects", shell);
         Assert.DoesNotContain("Agents (planned)", shell, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Activity (planned)", shell, StringComparison.OrdinalIgnoreCase);

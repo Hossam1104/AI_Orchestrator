@@ -11,6 +11,7 @@ using AIUsageMonitor.Providers.Kimi;
 using AIUsageMonitor.Providers.Jira;
 using AIUsageMonitor.Providers.Remote;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace AIUsageMonitor.Providers;
 
@@ -21,9 +22,9 @@ public static class ProvidersServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddSingleton<IExecutableLocator, SystemExecutableLocator>();
-        services.AddSingleton<CopilotOptions>();
-        services.AddSingleton<AnthropicOptions>();
-        services.AddSingleton<KimiOptions>();
+        services.TryAddSingleton<CopilotOptions>();
+        services.TryAddSingleton<AnthropicOptions>();
+        services.TryAddSingleton<KimiOptions>();
         services.AddSingleton<IProviderRuntimeSettingsAccessor>(provider =>
             new ProviderRuntimeSettingsAccessor(
                 provider.GetRequiredService<CopilotOptions>(),
@@ -97,14 +98,18 @@ public static class ProvidersServiceCollectionExtensions
             provider.GetRequiredService<IHttpClientFactory>(),
             provider.GetRequiredService<AIUsageMonitor.Application.Security.ISecureCredentialStore>(),
             provider.GetRequiredService<IExecutableLocator>(),
-            provider.GetRequiredService<IProviderRuntimeSettingsAccessor>()));
+            provider.GetRequiredService<IProviderRuntimeSettingsAccessor>(),
+            provider.GetService<IProviderProcessRunner>()));
         services.AddSingleton<KimiProvider>(provider => new KimiProvider(
             provider.GetRequiredService<AIUsageMonitor.Application.Time.IClock>(),
             provider.GetRequiredService<IHttpClientFactory>(),
             provider.GetRequiredService<AIUsageMonitor.Application.Security.ISecureCredentialStore>(),
             provider.GetRequiredService<IExecutableLocator>(),
             provider.GetRequiredService<IProviderRuntimeSettingsAccessor>()));
-        services.AddSingleton<CodexProvider>();
+        services.AddSingleton<CodexProvider>(provider => new CodexProvider(
+            provider.GetRequiredService<AIUsageMonitor.Application.Time.IClock>(),
+            provider.GetRequiredService<IExecutableLocator>(),
+            provider.GetService<IProviderProcessRunner>()));
         services.AddSingleton<AntigravityProvider>();
         services.AddSingleton<JiraWorkItemTrackerAdapter>();
         services.AddSingleton<IWorkItemTrackerAdapter>(provider => provider.GetRequiredService<JiraWorkItemTrackerAdapter>());
@@ -124,11 +129,11 @@ public static class ProvidersServiceCollectionExtensions
 
         services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<CodexProvider>());
         services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<ClaudeProvider>());
-        services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<KimiProvider>());
-        services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<CopilotProvider>());
         services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<AntigravityProvider>());
 
-        services.AddSingleton<IProviderRegistry, ProviderRegistry>();
+        services.AddSingleton<IProviderRegistry>(provider => new ProviderRegistry(
+            provider.GetServices<IAiUsageProvider>(),
+            provider.GetService<IProviderDefinitionRepository>()));
         services.AddSingleton<IProviderDiscoveryService, ProviderDiscoveryService>();
         return services;
     }

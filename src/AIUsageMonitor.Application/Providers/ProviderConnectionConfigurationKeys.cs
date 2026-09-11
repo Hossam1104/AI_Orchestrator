@@ -6,6 +6,8 @@ namespace AIUsageMonitor.Application.Providers;
 /// </summary>
 public static class ProviderConnectionConfigurationKeys
 {
+    public const string AuthenticationMode = "provider.authenticationMode";
+    public const string CapacityMode = "provider.capacityMode";
     public const string CopilotScope = "copilot.scope";
     public const string CopilotUsername = "copilot.username";
     public const string CopilotOrganization = "copilot.organization";

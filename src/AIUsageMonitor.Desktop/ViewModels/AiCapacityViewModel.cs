@@ -7,13 +7,19 @@ namespace AIUsageMonitor.Desktop.ViewModels;
 
 public sealed class AiCapacityViewModel : ObservableObject
 {
+    private readonly IProviderRegistry? _registry;
     private readonly IProviderConnectionService? _connectionService;
     private readonly IExecutableLocator? _executableLocator;
     private readonly bool _isDegraded;
     private readonly SemaphoreSlim _refreshGate = new(1, 1);
-    private string _refreshStateText = "Ready to refresh";
+    private readonly SemaphoreSlim _sessionGate = new(1, 1);
+    private Func<ProviderCapacityCardViewModel, Task>? _editorLauncher;
+    private Func<Task>? _addProviderLauncher;
+    private Func<ProviderCapacityCardViewModel, Task>? _removeProviderLauncher;
+    private string _refreshStateText = "Ready";
     private DateTimeOffset? _lastRefresh;
     private bool _isRefreshing;
+    private bool _isDetectingSessions;
 
     public AiCapacityViewModel()
         : this(new SystemExecutableLocator())
@@ -24,33 +30,39 @@ public sealed class AiCapacityViewModel : ObservableObject
     {
         _executableLocator = executableLocator ?? throw new ArgumentNullException(nameof(executableLocator));
         _isDegraded = true;
-        Cards = new ObservableCollection<ProviderCapacityCardViewModel>(CreateDegradedCards());
-        RefreshAllCommand = new AsyncCommand(() => RefreshAllAsync(), () => !_isDegraded && !IsRefreshing && Cards.Count > 0);
+        Cards = new ObservableCollection<ProviderCapacityCardViewModel>(
+            CreateDefaultDefinitions().Select(definition => new ProviderCapacityCardViewModel(definition)));
+        CreateCommands();
     }
 
     public AiCapacityViewModel(
         IProviderRegistry registry,
         IProviderConnectionService connectionService)
     {
-        ArgumentNullException.ThrowIfNull(registry);
+        _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _connectionService = connectionService ?? throw new ArgumentNullException(nameof(connectionService));
         Cards = new ObservableCollection<ProviderCapacityCardViewModel>(
-            registry.GetAll().OrderBy(provider => provider.Code)
-                .Select(provider => new ProviderCapacityCardViewModel(
-                    provider.Code,
-                    DisplayNameFor(provider.Code),
-                    provider,
-                    connectionService)));
-        RefreshAllCommand = new AsyncCommand(() => RefreshAllAsync(), () => !IsRefreshing && Cards.Count > 0);
+            registry.GetDefinitions().Select(CreateCard));
+        CreateCommands();
     }
 
     public ObservableCollection<ProviderCapacityCardViewModel> Cards { get; }
 
     internal IProviderConnectionService? ConnectionService => _connectionService;
 
+    internal IProviderRegistry? Registry => _registry;
+
     public bool IsDegraded => _isDegraded;
 
-    public AsyncCommand RefreshAllCommand { get; }
+    public AsyncCommand DetectSessionsCommand { get; private set; } = null!;
+
+    public AsyncCommand RefreshCapacityCommand { get; private set; } = null!;
+
+    // Compatibility alias for the former page-level action. It now refreshes only registered
+    // typed capacity adapters and never claims that manual providers were refreshed.
+    public AsyncCommand RefreshAllCommand => RefreshCapacityCommand;
+
+    public AsyncCommand AddProviderCommand { get; private set; } = null!;
 
     public string RefreshStateText
     {
@@ -71,8 +83,8 @@ public sealed class AiCapacityViewModel : ObservableObject
     }
 
     public string LastRefreshText => LastRefresh is { } value
-        ? $"Last refresh: {value.ToLocalTime():MMM d, h:mm tt}"
-        : "Last refresh: not yet";
+        ? $"Last capacity refresh: {value.ToLocalTime():MMM d, h:mm tt}"
+        : "Capacity not refreshed";
 
     public bool IsRefreshing
     {
@@ -81,49 +93,47 @@ public sealed class AiCapacityViewModel : ObservableObject
         {
             if (SetProperty(ref _isRefreshing, value))
             {
-                RefreshAllCommand.NotifyCanExecuteChanged();
+                DetectSessionsCommand.NotifyCanExecuteChanged();
+                RefreshCapacityCommand.NotifyCanExecuteChanged();
+                AddProviderCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool IsDetectingSessions
+    {
+        get => _isDetectingSessions;
+        private set
+        {
+            if (SetProperty(ref _isDetectingSessions, value))
+            {
+                DetectSessionsCommand.NotifyCanExecuteChanged();
+                RefreshCapacityCommand.NotifyCanExecuteChanged();
             }
         }
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        if (_connectionService is null)
+        if (_connectionService is null || _registry is null)
         {
             return;
         }
 
         try
         {
+            await _registry.InitializeAsync(cancellationToken).ConfigureAwait(true);
+            SyncDefinitions();
             _ = await _connectionService.LoadAllAsync(cancellationToken).ConfigureAwait(true);
             foreach (var card in Cards)
             {
-                var connection = await _connectionService.GetAsync(card.Code, cancellationToken).ConfigureAwait(true);
+                var connection = card.BuiltInCode is { } code
+                    ? await _connectionService.GetAsync(code, cancellationToken).ConfigureAwait(true)
+                    : await _connectionService.GetAsync(card.ProviderId, cancellationToken).ConfigureAwait(true);
                 card.SetConnection(connection);
             }
 
-            await Task.WhenAll(Cards.Select(async card =>
-            {
-                var actual = card;
-                var providerAdapter = GetProvider(actual);
-                if (providerAdapter is not null)
-                {
-                    try
-                    {
-                        actual.ApplyDetection(await providerAdapter.DetectAsync(cancellationToken).ConfigureAwait(true));
-                    }
-                    catch
-                    {
-                        actual.ApplyResult(ProviderRefreshResult.Failed(
-                            actual.Code,
-                            "detection_failed",
-                            "Provider detection failed.",
-                            DateTimeOffset.UtcNow));
-                    }
-                }
-
-                actual.MarkInitialized();
-            })).ConfigureAwait(true);
+            await DetectSessionsAsync(cancellationToken).ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -131,7 +141,7 @@ public sealed class AiCapacityViewModel : ObservableObject
         }
         catch
         {
-            RefreshStateText = "Some saved connection state was unavailable; showing safe defaults.";
+            RefreshStateText = "Some saved provider state was unavailable; showing safe defaults.";
         }
     }
 
@@ -145,18 +155,19 @@ public sealed class AiCapacityViewModel : ObservableObject
         cancellationToken.ThrowIfCancellationRequested();
         foreach (var card in Cards)
         {
-            var executableName = ExecutableNameFor(card.Code);
+            var executableName = ExecutableNameFor(card.BuiltInCode);
             var detected = executableName is not null && _executableLocator!.Find(executableName) is not null;
-            var detail = detected
-                ? $"Official {executableName} CLI detected locally; configured capacity requires persistence."
-                : card.Code is ProviderCode.Codex or ProviderCode.Antigravity
-                    ? "No documented machine-readable capacity surface detected; local persistence is unavailable."
-                    : "Local persistence is unavailable; configured provider state cannot be reconstructed.";
+            var message = detected
+                ? $"Local {card.DisplayName} tool detected — authentication not machine-verifiable."
+                : card.BuiltInCode == ProviderCode.Antigravity
+                    ? "External/manual provider state; capacity is unavailable."
+                    : "Local tool was not detected.";
 
             card.ApplyDetection(new ProviderDetectionResult(
-                card.Code,
+                card.BuiltInCode ?? ProviderCode.Codex,
                 detected,
-                detail,
+                ProviderAuthenticationState.Unknown,
+                message,
                 DateTimeOffset.UtcNow));
             card.MarkInitialized();
         }
@@ -166,44 +177,99 @@ public sealed class AiCapacityViewModel : ObservableObject
 
     public void SetEditorLauncher(Func<ProviderCapacityCardViewModel, Task> launcher)
     {
-        ArgumentNullException.ThrowIfNull(launcher);
+        _editorLauncher = launcher ?? throw new ArgumentNullException(nameof(launcher));
         foreach (var card in Cards)
         {
-            if (card.CanEditConnection)
-            {
-                var command = new AsyncCommand(() => launcher(card), () => !card.IsRefreshing);
-                card.SetEditorCommand(command);
-            }
+            AttachEditor(card);
         }
     }
 
-    public async Task RefreshAllAsync(CancellationToken cancellationToken = default)
+    public void SetAddProviderLauncher(Func<Task> launcher) =>
+        _addProviderLauncher = launcher ?? throw new ArgumentNullException(nameof(launcher));
+
+    public void SetRemoveProviderLauncher(Func<ProviderCapacityCardViewModel, Task> launcher)
     {
-        if (_isDegraded)
+        _removeProviderLauncher = launcher ?? throw new ArgumentNullException(nameof(launcher));
+        foreach (var card in Cards)
         {
-            RefreshStateText = "Refresh unavailable while local persistence is degraded.";
+            AttachRemove(card);
+        }
+    }
+
+    public async Task DetectSessionsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isDegraded || !await _sessionGate.WaitAsync(0, cancellationToken).ConfigureAwait(true))
+        {
             return;
         }
 
-        if (!await _refreshGate.WaitAsync(0, cancellationToken).ConfigureAwait(true))
+        IsDetectingSessions = true;
+        RefreshStateText = "Detecting supported local sessions…";
+        try
+        {
+            var detectable = Cards.Where(static card => card.CanCheckSession).ToArray();
+            await Task.WhenAll(detectable.Select(async card =>
+            {
+                var provider = card.Provider;
+                if (provider is null)
+                {
+                    return;
+                }
+
+                try
+                {
+                    card.ApplyDetection(await provider.DetectAsync(cancellationToken).ConfigureAwait(true));
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch
+                {
+                    card.ApplyDetection(new ProviderDetectionResult(
+                        card.BuiltInCode!.Value,
+                        true,
+                        ProviderAuthenticationState.Unknown,
+                        "Unable to verify session.",
+                        DateTimeOffset.UtcNow));
+                }
+            })).ConfigureAwait(true);
+            RefreshStateText = detectable.Length == 0
+                ? "No registered local-session detectors are available."
+                : "Session detection complete; authentication and capacity remain separate.";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            RefreshStateText = "Session detection cancelled.";
+        }
+        finally
+        {
+            IsDetectingSessions = false;
+            _sessionGate.Release();
+        }
+    }
+
+    public async Task RefreshCapacityAsync(CancellationToken cancellationToken = default)
+    {
+        if (_isDegraded || !await _refreshGate.WaitAsync(0, cancellationToken).ConfigureAwait(true))
         {
             return;
         }
 
         IsRefreshing = true;
-        RefreshStateText = "Refreshing all providers…";
+        RefreshStateText = "Refreshing supported capacity…";
         try
         {
-            var refreshableCards = Cards.Where(static card => card.CanRefresh).ToArray();
-            await Task.WhenAll(refreshableCards.Select(card => card.RefreshAsync(cancellationToken))).ConfigureAwait(true);
+            var refreshable = Cards.Where(static card => card.CanRefresh).ToArray();
+            await Task.WhenAll(refreshable.Select(card => card.RefreshAsync(cancellationToken))).ConfigureAwait(true);
             LastRefresh = DateTimeOffset.UtcNow;
-            RefreshStateText = refreshableCards.Length == 0
+            RefreshStateText = refreshable.Length == 0
                 ? "No automatic capacity refresh is available; manual providers were left unchanged."
-                : "Refresh complete; each supported provider is shown independently.";
+                : "Supported capacity refresh complete.";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            RefreshStateText = "Refresh cancelled.";
+            RefreshStateText = "Capacity refresh cancelled.";
         }
         finally
         {
@@ -212,26 +278,177 @@ public sealed class AiCapacityViewModel : ObservableObject
         }
     }
 
-    private static IAiUsageProvider? GetProvider(ProviderCapacityCardViewModel card) => card.Provider;
+    public Task AddProviderAsync() => _addProviderLauncher?.Invoke() ?? Task.CompletedTask;
 
-    private static IEnumerable<ProviderCapacityCardViewModel> CreateDegradedCards() =>
-        Enum.GetValues<ProviderCode>().OrderBy(code => code)
-            .Select(code => new ProviderCapacityCardViewModel(code, DisplayNameFor(code)));
+    // Compatibility alias for callers of the former fixed-provider page API.
+    public Task RefreshAllAsync(CancellationToken cancellationToken = default) =>
+        RefreshCapacityAsync(cancellationToken);
 
-    private static string? ExecutableNameFor(ProviderCode code) => code switch
+    public async Task RemoveCustomProviderAsync(ProviderCapacityCardViewModel card)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        if (!card.IsCustom || _registry is null)
+        {
+            return;
+        }
+
+        await _registry.RemoveCustomAsync(card.ProviderId).ConfigureAwait(true);
+        Cards.Remove(card);
+    }
+
+    internal void ReplaceCustomCard(ProviderDefinition definition)
+    {
+        var existing = Cards.FirstOrDefault(card => card.ProviderId == definition.Id);
+        if (existing is not null)
+        {
+            var index = Cards.IndexOf(existing);
+            Cards[index] = CreateCard(definition);
+            AttachEditor(Cards[index]);
+            AttachRemove(Cards[index]);
+            return;
+        }
+
+        Cards.Add(CreateCard(definition));
+        SyncCardOrder();
+        AttachEditor(Cards.Single(card => card.ProviderId == definition.Id));
+        AttachRemove(Cards.Single(card => card.ProviderId == definition.Id));
+    }
+
+    private ProviderCapacityCardViewModel CreateCard(ProviderDefinition definition)
+    {
+        var provider = definition.BuiltInCode is { } code ? _registry?.Find(code) : null;
+        return new ProviderCapacityCardViewModel(definition, provider, _connectionService);
+    }
+
+    private void SyncDefinitions()
+    {
+        if (_registry is null)
+        {
+            return;
+        }
+
+        var definitions = _registry.GetDefinitions();
+        var definitionIds = definitions.Select(definition => definition.Id).ToHashSet();
+        foreach (var card in Cards.Where(card => !definitionIds.Contains(card.ProviderId)).ToArray())
+        {
+            Cards.Remove(card);
+        }
+
+        foreach (var definition in definitions)
+        {
+            var existing = Cards.FirstOrDefault(card => card.ProviderId == definition.Id);
+            if (existing is null)
+            {
+                Cards.Add(CreateCard(definition));
+                existing = Cards[^1];
+            }
+
+            AttachEditor(existing);
+            AttachRemove(existing);
+        }
+
+        SyncCardOrder();
+    }
+
+    private void SyncCardOrder()
+    {
+        var ordered = Cards
+            .OrderBy(card => card.Kind == ProviderKind.Custom ? 1 : 0)
+            .ThenBy(card => card.Definition.SortOrder)
+            .ToArray();
+        for (var index = 0; index < ordered.Length; index++)
+        {
+            if (Cards[index] != ordered[index])
+            {
+                Cards.Move(Cards.IndexOf(ordered[index]), index);
+            }
+        }
+    }
+
+    private void AttachEditor(ProviderCapacityCardViewModel card)
+    {
+        if (_editorLauncher is not null && card.CanConfigure)
+        {
+            card.SetEditorCommand(new AsyncCommand(
+                () => _editorLauncher(card),
+                () => !card.IsRefreshing));
+        }
+    }
+
+    private void AttachRemove(ProviderCapacityCardViewModel card)
+    {
+        if (_removeProviderLauncher is not null && card.CanRemove)
+        {
+            card.SetRemoveCommand(new AsyncCommand(
+                () => _removeProviderLauncher(card),
+                () => !card.IsRefreshing));
+        }
+    }
+
+    private void CreateCommands()
+    {
+        DetectSessionsCommand = new AsyncCommand(() => DetectSessionsAsync(), () =>
+            !_isDegraded && !IsRefreshing && !IsDetectingSessions);
+        RefreshCapacityCommand = new AsyncCommand(() => RefreshCapacityAsync(), () =>
+            !_isDegraded && !IsRefreshing && !IsDetectingSessions && Cards.Any(static card => card.CanRefresh));
+        AddProviderCommand = new AsyncCommand(() => AddProviderAsync(), () => !_isDegraded && !IsRefreshing);
+    }
+
+    private static IEnumerable<ProviderDefinition> CreateDefaultDefinitions()
+    {
+        var now = DateTimeOffset.UnixEpoch;
+        return
+        [
+            ProviderDefinition.BuiltIn(
+                Guid.Parse("1cf3c94e-9bcb-4fe4-9b2c-24a0b4f3a901"),
+                ProviderCode.Codex,
+                "Codex",
+                ProviderAuthenticationMode.LocalSession,
+                ProviderCapacityMode.Manual,
+                ProviderCapabilities.SupportsLocalSessionDetection |
+                    ProviderCapabilities.SupportsApiKey |
+                    ProviderCapabilities.SupportsConfiguration,
+                0,
+                now,
+                "Existing local Codex session first; API key is optional."),
+            ProviderDefinition.BuiltIn(
+                Guid.Parse("2d6f54fa-2c0e-4cc5-8bf6-6debf48b3f02"),
+                ProviderCode.Claude,
+                "Claude",
+                ProviderAuthenticationMode.LocalSession,
+                ProviderCapacityMode.Manual,
+                ProviderCapabilities.SupportsLocalSessionDetection |
+                    ProviderCapabilities.SupportsApiKey |
+                    ProviderCapabilities.SupportsCapacityRefresh |
+                    ProviderCapabilities.SupportsConfiguration,
+                1,
+                now,
+                "Existing local Claude session first; API key is optional."),
+            ProviderDefinition.BuiltIn(
+                Guid.Parse("5b544ceb-0ac4-43b6-8c9e-9e27c9f0c505"),
+                ProviderCode.Antigravity,
+                "Antigravity",
+                ProviderAuthenticationMode.ExternalManual,
+                ProviderCapacityMode.Manual,
+                ProviderCapabilities.None,
+                2,
+                now,
+                "External/manual provider state; capacity remains unavailable.")
+        ];
+    }
+
+    private static string? ExecutableNameFor(ProviderCode? code) => code switch
     {
         ProviderCode.Codex => "codex",
         ProviderCode.Claude => "claude",
-        ProviderCode.Kimi => "kimi",
         ProviderCode.Antigravity => "agy",
-        ProviderCode.Copilot => null,
         _ => null
     };
 
     public static string DisplayNameFor(ProviderCode code) => code switch
     {
         ProviderCode.Codex => "Codex",
-        ProviderCode.Claude => "Claude / Anthropic",
+        ProviderCode.Claude => "Claude",
         ProviderCode.Kimi => "Kimi",
         ProviderCode.Copilot => "GitHub Copilot",
         ProviderCode.Antigravity => "Antigravity",

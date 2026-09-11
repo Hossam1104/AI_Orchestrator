@@ -86,9 +86,9 @@ public sealed class VisualRenderAcceptanceTests
                 CreateShell(CreateCapacityViewModel()),
                 "light-ai-capacity",
                 evidenceDirectory,
-                "AI CAPACITY",
-                "GitHub Copilot",
-                "75% remaining");
+                "AI PROVIDERS",
+                "Claude",
+                "52% remaining");
             var lightProviderDialog = RenderDialog(
                 new ProviderConnectionEditorWindow(
                     new ProviderConnectionEditorViewModel(
@@ -97,8 +97,8 @@ public sealed class VisualRenderAcceptanceTests
                         new TestConnectionService())),
                 "light-provider-connection-dialog",
                 evidenceDirectory,
-                "CONNECTION SETTINGS",
-                "Connect GitHub Copilot",
+                "PROVIDER SETTINGS",
+                "GitHub Copilot settings",
                 "Credential");
             var lightFriendlyError = RenderShell(
                 CreateShell(CreateProjectsViewModel(failToLoad: true)),
@@ -127,9 +127,9 @@ public sealed class VisualRenderAcceptanceTests
                 CreateShell(CreateCapacityViewModel()),
                 "dark-ai-capacity",
                 evidenceDirectory,
-                "AI CAPACITY",
-                "GitHub Copilot",
-                "75% remaining");
+                "AI PROVIDERS",
+                "Claude",
+                "52% remaining");
             var darkAddExistingProject = RenderShell(
                 CreateShell(CreateProjectsViewModel(CreateProject(), showNewProject: true)),
                 "dark-add-existing-project-dialog",
@@ -266,13 +266,6 @@ public sealed class VisualRenderAcceptanceTests
     private static AiCapacityViewModel CreateCapacityViewModel()
     {
         var viewModel = new AiCapacityViewModel();
-        viewModel.Cards.Single(card => card.Code == ProviderCode.Copilot).ApplyResult(
-            ProviderRefreshResult.Success(
-                ProviderCode.Copilot,
-                account: null,
-                subscription: CreateSubscription("Copilot Pro"),
-                [CreateQuota(75)],
-                EvidenceTime));
         viewModel.Cards.Single(card => card.Code == ProviderCode.Claude).ApplyResult(
             ProviderRefreshResult.Partial(
                 ProviderCode.Claude,
@@ -283,10 +276,21 @@ public sealed class VisualRenderAcceptanceTests
                 EvidenceTime));
         viewModel.Cards.Single(card => card.Code == ProviderCode.Codex).ApplyResult(
             ProviderRefreshResult.Unsupported(ProviderCode.Codex, EvidenceTime));
-        viewModel.Cards.Single(card => card.Code == ProviderCode.Kimi).ApplyResult(
-            ProviderRefreshResult.AuthenticationRequired(ProviderCode.Kimi, EvidenceTime));
         viewModel.Cards.Single(card => card.Code == ProviderCode.Antigravity).ApplyResult(
             ProviderRefreshResult.Unsupported(ProviderCode.Antigravity, EvidenceTime));
+        var now = DateTimeOffset.UtcNow;
+        viewModel.Cards.Add(new ProviderCapacityCardViewModel(
+            ProviderDefinition.Custom(
+                Guid.Parse("92ef0f49-9c90-4db1-a6e8-9bf2d80e89b8"),
+                "Research API",
+                "Custom registration",
+                ProviderAuthenticationMode.ExternalManual,
+                ProviderCapacityMode.Manual,
+                enabled: true,
+                sortOrder: 99,
+                now,
+                now,
+                "Manual registration; no automatic capacity adapter is installed.")));
         return viewModel;
     }
 

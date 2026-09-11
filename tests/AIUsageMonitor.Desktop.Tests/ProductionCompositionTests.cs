@@ -41,7 +41,7 @@ public sealed class ProductionCompositionTests : IDisposable
         var aiCapacity = provider.GetRequiredService<AiCapacityViewModel>();
 
         Assert.False(aiCapacity.IsDegraded);
-        Assert.Equal(5, aiCapacity.Cards.Count);
+        Assert.Equal(3, aiCapacity.Cards.Count);
     }
 
     [Fact]

@@ -4,28 +4,39 @@
 
 ## APO-70 owner-rejected UI remediation - latest state
 
-**Last Updated:** 11 September 2026 (APO-70 remediation candidate; owner visual acceptance pending)
+**Last Updated:** 11 September 2026 (APO-70 provider-authentication and dynamic-registry implementation; owner visual acceptance pending)
 
 REMEDIATION STATUS = IMPLEMENTED / PENDING OWNER VISUAL ACCEPTANCE
-REMEDIATION SCOPE = RMS support-hub parity, light-mode default, truthful capacity actions, existing-workspace registration
+REMEDIATION SCOPE = local-session-first Codex/Claude authentication, optional API-key fallback, dynamic provider registry, generic custom providers, explicit availability/authentication/capacity states
 V1 RELEASE = FROZEN / NOT AUTHORIZED
 BRANCH = `feature/APO-70-v1-desktop-product-recovery`
 PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
 PR STATE = OPEN / DRAFT / NOT MERGED
 
-This same-branch remediation replaces the rejected new-project framing with an Add Existing Project
-flow, a read-only workspace preview, canonical duplicate-root protection, bounded governance/project
-file discovery, truthful remote-provider labeling, and preserved local registry metadata. The shell
-keeps only Mission Control, Projects, and AI capacity in primary navigation; the application defaults
-to light mode while retaining the session theme toggle. Manual-only Codex and Antigravity cards no
-longer expose fake Refresh actions. No provider credentials, file contents, remote mutations, demo
-data, release, tag, or merge were added.
+This same-branch remediation keeps the existing recovery shell and replaces the rejected fixed
+provider-authentication surface with a registry-driven AI Providers page. The default catalog is
+Codex, Claude, and Antigravity; Kimi and GitHub Copilot remain supported only as legacy persisted
+data/compatibility adapters and are not default cards. Codex and Claude default to local-session
+authentication, with explicit optional API-key mode. Custom provider definitions support safe
+metadata, external/manual or API-key authentication, truthful manual/unavailable capacity, stable
+IDs, secure credential references, persistence, and registration-only removal. No provider
+credentials, file contents, remote mutations, demo data, release, tag, or merge were added.
 
 Validation evidence: Release build passed with 0 warnings / 0 errors; the full solution passed
-1,256 / 1,256 with 0 failures and 0 skips; the focused WPF visual render passed 1 / 1 and retained
-15 deterministic PNGs covering light/dark shell states, the empty project state, Add Existing Project,
-workspace preview, capacity, provider connection, friendly error, and combobox states. Computer Use
-remains unavailable (`apps: []`), so owner interactive visual acceptance is not claimed.
+1,273 / 1,273 with 0 failures and 0 skips; the focused WPF visual render passed 1 / 1 and retained
+15 deterministic PNGs, including light/dark AI Providers, custom manual registration, local-session
+and API-key editor states, and the existing recovery shell states. `win-x86`, `win-x64`, and
+`win-arm64` self-contained publish outputs passed `scripts/Validate-PublishOutput.ps1`. Computer
+Use returned no targetable apps (`apps: []`) and its trusted RPC was unavailable, so owner
+interactive visual acceptance is not claimed. The manual fallback x64 process is running from an
+isolated temp root with no credential entry.
+
+Read-only local tooling observation: Codex tooling was detected and its supported CLI status command
+reported an authenticated session; Claude tooling was detected and `claude auth status --json`
+reported an authenticated session. APO does not copy either session credential. The application
+detector invokes only native executable paths through the bounded no-shell process host; if a local
+wrapper cannot be safely invoked, its UI remains `authentication not machine-verifiable` rather than
+claiming a false result.
 
 The exact final self-contained publish identity and remote CI run will be recorded in the executor
 handoff after the final branch head is committed and pushed. The branch remains unmerged and release

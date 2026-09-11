@@ -49,6 +49,8 @@ public sealed class ApplicationDataPaths
 
     public string ProvidersFile => Path.Combine(RootDirectory, "providers.json");
 
+    public string ProviderDefinitionsFile => Path.Combine(RootDirectory, "provider-definitions.json");
+
     public string ConnectionsFile => Path.Combine(RootDirectory, "connections.json");
 
     public string SubscriptionsFile => Path.Combine(RootDirectory, "subscriptions.json");

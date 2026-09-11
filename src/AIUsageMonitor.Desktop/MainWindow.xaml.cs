@@ -1,4 +1,5 @@
 using AIUsageMonitor.Desktop.ViewModels;
+using AIUsageMonitor.Domain.Providers;
 using System.Windows;
 using Forms = global::System.Windows.Forms;
 
@@ -36,6 +37,8 @@ public partial class MainWindow : Window
         if (_persistenceAvailable)
         {
             _viewModel.AiCapacity.SetEditorLauncher(OpenConnectionEditorAsync);
+            _viewModel.AiCapacity.SetAddProviderLauncher(OpenAddProviderAsync);
+            _viewModel.AiCapacity.SetRemoveProviderLauncher(RemoveProviderAsync);
             await _viewModel.InitializeAsync();
         }
         else
@@ -65,21 +68,90 @@ public partial class MainWindow : Window
 
     private async Task OpenConnectionEditorAsync(ProviderCapacityCardViewModel card)
     {
-        if (!card.CanEditConnection || _viewModel.AiCapacity.ConnectionService is null)
+        if (!card.CanConfigure ||
+            _viewModel.AiCapacity.ConnectionService is not { } service)
         {
             return;
         }
 
-        var connection = await _viewModel.AiCapacity.ConnectionService.GetAsync(card.Code);
+        var connection = card.BuiltInCode is { } code
+            ? await service.GetAsync(code)
+            : await service.GetAsync(card.ProviderId);
         var editor = new ProviderConnectionEditorWindow(
-            new ProviderConnectionEditorViewModel(card.Code, connection, _viewModel.AiCapacity.ConnectionService))
+            new ProviderConnectionEditorViewModel(
+                card.Definition,
+                connection,
+                service,
+                _viewModel.AiCapacity.Registry))
         {
             Owner = this
         };
 
         if (editor.ShowDialog() == true)
         {
-            card.SetConnection(await _viewModel.AiCapacity.ConnectionService.GetAsync(card.Code));
+            if (card.IsCustom &&
+                _viewModel.AiCapacity.Registry?.FindDefinition(card.ProviderId) is { } updatedDefinition)
+            {
+                _viewModel.AiCapacity.ReplaceCustomCard(updatedDefinition);
+                card = _viewModel.AiCapacity.Cards.Single(candidate => candidate.ProviderId == updatedDefinition.Id);
+            }
+
+            card.SetConnection(card.BuiltInCode is { } builtInCode
+                ? await service.GetAsync(builtInCode)
+                : await service.GetAsync(card.ProviderId));
+        }
+    }
+
+    private async Task OpenAddProviderAsync()
+    {
+        if (_viewModel.AiCapacity.ConnectionService is not { } service ||
+            _viewModel.AiCapacity.Registry is not { } registry)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var definition = ProviderDefinition.Custom(
+            Guid.NewGuid(),
+            "New provider",
+            displayLabel: null,
+            ProviderAuthenticationMode.ExternalManual,
+            ProviderCapacityMode.Manual,
+            enabled: true,
+            sortOrder: 0,
+            now,
+            now,
+            "Custom registration; automatic capacity requires a future typed adapter.");
+        var editor = new ProviderConnectionEditorWindow(
+            new ProviderConnectionEditorViewModel(definition, null, service, registry))
+        {
+            Owner = this
+        };
+
+        if (editor.ShowDialog() == true)
+        {
+            _viewModel.AiCapacity.ReplaceCustomCard(editor.DataContext is ProviderConnectionEditorViewModel saved
+                ? saved.Definition
+                : definition);
+        }
+    }
+
+    private async Task RemoveProviderAsync(ProviderCapacityCardViewModel card)
+    {
+        if (!card.IsCustom)
+        {
+            return;
+        }
+
+        var answer = System.Windows.MessageBox.Show(
+            this,
+            $"Remove the {card.DisplayName} provider registration? Stored credentials are not deleted by this action.",
+            "Remove AI provider",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (answer == MessageBoxResult.Yes)
+        {
+            await _viewModel.AiCapacity.RemoveCustomProviderAsync(card);
         }
     }
 }

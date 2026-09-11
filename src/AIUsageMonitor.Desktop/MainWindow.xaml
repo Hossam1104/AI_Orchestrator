@@ -257,18 +257,33 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="AI CAPACITY" Style="{StaticResource EyebrowTextStyle}" />
-                            <TextBlock Text="Provider connections, usage and remaining capacity" Margin="0,8,0,0" Style="{StaticResource DisplayTitleStyle}" FontSize="27" TextWrapping="Wrap" />
-                            <TextBlock Text="Five approved provider surfaces, with unknown values kept explicit." Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock Text="AI PROVIDERS" Style="{StaticResource EyebrowTextStyle}" />
+                            <TextBlock Text="Authentication and remaining capacity" Margin="0,8,0,0" Style="{StaticResource DisplayTitleStyle}" FontSize="27" TextWrapping="Wrap" />
+                            <TextBlock Text="Local sessions, optional API keys, and manual provider state stay visibly separate." Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                             <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding RefreshStateText}" HorizontalAlignment="Right" Style="{StaticResource CaptionTextStyle}" />
                                 <TextBlock Text="{Binding LastRefreshText}" HorizontalAlignment="Right" Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" />
                             </StackPanel>
-                            <Button Content="Refresh all" Command="{Binding RefreshAllCommand}" AutomationProperties.Name="Refresh all AI providers" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Content="Detect sessions" Command="{Binding DetectSessionsCommand}" AutomationProperties.Name="Detect local AI sessions" Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button Content="Refresh capacity" Command="{Binding RefreshCapacityCommand}" AutomationProperties.Name="Refresh supported AI provider capacity" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
                         </StackPanel>
                     </Grid>
+
+                    <Border Margin="0,20,0,0" Padding="14" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="PROVIDER REGISTRY" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="Add a manual registration for a service that has no typed adapter yet." Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="+ Add AI provider" Command="{Binding AddProviderCommand}" AutomationProperties.Name="Add AI provider" Style="{StaticResource GhostButtonStyle}" />
+                        </Grid>
+                    </Border>
 
                     <ItemsControl Margin="0,22,0,0" ItemsSource="{Binding Cards}">
                         <ItemsControl.ItemsPanel>
@@ -278,7 +293,7 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="0,0,16,16" Style="{StaticResource CardStyle}" MinHeight="240">
+                                <Border Margin="0,0,16,16" Style="{StaticResource CardStyle}" MinHeight="300">
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
@@ -293,7 +308,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="{Binding DisplayName}" Style="{StaticResource SectionHeadingStyle}" />
-                                                <TextBlock Text="{Binding Code}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" />
+                                                <TextBlock Text="{Binding Kind}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" />
                                             </StackPanel>
                                             <Border Grid.Column="1" Style="{StaticResource StatusChipStyle}" Padding="9,5">
                                                 <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource BrandTextBrush}" FontWeight="SemiBold" />
@@ -302,6 +317,25 @@
                                         <TextBlock Grid.Row="1" Text="{Binding StatusDetail}" Margin="0,13,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
 
                                         <StackPanel Grid.Row="2" Margin="0,14,0,14">
+                                            <Border Padding="10" Background="{StaticResource BrandNavyBlueBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="1" CornerRadius="9">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="AVAILABILITY" Style="{StaticResource EyebrowTextStyle}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding AvailabilityText}" HorizontalAlignment="Right" Style="{StaticResource CaptionTextStyle}" />
+                                                    <TextBlock Grid.Row="1" Text="AUTHENTICATION" Margin="0,8,16,0" Style="{StaticResource EyebrowTextStyle}" />
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding AuthenticationText}" HorizontalAlignment="Right" Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
+                                                    <TextBlock Grid.Row="2" Text="CAPACITY" Margin="0,8,16,0" Style="{StaticResource EyebrowTextStyle}" />
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CapacityText}" HorizontalAlignment="Right" Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" />
+                                                </Grid>
+                                            </Border>
                                             <StackPanel Visibility="{Binding AccountDisplayName, Converter={StaticResource NullToVisibilityConverter}}">
                                                 <TextBlock Text="ACCOUNT" Style="{StaticResource EyebrowTextStyle}" />
                                                 <TextBlock Text="{Binding AccountDisplayName}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" />
@@ -337,9 +371,10 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                                            <TextBlock Text="MANUAL" Style="{StaticResource EyebrowTextStyle}" Foreground="{DynamicResource TextMutedBrush}" Visibility="{Binding IsManualOnly, Converter={StaticResource BoolToVisibilityConverter}}" VerticalAlignment="Center" AutomationProperties.Name="Manual provider; automatic refresh unavailable" />
-                                            <Button Content="Refresh" Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh provider" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding CanRefresh, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                            <Button Content="Connect / edit" Command="{Binding EditCommand}" AutomationProperties.Name="Connect or edit provider" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Visibility="{Binding CanEditConnection, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            <Button Content="Check session" Command="{Binding SessionCommand}" AutomationProperties.Name="Check local provider session" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding CanCheckSession, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            <Button Content="Refresh capacity" Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh provider capacity" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding CanRefresh, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            <Button Content="Settings" Command="{Binding EditCommand}" AutomationProperties.Name="Open provider settings" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Visibility="{Binding CanConfigure, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            <Button Content="Remove" Command="{Binding RemoveCommand}" AutomationProperties.Name="Remove custom provider" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibilityConverter}}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -1063,11 +1098,11 @@
                                 <TextBlock Grid.Column="1" Text="Projects" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
-                        <Button Tag="{Binding IsAiCapacitySelected}" Command="{Binding ShowAiCapacityCommand}" AutomationProperties.Name="AI capacity" Style="{StaticResource WorkspaceNavButtonStyle}">
+                        <Button Tag="{Binding IsAiCapacitySelected}" Command="{Binding ShowAiCapacityCommand}" AutomationProperties.Name="AI Providers" Style="{StaticResource WorkspaceNavButtonStyle}">
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <TextBlock Text="▰" FontSize="16" Foreground="{StaticResource BrandCyanBrush}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="AI capacity" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="AI Providers" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
                     </StackPanel>

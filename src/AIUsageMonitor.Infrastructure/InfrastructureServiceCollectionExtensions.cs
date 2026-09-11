@@ -58,6 +58,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddSingleton<IUsageSnapshotRepository, JsonUsageSnapshotRepository>();
         services.AddSingleton<IProviderRepository, JsonProviderRepository>();
+        services.AddSingleton<IProviderDefinitionRepository, JsonProviderDefinitionRepository>();
         services.AddSingleton<IProviderConnectionRepository, JsonProviderConnectionRepository>();
         services.AddSingleton<IProviderConnectionService, ProviderConnectionService>();
         services.AddSingleton<ISubscriptionService, JsonSubscriptionService>();
@@ -105,6 +106,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IExecutionBudgetTimeoutProvider, ExecutionBudgetTimeoutProvider>();
         services.AddSingleton<IBoundedExecutionService, BoundedExecutionService>();
         services.AddSingleton<IBoundedProcessHost, BoundedProcessHost>();
+        services.AddSingleton<IProviderProcessRunner, BoundedProviderProcessRunner>();
         services.AddSingleton<IManagedWorkspacePathProvider, ManagedWorkspacePathProvider>();
         services.AddSingleton<IWorkspaceRepository, GitWorkspaceRepository>();
         services.AddSingleton<IWorkspacePreparedWorkspaceVerifier>(service =>
