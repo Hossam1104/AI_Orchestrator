@@ -43,7 +43,7 @@ auto-merge = NONE.
 
 ### APO-70 handoff evidence
 
-IMPLEMENTATION COMMIT = pending APO-70 acceptance commit
+IMPLEMENTATION COMMIT = `cd142d8` (`test(APO-70): add visual acceptance coverage`)
 PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
 PR STATE = OPEN / DRAFT / NOT MERGED
 CI RUN = pending final acceptance head
