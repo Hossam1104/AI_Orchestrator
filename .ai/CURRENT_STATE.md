@@ -4,7 +4,7 @@
 
 ## APO-70 owner-rejected UI remediation - latest state
 
-**Last Updated:** 11 September 2026 (APO-70 provider-authentication and dynamic-registry implementation; owner visual acceptance pending)
+**Last Updated:** 11 September 2026 (APO-70 provider-authentication and dynamic-registry implementation; exact-head CI passed; owner visual acceptance pending)
 
 REMEDIATION STATUS = IMPLEMENTED / PENDING OWNER VISUAL ACCEPTANCE
 REMEDIATION SCOPE = local-session-first Codex/Claude authentication, optional API-key fallback, dynamic provider registry, generic custom providers, explicit availability/authentication/capacity states
@@ -26,10 +26,14 @@ Validation evidence: Release build passed with 0 warnings / 0 errors; the full s
 1,273 / 1,273 with 0 failures and 0 skips; the focused WPF visual render passed 1 / 1 and retained
 15 deterministic PNGs, including light/dark AI Providers, custom manual registration, local-session
 and API-key editor states, and the existing recovery shell states. `win-x86`, `win-x64`, and
-`win-arm64` self-contained publish outputs passed `scripts/Validate-PublishOutput.ps1`. Computer
+`win-arm64` self-contained publish outputs passed `scripts/Validate-PublishOutput.ps1`. Exact-head
+remote CI run `34641371944` passed its canonical test job and all three publish jobs for commit
+`b87d4bcfcd052e9552c357ef4f0c2cf379fb21cf`. The final local x64 executable is
+`C:\Users\Win11\AppData\Local\Temp\apo70-publish-final-1c818b1ec8f14c049837d2eb6e845491\win-x64\AIUsageMonitor.Desktop.exe`
+with SHA-256 `8B2AE035910C6A21AA3DB6D201445069BE89B5AEBE793459EB2CE127911DED35`. Computer
 Use returned no targetable apps (`apps: []`) and its trusted RPC was unavailable, so owner
 interactive visual acceptance is not claimed. The manual fallback x64 process is running from an
-isolated temp root with no credential entry.
+isolated temp root with no credential entry (PID `45068`, title `AI Orchestrator`, responding).
 
 Read-only local tooling observation: Codex tooling was detected and its supported CLI status command
 reported an authenticated session; Claude tooling was detected and `claude auth status --json`
@@ -38,9 +42,7 @@ detector invokes only native executable paths through the bounded no-shell proce
 wrapper cannot be safely invoked, its UI remains `authentication not machine-verifiable` rather than
 claiming a false result.
 
-The exact final self-contained publish identity and remote CI run will be recorded in the executor
-handoff after the final branch head is committed and pushed. The branch remains unmerged and release
-frozen pending Sol review and the owner's visual response.
+The branch remains unmerged and release frozen pending Sol review and the owner's visual response.
 
 ## APO-70 V1 desktop product recovery — latest state
 
