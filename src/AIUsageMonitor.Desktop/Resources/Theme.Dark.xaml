@@ -45,4 +45,112 @@
     <Color x:Key="ShadowColor">#08111B</Color>
     <Color x:Key="ScrollBarTrackColor">#0B1621</Color>
     <sys:String x:Key="ThemeVariant">Dark</sys:String>
+
+    <!-- Override the semantic brushes at the same resource level as this palette.
+         The shared light theme keeps its brushes in nested dictionaries, and
+         WPF does not reliably re-resolve those nested DynamicResource bindings
+         when this overlay is added at runtime. Keeping the dark brush contract
+         here makes both newly-created and already-visible views switch together. -->
+    <SolidColorBrush x:Key="CanvasBrush" Color="{StaticResource CanvasColor}" />
+    <SolidColorBrush x:Key="ShellBrush" Color="{StaticResource ShellColor}" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{StaticResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="SurfaceMutedBrush" Color="{StaticResource SurfaceMutedColor}" />
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="{StaticResource SurfaceHoverColor}" />
+    <SolidColorBrush x:Key="SurfaceSelectedBrush" Color="{StaticResource SurfaceSelectedColor}" />
+    <SolidColorBrush x:Key="SurfaceDisabledBrush" Color="{StaticResource SurfaceDisabledColor}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="HeroBrush" Color="{StaticResource HeroColor}" />
+    <SolidColorBrush x:Key="HeroBorderBrush" Color="{StaticResource HeroBorderColor}" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}" />
+    <SolidColorBrush x:Key="AccentSecondaryBrush" Color="{StaticResource AccentSecondaryColor}" />
+    <SolidColorBrush x:Key="AccentVioletBrush" Color="{StaticResource AccentVioletColor}" />
+    <SolidColorBrush x:Key="AccentBlueBrush" Color="{StaticResource AccentBlueColor}" />
+    <SolidColorBrush x:Key="AccentTurquoiseBrush" Color="{StaticResource AccentTurquoiseColor}" />
+    <SolidColorBrush x:Key="AccentCyanBrush" Color="{StaticResource AccentCyanColor}" />
+    <SolidColorBrush x:Key="PrimaryCyanBrush" Color="{StaticResource PrimaryCyanColor}" />
+    <SolidColorBrush x:Key="OnAccentBrush" Color="{StaticResource OnAccentColor}" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}" />
+    <SolidColorBrush x:Key="ErrorHoverBrush" Color="{StaticResource ErrorHoverColor}" />
+    <SolidColorBrush x:Key="ErrorPressedBrush" Color="{StaticResource ErrorPressedColor}" />
+    <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}" />
+    <SolidColorBrush x:Key="StatusNeutralBrush" Color="{StaticResource StatusNeutralColor}" />
+    <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="{StaticResource SuccessSurfaceColor}" />
+    <SolidColorBrush x:Key="WarningSurfaceBrush" Color="{StaticResource WarningSurfaceColor}" />
+    <SolidColorBrush x:Key="ErrorSurfaceBrush" Color="{StaticResource ErrorSurfaceColor}" />
+    <SolidColorBrush x:Key="InfoSurfaceBrush" Color="{StaticResource InfoSurfaceColor}" />
+    <SolidColorBrush x:Key="FocusRingBrush" Color="{StaticResource FocusRingColor}" />
+    <SolidColorBrush x:Key="ShadowBrush" Color="{StaticResource ShadowColor}" />
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="{StaticResource ScrollBarTrackColor}" />
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="{StaticResource TextMutedColor}" />
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="{StaticResource AccentBlueColor}" />
+
+    <SolidColorBrush x:Key="BrandDeepNavyBrush" Color="{StaticResource ShellColor}" />
+    <SolidColorBrush x:Key="BrandNavyBlueBrush" Color="{StaticResource SurfaceMutedColor}" />
+    <SolidColorBrush x:Key="BrandSurfaceRaisedBrush" Color="{StaticResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="BrandCyanBrush" Color="{StaticResource AccentColor}" />
+    <SolidColorBrush x:Key="BrandTealBrush" Color="{StaticResource AccentTurquoiseColor}" />
+    <SolidColorBrush x:Key="BrandVioletBrush" Color="{StaticResource AccentVioletColor}" />
+    <SolidColorBrush x:Key="BrandPurpleBrush" Color="{StaticResource AccentSecondaryColor}" />
+    <SolidColorBrush x:Key="BrandSoftGlowBrush" Color="{StaticResource FocusRingColor}" />
+    <SolidColorBrush x:Key="BrandFocusBrush" Color="{StaticResource FocusRingColor}" />
+    <SolidColorBrush x:Key="BrandSteelGrayBrush" Color="{StaticResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="BrandTextBrush" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="BrandMutedTextBrush" Color="{StaticResource TextMutedColor}" />
+    <SolidColorBrush x:Key="BrandBorderBrush" Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="BrandSuccessBrush" Color="{StaticResource SuccessColor}" />
+    <SolidColorBrush x:Key="BrandWarningBrush" Color="{StaticResource WarningColor}" />
+    <SolidColorBrush x:Key="BrandErrorBrush" Color="{StaticResource ErrorColor}" />
+
+    <LinearGradientBrush x:Key="PrimaryGradientBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="{StaticResource AccentVioletColor}" />
+        <GradientStop Offset="0.48" Color="{StaticResource AccentBlueColor}" />
+        <GradientStop Offset="1" Color="{StaticResource PrimaryCyanColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="NavigationSelectedGradientBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="{StaticResource SurfaceSelectedColor}" />
+        <GradientStop Offset="1" Color="{StaticResource HeroColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="BrandGradientBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="{StaticResource AccentVioletColor}" />
+        <GradientStop Offset="0.48" Color="{StaticResource AccentBlueColor}" />
+        <GradientStop Offset="1" Color="{StaticResource PrimaryCyanColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="BrandAccentGradientBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="{StaticResource AccentVioletColor}" />
+        <GradientStop Offset="0.48" Color="{StaticResource AccentBlueColor}" />
+        <GradientStop Offset="1" Color="{StaticResource PrimaryCyanColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="BrandSurfaceGradientBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0" Color="{StaticResource SurfaceRaisedColor}" />
+        <GradientStop Offset="1" Color="{StaticResource SurfaceColor}" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="{StaticResource CanvasColor}" />
+    <SolidColorBrush x:Key="NavigationBackgroundBrush" Color="{StaticResource ShellColor}" />
+    <SolidColorBrush x:Key="SurfaceSecondaryBrush" Color="{StaticResource SurfaceMutedColor}" />
+    <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{StaticResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderColor}" />
+    <SolidColorBrush x:Key="TextPrimary" Color="{StaticResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondary" Color="{StaticResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextMuted" Color="{StaticResource TextMutedColor}" />
+    <SolidColorBrush x:Key="DisabledSurfaceBrush" Color="{StaticResource SurfaceDisabledColor}" />
+    <SolidColorBrush x:Key="DisabledTextBrush" Color="{StaticResource TextDisabledColor}" />
+    <SolidColorBrush x:Key="AppBackground" Color="{StaticResource CanvasColor}" />
+    <SolidColorBrush x:Key="ShellSurfaceBrush" Color="{StaticResource ShellColor}" />
+    <SolidColorBrush x:Key="ContentSurfaceBrush" Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="ContentSurfaceAltBrush" Color="{StaticResource SurfaceMutedColor}" />
+    <SolidColorBrush x:Key="ElevatedSurfaceBrush" Color="{StaticResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="CardSurfaceBrush" Color="{StaticResource SurfaceColor}" />
+    <SolidColorBrush x:Key="CardSurfaceAccentBrush" Color="{StaticResource HeroColor}" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="{StaticResource HeroBorderColor}" />
+    <SolidColorBrush x:Key="InvertedTextBrush" Color="{StaticResource OnAccentColor}" />
 </ResourceDictionary>

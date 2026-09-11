@@ -5,7 +5,7 @@
     xmlns:vm="clr-namespace:AIUsageMonitor.Desktop.ViewModels"
     xmlns:converters="clr-namespace:AIUsageMonitor.Desktop.Converters"
     Title="AI Orchestrator"
-    Icon="/Assets/apo-icon.ico"
+    Icon="/AIUsageMonitor.Desktop;component/assets/apo-icon.ico"
     Width="1180"
     Height="760"
     MinWidth="860"
@@ -21,6 +21,13 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+
+        <!-- Shared by the Projects registry and New Project onboarding templates. -->
+        <Style x:Key="ProjectInputComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource BrandComboBoxStyle}" />
+        <Style x:Key="ProjectFieldLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource EyebrowTextStyle}">
+            <Setter Property="Foreground" Value="{StaticResource BrandMutedTextBrush}" />
+            <Setter Property="Margin" Value="0,0,0,5" />
+        </Style>
 
         <Style x:Key="WorkspaceNavButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Background" Value="Transparent" />
@@ -317,7 +324,7 @@
                                                                     <TextBlock Grid.Column="1" Text="{Binding RemainingText}" Foreground="{StaticResource BrandTealBrush}" FontWeight="SemiBold" />
                                                                 </Grid>
                                                                 <TextBlock Text="{Binding UsageText}" Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" />
-                                                                <ProgressBar Value="{Binding ProgressValue}" Minimum="0" Maximum="100" Height="5" Margin="0,8,0,0" Visibility="{Binding HasProgress, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                                <ProgressBar Value="{Binding ProgressValue, Mode=OneWay}" Minimum="0" Maximum="100" Height="5" Margin="0,8,0,0" Visibility="{Binding HasProgress, Converter={StaticResource BoolToVisibilityConverter}}" />
                                                                 <TextBlock Text="{Binding ResetText}" Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" />
                                                                 <TextBlock Text="{Binding SourceText}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
                                                             </StackPanel>

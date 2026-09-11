@@ -4,7 +4,7 @@
 
 ## APO-70 V1 desktop product recovery — latest state
 
-**Last Updated:** 11 September 2026 (bounded recovery implementation; release remains frozen)
+**Last Updated:** 11 September 2026 (APO-70 acceptance completion; release remains frozen)
 
 PREVIOUS_VISUAL_CHECKPOINT = OWNER REJECTED
 V1 RELEASE = FROZEN / NOT AUTHORIZED
@@ -24,23 +24,30 @@ native local-path selection, and hiding Post-V1 Agents/Activity entries from pri
 Existing Mission Control, Projects, AI Capacity, persistence, provider, and credential-reference
 services remain the source of runtime data; no demo data or secrets were added.
 
-Validation so far: Release build passed with 0 warnings and 0 errors; full solution tests passed
-1,252 / 1,252 with 0 failures and 0 skips; `win-x86`, `win-x64`, and `win-arm64` self-contained
-publish outputs passed `scripts/Validate-PublishOutput.ps1`. The x64 publish was also launched in
-a unique `%TEMP%` profile and rendered a responsive `AI Orchestrator` light shell; the process was
-stopped afterward. Computer Use exposed no controllable Windows app surface in this session, so
-interactive Projects/AI Capacity/theme walkthrough and owner approval remain unclaimed.
+Acceptance completion added a test-only deterministic WPF render suite with 14 retained temporary
+PNG renders and structural assertions for light/dark Mission Control, Projects, New Project,
+AI Capacity, provider connection, friendly error, and open-combobox states. The dark overlay now
+owns its semantic brushes and gradients at runtime; the prior nested-resource defect left dark
+renders visually light. A focused render run passed 1/1, and the full solution passed 1,253 / 1,253
+with 0 failures and 0 skips. `win-x86`, `win-x64`, and `win-arm64` self-contained publish outputs
+also passed `scripts/Validate-PublishOutput.ps1`.
+
+The x64 published executable launched from an isolated `%TEMP%` state root and responded with an
+`AI Orchestrator` window before cleanup. A disposable local Git workspace was created outside both
+repositories with two commits for the acceptance boundary. Native Computer Use remained unavailable
+(`apps: []`; no controllable Windows app surface), so the interactive Projects persistence,
+AI Capacity/provider, theme-toggle, and owner visual walkthrough are not claimed.
 
 Jira writes = NONE. Product remote mutation, release/tag/deploy, merge, force push, bypass, and
 auto-merge = NONE.
 
 ### APO-70 handoff evidence
 
-IMPLEMENTATION COMMIT = `dec9c65e3b9d2a325b15367060ff6a57afdd2655`
+IMPLEMENTATION COMMIT = pending APO-70 acceptance commit
 PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
 PR STATE = OPEN / DRAFT / NOT MERGED
-CI RUN = `34596676587`
-CI REQUIRED CHECKS = PASS (Restore, build, and test; Publish win-x86; Publish win-x64; Publish win-arm64)
+CI RUN = pending final acceptance head
+CI REQUIRED CHECKS = pending final acceptance head
 OWNER VISUAL CHECKPOINT = NOT PRESENTED / NOT APPROVED
 COMPUTER USE SURFACE = UNAVAILABLE (no controllable Windows app surface exposed)
 LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED
