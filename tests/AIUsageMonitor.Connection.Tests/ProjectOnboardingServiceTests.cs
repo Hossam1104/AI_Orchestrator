@@ -81,13 +81,41 @@ public sealed class ProjectOnboardingServiceTests
         });
 
         Assert.True(result.Succeeded);
-        Assert.Equal("Git", result.Project!.RepositoryProvider);
+        Assert.Equal("GitHub", result.Project!.RepositoryProvider);
         Assert.Equal("feature/onboarding", result.Project.DefaultBranch);
         Assert.Equal("https://github.com/example/app.git", result.Project.RepositoryUrl);
         Assert.Equal("VerifiedLocal", result.Project.RepositoryMetadata["integrationState"]);
         Assert.Equal(TrackerReferenceState.ConfiguredUnverified, result.Context!.Tracker.State);
         Assert.Equal("Jira", result.Context.Tracker.Type);
         Assert.Equal("APO-39", result.Context.Tracker.Reference);
+    }
+
+    [Fact]
+    public async Task CanonicalDuplicateLocalRootIsRejectedBeforeAnyRegistrationSideEffects()
+    {
+        var fixture = CreateFixture();
+        var existing = new Project(
+            Guid.NewGuid(),
+            "Existing workspace",
+            "C:\\Workspace",
+            null,
+            ProjectStatus.Active,
+            new DateTimeOffset(2026, 8, 26, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 8, 26, 0, 0, 0, TimeSpan.Zero));
+        fixture.Projects.Items.Add(existing);
+
+        var result = await fixture.Service.CompleteAsync(new ProjectOnboardingRequest
+        {
+            Name = "Duplicate workspace",
+            LocalPath = "C:\\workspace\\",
+            SkipRepository = true
+        });
+
+        Assert.Equal(ProjectOnboardingCompletionStatus.AlreadyRegistered, result.Status);
+        Assert.False(result.Succeeded);
+        Assert.Same(existing, result.ExistingProject);
+        Assert.Single(fixture.Projects.Items);
+        Assert.Empty(fixture.Agents.Items);
     }
 
     [Fact]

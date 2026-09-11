@@ -2,6 +2,35 @@
 
 **Last Updated:** 10 September 2026 (APO-33 controlled integration and final closeout)
 
+## APO-70 owner-rejected UI remediation - latest state
+
+**Last Updated:** 11 September 2026 (APO-70 remediation candidate; owner visual acceptance pending)
+
+REMEDIATION STATUS = IMPLEMENTED / PENDING OWNER VISUAL ACCEPTANCE
+REMEDIATION SCOPE = RMS support-hub parity, light-mode default, truthful capacity actions, existing-workspace registration
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+
+This same-branch remediation replaces the rejected new-project framing with an Add Existing Project
+flow, a read-only workspace preview, canonical duplicate-root protection, bounded governance/project
+file discovery, truthful remote-provider labeling, and preserved local registry metadata. The shell
+keeps only Mission Control, Projects, and AI capacity in primary navigation; the application defaults
+to light mode while retaining the session theme toggle. Manual-only Codex and Antigravity cards no
+longer expose fake Refresh actions. No provider credentials, file contents, remote mutations, demo
+data, release, tag, or merge were added.
+
+Validation evidence: Release build passed with 0 warnings / 0 errors; the full solution passed
+1,256 / 1,256 with 0 failures and 0 skips; the focused WPF visual render passed 1 / 1 and retained
+15 deterministic PNGs covering light/dark shell states, the empty project state, Add Existing Project,
+workspace preview, capacity, provider connection, friendly error, and combobox states. Computer Use
+remains unavailable (`apps: []`), so owner interactive visual acceptance is not claimed.
+
+The exact final self-contained publish identity and remote CI run will be recorded in the executor
+handoff after the final branch head is committed and pushed. The branch remains unmerged and release
+frozen pending Sol review and the owner's visual response.
+
 ## APO-70 V1 desktop product recovery — latest state
 
 **Last Updated:** 11 September 2026 (APO-70 acceptance completion; release remains frozen)

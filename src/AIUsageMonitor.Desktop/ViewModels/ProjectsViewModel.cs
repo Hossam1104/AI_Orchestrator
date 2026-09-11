@@ -81,6 +81,7 @@ public sealed class ProjectsViewModel : ObservableObject
             () => RefreshAsync(),
             () => _registryService is not null && !IsSaving && !IsLoading && !IsEditing && !IsVerifying);
         NewProjectCommand = new RelayCommand(NewProject, CanInteractWithRegistry);
+        AddExistingProjectCommand = NewProjectCommand;
         EditProjectCommand = new RelayCommand(EditSelectedProject, CanEditSelectedProject);
         SaveProjectCommand = new AsyncCommand(SaveAsync, CanSaveProject);
         CancelEditCommand = new RelayCommand(CancelEdit, () => IsEditing && !IsSaving);
@@ -101,6 +102,8 @@ public sealed class ProjectsViewModel : ObservableObject
     public AsyncCommand RefreshCommand { get; }
 
     public RelayCommand NewProjectCommand { get; }
+
+    public RelayCommand AddExistingProjectCommand { get; }
 
     public RelayCommand EditProjectCommand { get; }
 
@@ -692,6 +695,10 @@ public sealed class ProjectsViewModel : ObservableObject
         }
 
         ReplaceProject(result.Project);
+        if (result.Status == ProjectOnboardingCompletionStatus.AlreadyRegistered)
+        {
+            ErrorMessage = "Project already registered. The existing entry is selected.";
+        }
         if (result.IsPartialProjectCreated)
         {
             ErrorMessage = result.ErrorMessage ??

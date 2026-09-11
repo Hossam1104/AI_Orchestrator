@@ -57,6 +57,21 @@ public sealed class CapacityViewModelTests
     }
 
     [Fact]
+    public void ManualOnlyProviders_DoNotExposeRefreshActions()
+    {
+        var codex = new ProviderCapacityCardViewModel(ProviderCode.Codex, "Codex", new FakeProvider(ProviderCode.Codex));
+        var copilot = new ProviderCapacityCardViewModel(ProviderCode.Copilot, "GitHub Copilot", new FakeProvider(ProviderCode.Copilot));
+
+        codex.ApplyResult(ProviderRefreshResult.Unsupported(ProviderCode.Codex, DateTimeOffset.UtcNow));
+        copilot.ApplyResult(ProviderRefreshResult.AuthenticationRequired(ProviderCode.Copilot, DateTimeOffset.UtcNow));
+
+        Assert.True(codex.IsManualOnly);
+        Assert.False(codex.CanRefresh);
+        Assert.False(codex.RefreshCommand.CanExecute(null));
+        Assert.True(copilot.CanRefresh);
+    }
+
+    [Fact]
     public async Task DegradedShell_ExposesWarningStateAndDoesNotClaimPersistenceReady()
     {
         var viewModel = new MainWindowViewModel(new AiCapacityViewModel(new FakeExecutableLocator()));
@@ -328,8 +343,9 @@ public sealed class CapacityViewModelTests
 
         Assert.Equal("Error", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Kimi).StatusText);
         Assert.All(viewModel.Cards, card => Assert.False(card.IsRefreshing));
-        Assert.All(providers, provider => Assert.Equal(1, provider.RefreshCount));
-        Assert.All(providers, provider => Assert.Equal(1, provider.MaxConcurrentRefreshes));
+        Assert.All(providers.Where(provider => provider.Code is not (ProviderCode.Codex or ProviderCode.Antigravity)), provider => Assert.Equal(1, provider.RefreshCount));
+        Assert.All(providers.Where(provider => provider.Code is ProviderCode.Codex or ProviderCode.Antigravity), provider => Assert.Equal(0, provider.RefreshCount));
+        Assert.All(providers.Where(provider => provider.Code is not (ProviderCode.Codex or ProviderCode.Antigravity)), provider => Assert.Equal(1, provider.MaxConcurrentRefreshes));
     }
 
     [Fact]

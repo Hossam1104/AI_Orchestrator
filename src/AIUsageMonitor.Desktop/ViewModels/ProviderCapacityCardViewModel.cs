@@ -30,7 +30,7 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
         DisplayName = displayName;
         _provider = provider;
         _connectionService = connectionService;
-        RefreshCommand = new AsyncCommand(() => RefreshAsync(), () => _provider is not null && !IsRefreshing);
+        RefreshCommand = new AsyncCommand(() => RefreshAsync(), () => CanRefresh);
         _editCommand = new AsyncCommand(() => EditAsync(), () => CanEditConnection && !IsRefreshing);
     }
 
@@ -47,7 +47,14 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
     public string StatusText
     {
         get => _statusText;
-        private set => SetProperty(ref _statusText, value);
+        private set
+        {
+            if (SetProperty(ref _statusText, value))
+            {
+                OnPropertyChanged(nameof(IsManualOnly));
+                OnPropertyChanged(nameof(CanRefresh));
+            }
+        }
     }
 
     public string StatusDetail
@@ -93,9 +100,17 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
             {
                 (RefreshCommand as AsyncCommand)?.NotifyCanExecuteChanged();
                 (EditCommand as AsyncCommand)?.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(CanRefresh));
             }
         }
     }
+
+    public bool IsManualOnly =>
+        Code is ProviderCode.Codex or ProviderCode.Antigravity ||
+        StatusText.Contains("Manual", StringComparison.OrdinalIgnoreCase) ||
+        StatusText.Equals("Unsupported", StringComparison.OrdinalIgnoreCase);
+
+    public bool CanRefresh => _provider is not null && !IsManualOnly && !IsRefreshing;
 
     public bool CanEditConnection => _connectionService is not null &&
         Code is ProviderCode.Copilot or ProviderCode.Claude or ProviderCode.Kimi;
@@ -165,7 +180,8 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
 
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
-        if (_provider is null || IsRefreshing)
+        var provider = _provider;
+        if (!CanRefresh || provider is null)
         {
             return;
         }
@@ -175,7 +191,7 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
         StatusDetail = "Refreshing this provider…";
         try
         {
-            var result = await _provider.RefreshAsync(cancellationToken).ConfigureAwait(true);
+            var result = await provider.RefreshAsync(cancellationToken).ConfigureAwait(true);
             ApplyResult(result);
             if (_connectionService is not null)
             {

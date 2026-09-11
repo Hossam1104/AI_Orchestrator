@@ -41,6 +41,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ShowMissionControlCommand = new RelayCommand(ShowMissionControl);
         ShowProjectsCommand = new RelayCommand(ShowProjects);
         ShowAiCapacityCommand = new RelayCommand(ShowAiCapacity);
+        AddExistingProjectCommand = new RelayCommand(OpenAddExistingProject);
         ToggleThemeCommand = new RelayCommand(ToggleTheme);
     }
 
@@ -79,6 +80,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public ICommand ShowProjectsCommand { get; }
 
     public ICommand ShowAiCapacityCommand { get; }
+
+    public ICommand AddExistingProjectCommand { get; }
 
     public ICommand ToggleThemeCommand { get; }
 
@@ -146,6 +149,12 @@ public sealed class MainWindowViewModel : ObservableObject
         IsMissionControlSelected = false;
         IsProjectsSelected = false;
         IsAiCapacitySelected = true;
+    }
+
+    private void OpenAddExistingProject()
+    {
+        ShowProjects();
+        Projects.AddExistingProjectCommand.Execute(null);
     }
 
     private void ToggleTheme()

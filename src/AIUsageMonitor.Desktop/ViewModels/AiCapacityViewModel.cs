@@ -194,9 +194,12 @@ public sealed class AiCapacityViewModel : ObservableObject
         RefreshStateText = "Refreshing all providers…";
         try
         {
-            await Task.WhenAll(Cards.Select(card => card.RefreshAsync(cancellationToken))).ConfigureAwait(true);
+            var refreshableCards = Cards.Where(static card => card.CanRefresh).ToArray();
+            await Task.WhenAll(refreshableCards.Select(card => card.RefreshAsync(cancellationToken))).ConfigureAwait(true);
             LastRefresh = DateTimeOffset.UtcNow;
-            RefreshStateText = "Refresh complete; each provider is shown independently.";
+            RefreshStateText = refreshableCards.Length == 0
+                ? "No automatic capacity refresh is available; manual providers were left unchanged."
+                : "Refresh complete; each supported provider is shown independently.";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

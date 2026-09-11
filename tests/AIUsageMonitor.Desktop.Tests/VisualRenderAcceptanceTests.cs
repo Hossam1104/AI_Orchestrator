@@ -37,6 +37,13 @@ public sealed class VisualRenderAcceptanceTests
         harness.Run(() =>
         {
             var evidenceDirectory = GetEvidenceDirectory();
+            if (Directory.Exists(evidenceDirectory))
+            {
+                foreach (var artifact in Directory.EnumerateFiles(evidenceDirectory, "*.png"))
+                {
+                    File.Delete(artifact);
+                }
+            }
             Directory.CreateDirectory(evidenceDirectory);
 
             ThemeManager.Apply(ThemeVariant.Light);
@@ -62,12 +69,19 @@ public sealed class VisualRenderAcceptanceTests
                 evidenceDirectory,
                 "APO Acceptance Workspace",
                 "PROJECT DETAILS");
-            var lightNewProject = RenderShell(
+            var lightAddExistingProject = RenderShell(
                 CreateShell(CreateProjectsViewModel(CreateProject(), showNewProject: true)),
-                "light-new-project-dialog",
+                "light-add-existing-project-dialog",
                 evidenceDirectory,
-                "PROJECT",
-                "Name the workspace");
+                "ADD EXISTING PROJECT",
+                "Choose the existing local folder");
+            var lightExistingProjectPreview = RenderShell(
+                CreateShell(CreateProjectsViewModel(CreateProject(), showNewProject: true, showPreview: true)),
+                "light-existing-project-preview",
+                evidenceDirectory,
+                "WORKSPACE PREVIEW",
+                "HEAD",
+                "Remote provider");
             var lightCapacity = RenderShell(
                 CreateShell(CreateCapacityViewModel()),
                 "light-ai-capacity",
@@ -116,12 +130,12 @@ public sealed class VisualRenderAcceptanceTests
                 "AI CAPACITY",
                 "GitHub Copilot",
                 "75% remaining");
-            var darkNewProject = RenderShell(
+            var darkAddExistingProject = RenderShell(
                 CreateShell(CreateProjectsViewModel(CreateProject(), showNewProject: true)),
-                "dark-new-project-dialog",
+                "dark-add-existing-project-dialog",
                 evidenceDirectory,
-                "PROJECT",
-                "Name the workspace");
+                "ADD EXISTING PROJECT",
+                "Choose the existing local folder");
             var darkFriendlyError = RenderShell(
                 CreateShell(CreateProjectsViewModel(failToLoad: true)),
                 "dark-friendly-error",
@@ -131,7 +145,7 @@ public sealed class VisualRenderAcceptanceTests
             AssertMateriallyDifferent(lightMissionControl, darkMissionControl);
             AssertMateriallyDifferent(lightProjectsPopulated, darkProjects);
             AssertMateriallyDifferent(lightCapacity, darkCapacity);
-            AssertMateriallyDifferent(lightNewProject, darkNewProject);
+            AssertMateriallyDifferent(lightAddExistingProject, darkAddExistingProject);
             AssertMateriallyDifferent(lightFriendlyError, darkFriendlyError);
 
             File.WriteAllLines(
@@ -145,7 +159,8 @@ public sealed class VisualRenderAcceptanceTests
                     lightMissionControl.Path,
                     lightProjectsEmpty.Path,
                     lightProjectsPopulated.Path,
-                    lightNewProject.Path,
+                    lightAddExistingProject.Path,
+                    lightExistingProjectPreview.Path,
                     lightCapacity.Path,
                     lightProviderDialog.Path,
                     lightFriendlyError.Path,
@@ -154,11 +169,11 @@ public sealed class VisualRenderAcceptanceTests
                     darkMissionControl.Path,
                     darkProjects.Path,
                     darkCapacity.Path,
-                    darkNewProject.Path,
+                    darkAddExistingProject.Path,
                     darkFriendlyError.Path
                 ]);
 
-            Assert.Equal(14, Directory.EnumerateFiles(evidenceDirectory, "*.png").Count());
+            Assert.Equal(15, Directory.EnumerateFiles(evidenceDirectory, "*.png").Count());
             Assert.True(File.Exists(Path.Combine(evidenceDirectory, "render-manifest.txt")));
         });
     }
@@ -221,7 +236,8 @@ public sealed class VisualRenderAcceptanceTests
     private static ProjectsViewModel CreateProjectsViewModel(
         Project? project = null,
         bool showNewProject = false,
-        bool failToLoad = false)
+        bool failToLoad = false,
+        bool showPreview = false)
     {
         var projects = project is null ? Array.Empty<Project>() : [project];
         var viewModel = new ProjectsViewModel(
@@ -234,6 +250,14 @@ public sealed class VisualRenderAcceptanceTests
         if (showNewProject)
         {
             viewModel.NewProjectCommand.Execute(null);
+            if (showPreview && viewModel.Onboarding is { } onboarding)
+            {
+                onboarding.Name = "APO Acceptance Workspace";
+                onboarding.LocalPath = "C:\\APO Acceptance Workspace";
+                onboarding.NextCommand.Execute(null);
+                onboarding.InspectRepositoryCommand.Execute(null);
+                onboarding.AcceptRepositoryCommand.Execute(null);
+            }
         }
 
         return viewModel;
@@ -665,7 +689,28 @@ public sealed class VisualRenderAcceptanceTests
     private sealed class TestOnboardingService : IProjectOnboardingService
     {
         public Task<LocalRepositoryInspection> InspectRepositoryAsync(string localPath, CancellationToken cancellationToken = default) =>
-            Task.FromException<LocalRepositoryInspection>(new NotSupportedException());
+            Task.FromResult(new LocalRepositoryInspection(
+                RepositoryVerificationStatus.AvailableClean,
+                localPath,
+                repositoryRoot: localPath,
+                localPathIsRepositoryRoot: true,
+                branchName: "main",
+                headSha: "abcdef1234567890",
+                headShortSha: "abcdef1",
+                isClean: true,
+                remotes: [new RepositoryRemote("origin", "https://github.com/example/workspace.git")],
+                workspace: new ProjectWorkspaceDiscovery(
+                    localPath,
+                    "APO Acceptance Workspace",
+                    exists: true,
+                    isReadable: true,
+                    governanceFiles: new Dictionary<string, WorkspaceFileState>
+                    {
+                        ["AGENTS.md"] = WorkspaceFileState.Present,
+                        ["CLAUDE.md"] = WorkspaceFileState.Missing
+                    },
+                    projectFiles: ["AIUsageMonitor.sln"],
+                    remoteProvider: "GitHub")));
 
         public Task<ProjectOnboardingResult> CompleteAsync(ProjectOnboardingRequest request, CancellationToken cancellationToken = default) =>
             Task.FromException<ProjectOnboardingResult>(new NotSupportedException());

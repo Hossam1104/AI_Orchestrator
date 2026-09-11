@@ -125,7 +125,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
     public string StepTitle => CurrentStep switch
     {
         ProjectOnboardingStep.Project => "Project",
-        ProjectOnboardingStep.Repository => "Repository",
+        ProjectOnboardingStep.Repository => "Preview",
         ProjectOnboardingStep.Tracker => "Tracker",
         ProjectOnboardingStep.Agents => "AI roles",
         _ => "Project"
@@ -196,6 +196,12 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
                 OnPropertyChanged(nameof(RepositoryRootText));
                 OnPropertyChanged(nameof(RepositoryBranchText));
                 OnPropertyChanged(nameof(RepositoryRemoteText));
+                OnPropertyChanged(nameof(RepositoryHeadText));
+                OnPropertyChanged(nameof(RemoteProviderText));
+                OnPropertyChanged(nameof(RemoteUrlText));
+                OnPropertyChanged(nameof(GovernanceFilesText));
+                OnPropertyChanged(nameof(ProjectFilesText));
+                OnPropertyChanged(nameof(WorkspaceReadinessText));
                 OnPropertyChanged(nameof(RepositoryCapturedAtText));
                 OnPropertyChanged(nameof(CanAcceptRepository));
                 NotifyCommands();
@@ -229,6 +235,34 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         : RepositoryInspection.Remotes.Count == 0
             ? "No configured local remotes"
             : "Detected from local Git configuration — connectivity not verified";
+
+    public string RepositoryHeadText => RepositoryInspection?.HeadShortSha
+        ?? (RepositoryInspection?.HeadSha is { Length: > 0 } head ? head[..Math.Min(7, head.Length)] : "Not available");
+
+    public string RemoteProviderText => RepositoryInspection?.Workspace?.RemoteProvider ??
+        (RepositoryInspection is null ? "Not inspected" : "No remote provider identified");
+
+    public string RemoteUrlText => RepositoryInspection?.Remotes.FirstOrDefault(remote =>
+        string.Equals(remote.Name, "origin", StringComparison.OrdinalIgnoreCase))?.SanitizedUrl
+        ?? "No origin remote";
+
+    public string GovernanceFilesText => RepositoryInspection?.Workspace is not { } workspace
+        ? "Not inspected"
+        : string.Join(", ", workspace.GovernanceFiles.Select(static item => $"{item.Key}: {item.Value}"));
+
+    public string ProjectFilesText => RepositoryInspection?.Workspace is not { } workspace
+        ? "Not inspected"
+        : workspace.ProjectFiles.Count == 0
+            ? "No solution/build files detected at the selected root"
+            : string.Join(", ", workspace.ProjectFiles);
+
+    public string WorkspaceReadinessText => RepositoryInspection?.Workspace is not { } workspace
+        ? "Select a folder and inspect it to build the preview."
+        : !workspace.Exists
+            ? "The selected folder no longer exists. Choose another workspace."
+            : !workspace.IsReadable
+                ? "The selected folder could not be read safely."
+                : "Read-only discovery complete. APO will persist only its local registry metadata.";
 
     public string RepositoryCapturedAtText => RepositoryInspection is null
         ? "Not inspected"
@@ -360,7 +394,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
                 ErrorMessage = "Local workspace path is required.";
                 return false;
             case ProjectOnboardingStep.Repository when RepositoryChoice == RepositoryOnboardingChoice.NotSelected:
-                ErrorMessage = "Accept the detected local metadata or choose to continue without repository integration.";
+                ErrorMessage = "Confirm the preview evidence or choose to continue without repository integration.";
                 return false;
             case ProjectOnboardingStep.Repository when RepositoryChoice == RepositoryOnboardingChoice.AcceptDetected && !CanAcceptRepository:
                 ErrorMessage = "A verified repository with a usable branch is required; otherwise choose skip.";
@@ -450,6 +484,20 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
 
             if (!result.Succeeded)
             {
+                if (result.Status == ProjectOnboardingCompletionStatus.AlreadyRegistered)
+                {
+                    _isCompletionTerminal = true;
+                    OnPropertyChanged(nameof(IsCompletionTerminal));
+                    ErrorMessage = result.ErrorMessage ?? "Project already registered.";
+                    NotifyCommands();
+                    if (_onFinished is not null)
+                    {
+                        await _onFinished(result).ConfigureAwait(true);
+                    }
+
+                    return;
+                }
+
                 if (result.IsPartialProjectCreated && result.Project is not null)
                 {
                     _isCompletionTerminal = true;

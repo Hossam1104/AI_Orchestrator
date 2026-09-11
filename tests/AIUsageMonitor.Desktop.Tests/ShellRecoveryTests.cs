@@ -62,10 +62,20 @@ public sealed class ShellRecoveryTests
         Assert.Contains("StatusPillStyle", controls);
         Assert.Contains("AI Orchestrator", shell);
         Assert.Contains("AI PROJECT ORCHESTRATOR", shell);
+        Assert.Contains("Add Existing Project", shell);
+        Assert.Contains("Mission Control", shell);
+        Assert.Contains("AI capacity", shell);
+        Assert.Contains("Projects", shell);
+        Assert.DoesNotContain("Agents (planned)", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Activity (planned)", shell, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("CAPACITY READY", shell, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Text=\"SOON\"", shell, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("RMS+", shell, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("DBS", shell, StringComparison.OrdinalIgnoreCase);
+
+        var app = File.ReadAllText(Path.Combine(root, "src", "AIUsageMonitor.Desktop", "App.xaml.cs"));
+        Assert.Contains("ThemeManager.Apply(ThemeVariant.Light)", app);
+        Assert.Contains("ToggleThemeCommand", shell);
     }
 
     private static string FindRepositoryRoot()
