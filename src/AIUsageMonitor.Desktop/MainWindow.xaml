@@ -281,7 +281,7 @@
                                 <TextBlock Text="PROVIDER REGISTRY" Style="{StaticResource EyebrowTextStyle}" />
                                 <TextBlock Text="Add a manual registration for a service that has no typed adapter yet." Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
                             </StackPanel>
-                            <Button Grid.Column="1" Content="+ Add AI provider" Command="{Binding AddProviderCommand}" AutomationProperties.Name="Add AI provider" Style="{StaticResource GhostButtonStyle}" />
+                            <Button Grid.Column="1" Content="+ Add AI Provider" Command="{Binding AddProviderCommand}" AutomationProperties.Name="Add AI Provider" Style="{StaticResource GhostButtonStyle}" />
                         </Grid>
                     </Border>
 

@@ -59,7 +59,7 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
     public bool IsBuiltIn => !IsCustom;
 
     public string Title => IsCustom
-        ? string.IsNullOrWhiteSpace(_providerName) ? "Add AI provider" : $"Configure {_providerName}"
+        ? string.IsNullOrWhiteSpace(_providerName) ? "Add AI Provider" : $"Configure {_providerName}"
         : $"{_definition.DisplayName} settings";
 
     public string ChannelLabel => IsCustom
