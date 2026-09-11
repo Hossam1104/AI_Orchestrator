@@ -13,6 +13,7 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
     private readonly IAgentRegistryService _agentRegistry;
     private readonly IProjectContextReferenceRepository _contexts;
     private readonly IClock _clock;
+    private readonly IProjectFolderPreferenceService? _folderPreferences;
 
     public ProjectOnboardingService(
         IProjectRegistryService projects,
@@ -22,8 +23,10 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
         IAgentProjectOverrideRepository overrides,
         IAgentRegistryService agentRegistry,
         IProjectContextReferenceRepository contexts,
-        IClock clock)
+        IClock clock,
+        IProjectFolderPreferenceService? folderPreferences = null)
     {
+        _folderPreferences = folderPreferences;
         _projects = projects ?? throw new ArgumentNullException(nameof(projects));
         _inspector = inspector ?? throw new ArgumentNullException(nameof(inspector));
         _agents = agents ?? throw new ArgumentNullException(nameof(agents));
@@ -91,6 +94,10 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
                     cancellationToken)
                 .ConfigureAwait(false);
             await _contexts.UpsertAsync(context, cancellationToken).ConfigureAwait(false);
+
+            // Only a fully completed registration counts as a successful use of a folder. An
+            // already-registered, partial, or failed onboarding must not move the picker default.
+            await RecordSuccessfulFolderAsync(createdProject.LocalPath, cancellationToken).ConfigureAwait(false);
             return ProjectOnboardingResult.Success(createdProject, context);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -112,6 +119,26 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
             return createdProject is null
                 ? ProjectOnboardingResult.FailedBeforeProjectCreation(message)
                 : ProjectOnboardingResult.PartialProjectCreated(createdProject, message);
+        }
+    }
+
+    private async Task RecordSuccessfulFolderAsync(string localPath, CancellationToken cancellationToken)
+    {
+        if (_folderPreferences is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _folderPreferences
+                .RecordSuccessfulProjectFolderAsync(localPath, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // The project is registered and its context is written; a picker convenience
+            // preference must never downgrade that proven outcome to a partial result.
         }
     }
 

@@ -330,7 +330,105 @@ public sealed class ProjectOnboardingServiceTests
         Assert.Equal(ProjectContextResolutionState.Incomplete, result.State);
     }
 
-    private static Fixture CreateFixture(LocalRepositoryInspection? inspection = null)
+    [Fact]
+    public async Task SuccessfulRegistrationRecordsTheProjectFolderPreference()
+    {
+        var preferences = new RecordingFolderPreferences();
+        var fixture = CreateFixture(folderPreferences: preferences);
+
+        var result = await fixture.Service.CompleteAsync(new ProjectOnboardingRequest
+        {
+            Name = "Recorded project",
+            LocalPath = "C:\\workspace\\recorded",
+            SkipRepository = true,
+            SkipTracker = true
+        });
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["C:\\workspace\\recorded"], preferences.Recorded);
+    }
+
+    [Fact]
+    public async Task UnsuccessfulOnboardingNeverMovesTheProjectFolderPreference()
+    {
+        var preferences = new RecordingFolderPreferences();
+        var fixture = CreateFixture(folderPreferences: preferences);
+        fixture.Projects.Items.Add(new Project(
+            Guid.NewGuid(),
+            "Existing workspace",
+            "C:\\Workspace",
+            null,
+            ProjectStatus.Active,
+            new DateTimeOffset(2026, 8, 26, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 8, 26, 0, 0, 0, TimeSpan.Zero)));
+
+        var duplicate = await fixture.Service.CompleteAsync(new ProjectOnboardingRequest
+        {
+            Name = "Duplicate workspace",
+            LocalPath = "C:\\workspace\\",
+            SkipRepository = true
+        });
+        var invalid = await fixture.Service.CompleteAsync(new ProjectOnboardingRequest
+        {
+            Name = " ",
+            LocalPath = "C:\\workspace\\other",
+            SkipRepository = true
+        });
+
+        Assert.Equal(ProjectOnboardingCompletionStatus.AlreadyRegistered, duplicate.Status);
+        Assert.False(invalid.Succeeded);
+        Assert.Empty(preferences.Recorded);
+    }
+
+    [Fact]
+    public async Task FolderPreferenceFailureDoesNotDowngradeAProvenRegistration()
+    {
+        var preferences = new RecordingFolderPreferences
+        {
+            Failure = new IOException("simulated settings write failure")
+        };
+        var fixture = CreateFixture(folderPreferences: preferences);
+
+        var result = await fixture.Service.CompleteAsync(new ProjectOnboardingRequest
+        {
+            Name = "Resilient project",
+            LocalPath = "C:\\workspace\\resilient",
+            SkipRepository = true,
+            SkipTracker = true
+        });
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(ProjectOnboardingCompletionStatus.Succeeded, result.Status);
+        Assert.False(result.IsPartialProjectCreated);
+        Assert.Single(fixture.Projects.Items);
+    }
+
+    private sealed class RecordingFolderPreferences : IProjectFolderPreferenceService
+    {
+        public List<string> Recorded { get; } = [];
+
+        public Exception? Failure { get; init; }
+
+        public Task<string?> GetPreferredPickerRootAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task RecordSuccessfulProjectFolderAsync(
+            string projectLocalPath,
+            CancellationToken cancellationToken = default)
+        {
+            if (Failure is not null)
+            {
+                throw Failure;
+            }
+
+            Recorded.Add(projectLocalPath);
+            return Task.CompletedTask;
+        }
+    }
+
+    private static Fixture CreateFixture(
+        LocalRepositoryInspection? inspection = null,
+        IProjectFolderPreferenceService? folderPreferences = null)
     {
         var projects = new MemoryProjectRepository();
         var registry = new ProjectRegistryService(projects, new FixedClock());
@@ -350,7 +448,8 @@ public sealed class ProjectOnboardingServiceTests
             overrides,
             agentRegistry,
             context,
-            new FixedClock());
+            new FixedClock(),
+            folderPreferences);
         return new Fixture(service, projects, agents, overrides, catalog, inspector.Inspection, context, agentRegistry);
     }
 

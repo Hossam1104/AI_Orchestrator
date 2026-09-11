@@ -31,7 +31,8 @@ public static class DesktopServiceCollectionExtensions
             provider.GetRequiredService<IProjectRegistryService>(),
             provider.GetRequiredService<IProjectRepositoryStateService>(),
             provider.GetRequiredService<IProjectOnboardingService>(),
-            provider.GetRequiredService<AIUsageMonitor.Application.Agents.IDefaultAgentCatalog>()));
+            provider.GetRequiredService<AIUsageMonitor.Application.Agents.IDefaultAgentCatalog>(),
+            provider.GetRequiredService<IProjectFolderPreferenceService>()));
         services.AddSingleton<IMissionControlReadModelService, MissionControlReadModelService>();
         services.AddSingleton<MissionControlViewModel>(provider => new MissionControlViewModel(
             provider.GetRequiredService<IProjectRegistryService>(),

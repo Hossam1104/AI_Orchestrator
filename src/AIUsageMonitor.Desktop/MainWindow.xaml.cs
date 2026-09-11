@@ -49,7 +49,12 @@ public partial class MainWindow : Window
 
     private void OnThemeChanged(object? sender, EventArgs e) => _viewModel.RefreshThemeState();
 
-    private static string? PickLocalPath()
+    /// <summary>
+    /// Opens the folder picker at the preferred root when one was proven to exist, otherwise at
+    /// the normal Windows default. A preferred root only positions the dialog; the operator still
+    /// chooses the folder and nothing is registered or selected on their behalf.
+    /// </summary>
+    private static string? PickLocalPath(string? preferredRoot)
     {
         using var dialog = new Forms.FolderBrowserDialog
         {
@@ -57,6 +62,11 @@ public partial class MainWindow : Window
             ShowNewFolderButton = false,
             UseDescriptionForTitle = true
         };
+
+        if (!string.IsNullOrWhiteSpace(preferredRoot))
+        {
+            dialog.SelectedPath = preferredRoot;
+        }
 
         return dialog.ShowDialog() == Forms.DialogResult.OK
             ? dialog.SelectedPath

@@ -15,6 +15,7 @@ public sealed class ProjectsViewModel : ObservableObject
     private readonly IProjectRepositoryStateService? _repositoryStateService;
     private readonly IProjectOnboardingService? _onboardingService;
     private readonly IDefaultAgentCatalog? _defaultAgentCatalog;
+    private readonly IProjectFolderPreferenceService? _folderPreferences;
     private CancellationTokenSource? _repositoryVerificationCancellation;
     private long _repositoryVerificationGeneration;
     private Guid? _editingProjectId;
@@ -46,7 +47,8 @@ public sealed class ProjectsViewModel : ObservableObject
     private RepositoryStateSnapshot? _repositoryState;
     private bool _isVerifying;
     private ProjectOnboardingViewModel? _onboarding;
-    private Func<string?>? _pathPicker;
+    private Func<string?, string?>? _pathPicker;
+    private string? _preferredPickerRoot;
 
     public ProjectsViewModel()
         : this(null, null, null, null)
@@ -69,12 +71,14 @@ public sealed class ProjectsViewModel : ObservableObject
         IProjectRegistryService? registryService,
         IProjectRepositoryStateService? repositoryStateService,
         IProjectOnboardingService? onboardingService,
-        IDefaultAgentCatalog? defaultAgentCatalog)
+        IDefaultAgentCatalog? defaultAgentCatalog,
+        IProjectFolderPreferenceService? folderPreferences = null)
     {
         _registryService = registryService;
         _repositoryStateService = repositoryStateService;
         _onboardingService = onboardingService;
         _defaultAgentCatalog = defaultAgentCatalog;
+        _folderPreferences = folderPreferences;
         _isStorageAvailable = registryService is not null;
 
         RefreshCommand = new AsyncCommand(
@@ -304,10 +308,65 @@ public sealed class ProjectsViewModel : ObservableObject
         private set => _onboarding = value;
     }
 
-    public void SetPathPicker(Func<string?> pathPicker)
+    /// <summary>
+    /// The folder the picker should open at, or <see langword="null"/> when no preferred root is
+    /// proven to exist and the normal Windows folder-picker default applies. Offering a root never
+    /// registers or selects a project; the operator still chooses the folder.
+    /// </summary>
+    public string? PreferredPickerRoot => _preferredPickerRoot;
+
+    /// <summary>
+    /// Accepts the host folder picker. It receives the preferred initial root and returns the
+    /// folder the operator chose, or <see langword="null"/> when the picker was dismissed.
+    /// </summary>
+    public void SetPathPicker(Func<string?, string?> pathPicker)
     {
         _pathPicker = pathPicker ?? throw new ArgumentNullException(nameof(pathPicker));
-        Onboarding?.SetPathPicker(pathPicker);
+        if (CreateBoundPathPicker() is { } bound)
+        {
+            Onboarding?.SetPathPicker(bound);
+        }
+    }
+
+    /// <summary>
+    /// Binds the current preferred root to the host picker so the onboarding wizard keeps its
+    /// simple "ask the host for a folder" contract.
+    /// </summary>
+    private Func<string?>? CreateBoundPathPicker()
+    {
+        var picker = _pathPicker;
+        return picker is null ? null : () => picker(_preferredPickerRoot);
+    }
+
+    private async Task RefreshPreferredPickerRootAsync(CancellationToken cancellationToken)
+    {
+        if (_folderPreferences is null)
+        {
+            return;
+        }
+
+        string? resolved;
+        try
+        {
+            resolved = await _folderPreferences
+                .GetPreferredPickerRootAsync(cancellationToken)
+                .ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // No proven preferred root is a truthful outcome; the picker uses the Windows default.
+            resolved = null;
+        }
+
+        if (!string.Equals(_preferredPickerRoot, resolved, StringComparison.Ordinal))
+        {
+            _preferredPickerRoot = resolved;
+            OnPropertyChanged(nameof(PreferredPickerRoot));
+        }
     }
 
     public bool IsEditorVisible => IsEditing && !IsOnboardingVisible;
@@ -511,8 +570,11 @@ public sealed class ProjectsViewModel : ObservableObject
         set => SetProperty(ref _editorSafetyPolicyReference, value ?? string.Empty);
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken = default) =>
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        await RefreshPreferredPickerRootAsync(cancellationToken).ConfigureAwait(true);
         await RefreshAsync(cancellationToken).ConfigureAwait(true);
+    }
 
     public void SetPersistenceAvailability(bool persistenceAvailable)
     {
@@ -679,7 +741,7 @@ public sealed class ProjectsViewModel : ObservableObject
             _defaultAgentCatalog,
             FinishOnboardingAsync,
             CancelOnboarding,
-            _pathPicker);
+            CreateBoundPathPicker());
         ValidationMessage = null;
         ErrorMessage = null;
         OnPropertyChanged(nameof(IsOnboardingVisible));
@@ -708,7 +770,13 @@ public sealed class ProjectsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsOnboardingVisible));
         OnPropertyChanged(nameof(IsEditorVisible));
         OnWorkspaceStateChanged();
-        await Task.CompletedTask.ConfigureAwait(true);
+
+        if (result.Succeeded)
+        {
+            // The application service records the folder of a proven registration; re-read it so
+            // the next picker opens where the operator last worked.
+            await RefreshPreferredPickerRootAsync(CancellationToken.None).ConfigureAwait(true);
+        }
     }
 
     private void CancelOnboarding()

@@ -76,6 +76,11 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IDefaultAgentCatalog, DefaultAgentCatalog>();
         services.AddSingleton<IProjectContextReferenceRepository, JsonProjectContextReferenceRepository>();
         services.AddSingleton<IProjectContextResolver, ProjectContextResolver>();
+
+        // The folder-picker preference has a test/host seam for the directory probe and default
+        // root, so its constructor is selected explicitly rather than by DI convention.
+        services.AddSingleton<IProjectFolderPreferenceService>(service =>
+            new ProjectFolderPreferenceService(service.GetRequiredService<ISettingsService>()));
         services.AddSingleton<IProjectOnboardingService, ProjectOnboardingService>();
         services.AddSingleton<IPlanningExecutionContractRepository, JsonPlanningExecutionContractRepository>();
         services.AddSingleton<IPlanningExecutionContractService, PlanningExecutionContractService>();
