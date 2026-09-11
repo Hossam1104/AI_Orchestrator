@@ -46,6 +46,7 @@ public sealed class ProjectsViewModel : ObservableObject
     private RepositoryStateSnapshot? _repositoryState;
     private bool _isVerifying;
     private ProjectOnboardingViewModel? _onboarding;
+    private Func<string?>? _pathPicker;
 
     public ProjectsViewModel()
         : this(null, null, null, null)
@@ -298,6 +299,12 @@ public sealed class ProjectsViewModel : ObservableObject
     {
         get => _onboarding;
         private set => _onboarding = value;
+    }
+
+    public void SetPathPicker(Func<string?> pathPicker)
+    {
+        _pathPicker = pathPicker ?? throw new ArgumentNullException(nameof(pathPicker));
+        Onboarding?.SetPathPicker(pathPicker);
     }
 
     public bool IsEditorVisible => IsEditing && !IsOnboardingVisible;
@@ -668,7 +675,8 @@ public sealed class ProjectsViewModel : ObservableObject
             _onboardingService,
             _defaultAgentCatalog,
             FinishOnboardingAsync,
-            CancelOnboarding);
+            CancelOnboarding,
+            _pathPicker);
         ValidationMessage = null;
         ErrorMessage = null;
         OnPropertyChanged(nameof(IsOnboardingVisible));

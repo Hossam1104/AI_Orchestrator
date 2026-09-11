@@ -1,4 +1,5 @@
 using System.Windows.Input;
+using AIUsageMonitor.Desktop;
 
 namespace AIUsageMonitor.Desktop.ViewModels;
 
@@ -8,6 +9,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isMissionControlSelected;
     private bool _isProjectsSelected;
     private bool _isAiCapacitySelected;
+    private bool _persistenceAvailable;
 
     public MainWindowViewModel()
         : this(new MissionControlViewModel(), new AiCapacityViewModel(), new ProjectsViewModel())
@@ -39,6 +41,7 @@ public sealed class MainWindowViewModel : ObservableObject
         ShowMissionControlCommand = new RelayCommand(ShowMissionControl);
         ShowProjectsCommand = new RelayCommand(ShowProjects);
         ShowAiCapacityCommand = new RelayCommand(ShowAiCapacity);
+        ToggleThemeCommand = new RelayCommand(ToggleTheme);
     }
 
     public MissionControlViewModel MissionControl { get; }
@@ -77,6 +80,18 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ICommand ShowAiCapacityCommand { get; }
 
+    public ICommand ToggleThemeCommand { get; }
+
+    public bool IsDarkTheme => ThemeManager.CurrentTheme == ThemeVariant.Dark;
+
+    public string ThemeToggleText => IsDarkTheme ? "Light" : "Dark";
+
+    public string ThemeToggleIcon => IsDarkTheme ? "☼" : "◐";
+
+    public string ThemeToggleToolTip => IsDarkTheme ? "Switch to light theme" : "Switch to dark theme";
+
+    public string GlobalStatusText => _persistenceAvailable ? "LOCAL READY" : "SETUP REQUIRED";
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await Task.WhenAll(
@@ -95,8 +110,18 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public void SetPersistenceAvailability(bool persistenceAvailable)
     {
+        _persistenceAvailable = persistenceAvailable;
+        OnPropertyChanged(nameof(GlobalStatusText));
         MissionControl.SetPersistenceAvailability(persistenceAvailable);
         Projects.SetPersistenceAvailability(persistenceAvailable);
+    }
+
+    public void RefreshThemeState()
+    {
+        OnPropertyChanged(nameof(IsDarkTheme));
+        OnPropertyChanged(nameof(ThemeToggleText));
+        OnPropertyChanged(nameof(ThemeToggleIcon));
+        OnPropertyChanged(nameof(ThemeToggleToolTip));
     }
 
     private void ShowMissionControl()
@@ -121,5 +146,11 @@ public sealed class MainWindowViewModel : ObservableObject
         IsMissionControlSelected = false;
         IsProjectsSelected = false;
         IsAiCapacitySelected = true;
+    }
+
+    private void ToggleTheme()
+    {
+        ThemeManager.Toggle();
+        RefreshThemeState();
     }
 }

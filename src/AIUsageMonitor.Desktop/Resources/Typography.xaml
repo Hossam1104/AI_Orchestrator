@@ -10,7 +10,7 @@
         <Setter Property="FontFamily" Value="{StaticResource BrandBodyFontFamily}" />
         <Setter Property="FontSize" Value="11" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource BrandCyanBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandCyanBrush}" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
     </Style>
 
@@ -18,7 +18,7 @@
         <Setter Property="FontFamily" Value="{StaticResource BrandDisplayFontFamily}" />
         <Setter Property="FontSize" Value="32" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource BrandTextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
     </Style>
 
@@ -26,20 +26,20 @@
         <Setter Property="FontFamily" Value="{StaticResource BrandDisplayFontFamily}" />
         <Setter Property="FontSize" Value="16" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource BrandTextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
     </Style>
 
     <Style x:Key="BodyTextStyle" TargetType="{x:Type TextBlock}">
         <Setter Property="FontFamily" Value="{StaticResource BrandBodyFontFamily}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="LineHeight" Value="22" />
-        <Setter Property="Foreground" Value="{StaticResource BrandTextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
     </Style>
 
     <Style x:Key="CaptionTextStyle" TargetType="{x:Type TextBlock}">
         <Setter Property="FontFamily" Value="{StaticResource BrandBodyFontFamily}" />
         <Setter Property="FontSize" Value="12" />
-        <Setter Property="Foreground" Value="{StaticResource BrandMutedTextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandMutedTextBrush}" />
     </Style>
 
 </ResourceDictionary>

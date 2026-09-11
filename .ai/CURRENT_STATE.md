@@ -2,6 +2,38 @@
 
 **Last Updated:** 10 September 2026 (APO-33 controlled integration and final closeout)
 
+## APO-70 V1 desktop product recovery — latest state
+
+**Last Updated:** 11 September 2026 (bounded recovery implementation; release remains frozen)
+
+PREVIOUS_VISUAL_CHECKPOINT = OWNER REJECTED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+v1.0.0 = NOT RELEASED
+V1 TAG = NOT CREATED
+V1 RELEASE = NOT CREATED
+ACTIVE CURRENT GATE = APO-70 / GitHub issue #111
+RECOVERY ISSUE = `https://github.com/Hossam1104/AI_Orchestrator/issues/111`
+BASE SHA = `d7c1231df9ea1a4d008aa473210d0ccc735c0302`
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+RMS REFERENCE PATH = `D:\AI Tools\Active Projects\RMS_Support_Hub`
+RMS REFERENCE SHA = `fe3d06d2337093d322cb29cb3fefc369248e60a1`
+
+Recovery implementation covers the RMS-family light/dark semantic resource system, WPF shell
+header/sidebar/card/control treatment, truthful global local-state pill, session theme switching,
+native local-path selection, and hiding Post-V1 Agents/Activity entries from primary navigation.
+Existing Mission Control, Projects, AI Capacity, persistence, provider, and credential-reference
+services remain the source of runtime data; no demo data or secrets were added.
+
+Validation so far: Release build passed with 0 warnings and 0 errors; full solution tests passed
+1,252 / 1,252 with 0 failures and 0 skips; `win-x86`, `win-x64`, and `win-arm64` self-contained
+publish outputs passed `scripts/Validate-PublishOutput.ps1`. The x64 publish was also launched in
+a unique `%TEMP%` profile and rendered a responsive `AI Orchestrator` light shell; the process was
+stopped afterward. Computer Use exposed no controllable Windows app surface in this session, so
+interactive Projects/AI Capacity/theme walkthrough and owner approval remain unclaimed.
+
+Jira writes = NONE. Product remote mutation, release/tag/deploy, merge, force push, bypass, and
+auto-merge = NONE.
+
 ## APO-33 final controlled integration closeout
 
 APO GITHUB MIGRATION = COMPLETE

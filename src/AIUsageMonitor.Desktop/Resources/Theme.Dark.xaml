@@ -1,0 +1,48 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Intentional RMS-style dark overlay: navy/slate surfaces, readable off-white
+         type, cyan primary, violet focus, and calibrated semantic states. -->
+    <Color x:Key="CanvasColor">#101A26</Color>
+    <Color x:Key="ShellColor">#142437</Color>
+    <Color x:Key="SurfaceColor">#192C40</Color>
+    <Color x:Key="SurfaceRaisedColor">#21384D</Color>
+    <Color x:Key="SurfaceMutedColor">#1B3044</Color>
+    <Color x:Key="SurfaceHoverColor">#21485A</Color>
+    <Color x:Key="SurfaceSelectedColor">#2B3E61</Color>
+    <Color x:Key="SurfaceDisabledColor">#22303D</Color>
+    <Color x:Key="BorderColor">#365167</Color>
+    <Color x:Key="HeroColor">#172F47</Color>
+    <Color x:Key="HeroBorderColor">#2A6874</Color>
+    <Color x:Key="TextPrimaryColor">#F1F7FA</Color>
+    <Color x:Key="TextSecondaryColor">#B7CBD5</Color>
+    <Color x:Key="TextMutedColor">#8FA8B8</Color>
+    <Color x:Key="TextDisabledColor">#708392</Color>
+    <Color x:Key="AccentColor">#3FD0C8</Color>
+    <Color x:Key="AccentHoverColor">#63DDD5</Color>
+    <Color x:Key="AccentPressedColor">#16AFA8</Color>
+    <Color x:Key="AccentSecondaryColor">#A995FF</Color>
+    <Color x:Key="AccentVioletColor">#A995FF</Color>
+    <Color x:Key="AccentBlueColor">#78A3F4</Color>
+    <Color x:Key="AccentTurquoiseColor">#58D7B7</Color>
+    <Color x:Key="AccentCyanColor">#81D7DE</Color>
+    <Color x:Key="PrimaryCyanColor">#58C7D5</Color>
+    <Color x:Key="OnAccentColor">#FFFFFF</Color>
+    <Color x:Key="SuccessColor">#4FD59C</Color>
+    <Color x:Key="WarningColor">#F0B463</Color>
+    <Color x:Key="ErrorColor">#F27A89</Color>
+    <Color x:Key="ErrorHoverColor">#FF94A0</Color>
+    <Color x:Key="ErrorPressedColor">#D95B6C</Color>
+    <Color x:Key="InfoColor">#79A9F4</Color>
+    <Color x:Key="StatusNeutralColor">#93AABD</Color>
+    <Color x:Key="SuccessSurfaceColor">#173B39</Color>
+    <Color x:Key="WarningSurfaceColor">#453622</Color>
+    <Color x:Key="ErrorSurfaceColor">#482A36</Color>
+    <Color x:Key="InfoSurfaceColor">#1D3558</Color>
+    <Color x:Key="FocusRingColor">#A995FF</Color>
+    <Color x:Key="ShadowColor">#08111B</Color>
+    <Color x:Key="ScrollBarTrackColor">#0B1621</Color>
+    <sys:String x:Key="ThemeVariant">Dark</sys:String>
+</ResourceDictionary>

@@ -4,14 +4,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="clr-namespace:AIUsageMonitor.Desktop.ViewModels"
     xmlns:converters="clr-namespace:AIUsageMonitor.Desktop.Converters"
-    Title="AI_Orchestrator"
+    Title="AI Orchestrator"
     Icon="/Assets/apo-icon.ico"
     Width="1180"
     Height="760"
     MinWidth="860"
     MinHeight="580"
-    Background="{StaticResource BrandDeepNavyBrush}"
-    Foreground="{StaticResource BrandTextBrush}"
+    Background="{DynamicResource AppBackgroundBrush}"
+    Foreground="{DynamicResource TextPrimaryBrush}"
+    FontFamily="{DynamicResource BrandBodyFontFamily}"
     UseLayoutRounding="True"
     SnapsToDevicePixels="True"
     WindowStartupLocation="CenterScreen">
@@ -21,13 +22,60 @@
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
 
-        <Style x:Key="WorkspaceNavButtonStyle" TargetType="Button" BasedOn="{StaticResource NavigationItemStyle}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource BrandSurfaceRaisedBrush}" />
-                    <Setter Property="Foreground" Value="{StaticResource BrandTextBrush}" />
-                </DataTrigger>
-            </Style.Triggers>
+        <Style x:Key="WorkspaceNavButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="MinHeight" Value="46" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border
+                            x:Name="NavBorder"
+                            Background="{Binding Background, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
+                            BorderBrush="{DynamicResource FocusRingBrush}"
+                            BorderThickness="0"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="4" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="NavIndicator" Width="4" Background="Transparent" CornerRadius="2" />
+                                <ContentPresenter
+                                    Grid.Column="1"
+                                    Margin="12,0,0,0"
+                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalAlignment="Center"
+                                    TextElement.Foreground="{TemplateBinding Foreground}" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="True">
+                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource NavigationSelectedGradientBrush}" />
+                                <Setter TargetName="NavIndicator" Property="Background" Value="{DynamicResource AccentVioletBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="NavBorder" Property="BorderThickness" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <DataTemplate DataType="{x:Type vm:MissionControlViewModel}">
@@ -80,6 +128,7 @@
                             <TextBlock Text="SELECT A PROJECT" Style="{StaticResource EyebrowTextStyle}" />
                             <TextBlock Text="Mission Control will not guess between multiple active projects." Margin="0,8,0,0" Style="{StaticResource SectionHeadingStyle}" />
                             <TextBlock Text="Choose a project above to load its project-scoped evidence." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
+                            <Button Content="Create project" Command="{Binding DataContext.ShowProjectsCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" AutomationProperties.Name="Create a project from Mission Control" Margin="0,16,0,0" HorizontalAlignment="Left" Style="{StaticResource PrimaryButtonStyle}" />
                         </StackPanel>
                     </Border>
 
@@ -346,7 +395,14 @@
                                 <TextBlock Text="PROJECT NAME" Margin="0,18,0,5" Style="{StaticResource EyebrowTextStyle}" />
                                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource OnboardingInputTextBoxStyle}" AutomationProperties.Name="Onboarding project name" />
                                 <TextBlock Text="LOCAL WORKSPACE PATH" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBox Text="{Binding LocalPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource OnboardingInputTextBoxStyle}" AutomationProperties.Name="Onboarding local workspace path" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding LocalPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource OnboardingInputTextBoxStyle}" AutomationProperties.Name="Onboarding local workspace path" />
+                                    <Button Grid.Column="1" Margin="8,0,0,0" Content="Browse" Command="{Binding BrowsePathCommand}" AutomationProperties.Name="Browse for local workspace path" Style="{StaticResource SecondaryButtonStyle}" />
+                                </Grid>
                             </StackPanel>
 
                             <StackPanel Visibility="{Binding IsRepositoryStep, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -890,40 +946,45 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid Opacity="0">
-        <Grid.Triggers>
-            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-                <BeginStoryboard>
-                    <Storyboard>
-                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.24" />
-                    </Storyboard>
-                </BeginStoryboard>
-            </EventTrigger>
-        </Grid.Triggers>
+    <Grid Background="{DynamicResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="24,18" Background="{StaticResource BrandNavyBlueBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Padding="28,16" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal">
-                    <Border Width="44" Height="44" Padding="7" Background="{StaticResource BrandSurfaceRaisedBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="1" CornerRadius="12">
+                    <Border Width="44" Height="44" Padding="7" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12">
                         <Image Source="/Assets/apo-icon.ico" Stretch="Uniform" />
                     </Border>
                     <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="AI PROJECT ORCHESTRATOR" Style="{StaticResource EyebrowTextStyle}" />
-                        <TextBlock Text="Intelligent project &amp; AI execution control" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="AI PROJECT ORCHESTRATOR" Style="{DynamicResource EyebrowTextStyle}" />
+                        <TextBlock Text="AI Orchestrator" Margin="0,2,0,0" Style="{DynamicResource SectionHeadingStyle}" />
+                        <TextBlock Text="Intelligent project &amp; AI execution control" Margin="0,3,0,0" Style="{DynamicResource CaptionTextStyle}" />
                     </StackPanel>
                 </StackPanel>
-                <Border Grid.Column="1" Style="{StaticResource StatusChipStyle}" VerticalAlignment="Center">
+                <Button
+                    Grid.Column="1"
+                    Margin="18,0,14,0"
+                    Command="{Binding ToggleThemeCommand}"
+                    Style="{DynamicResource SecondaryButtonStyle}"
+                    ToolTip="{Binding ThemeToggleToolTip}"
+                    AutomationProperties.Name="{Binding ThemeToggleToolTip}">
                     <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="7" Height="7" Fill="{StaticResource BrandTealBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="CAPACITY READY" Margin="8,0,0,0" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="{Binding ThemeToggleIcon}" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ThemeToggleText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Border Grid.Column="2" Style="{StaticResource StatusChipStyle}" VerticalAlignment="Center" Padding="14,8">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="8" Height="8" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding GlobalStatusText}" Margin="9,0,0,0" Style="{DynamicResource CaptionTextStyle}" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -931,11 +992,11 @@
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="244" />
+                <ColumnDefinition Width="264" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Padding="18,22" Background="{StaticResource BrandDeepNavyBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Padding="18,22" Background="{DynamicResource NavigationBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -968,24 +1029,24 @@
                                 <TextBlock Grid.Column="1" Text="AI capacity" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
-                        <Button AutomationProperties.Name="Agents (planned)" IsEnabled="False" Style="{StaticResource NavigationItemStyle}">
+                        <Button AutomationProperties.Name="Agents (planned)" IsEnabled="False" Visibility="Collapsed" Style="{StaticResource NavigationItemStyle}">
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <TextBlock Text="◇" FontSize="17" Foreground="{StaticResource BrandPurpleBrush}" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="Agents" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="SOON" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="Future" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
-                        <Button AutomationProperties.Name="Activity (planned)" IsEnabled="False" Style="{StaticResource NavigationItemStyle}">
+                        <Button AutomationProperties.Name="Activity (planned)" IsEnabled="False" Visibility="Collapsed" Style="{StaticResource NavigationItemStyle}">
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <TextBlock Text="≡" FontSize="19" Foreground="{StaticResource BrandTealBrush}" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="Activity" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="SOON" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="Future" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
                     </StackPanel>
-                    <Border Grid.Row="2" Padding="12" Background="{StaticResource BrandNavyBlueBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="1" CornerRadius="10">
+                    <Border Grid.Row="2" Padding="12" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
                         <StackPanel>
                             <TextBlock Text="SCOPE NOTE" Style="{StaticResource EyebrowTextStyle}" />
                             <TextBlock Text="Future surfaces stay visibly quiet until their capability is real." Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />

@@ -1,5 +1,6 @@
 using AIUsageMonitor.Desktop.ViewModels;
 using System.Windows;
+using Forms = global::System.Windows.Forms;
 
 namespace AIUsageMonitor.Desktop;
 
@@ -30,6 +31,8 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Loaded -= OnLoaded;
+        ThemeManager.ThemeChanged += OnThemeChanged;
+        _viewModel.Projects.SetPathPicker(PickLocalPath);
         if (_persistenceAvailable)
         {
             _viewModel.AiCapacity.SetEditorLauncher(OpenConnectionEditorAsync);
@@ -40,6 +43,25 @@ public partial class MainWindow : Window
             await _viewModel.InitializeDegradedAsync();
         }
     }
+
+    private void OnThemeChanged(object? sender, EventArgs e) => _viewModel.RefreshThemeState();
+
+    private static string? PickLocalPath()
+    {
+        using var dialog = new Forms.FolderBrowserDialog
+        {
+            Description = "Choose a local project workspace",
+            ShowNewFolderButton = false,
+            UseDescriptionForTitle = true
+        };
+
+        return dialog.ShowDialog() == Forms.DialogResult.OK
+            ? dialog.SelectedPath
+            : null;
+    }
+
+    private void OnClosed(object? sender, EventArgs e) =>
+        ThemeManager.ThemeChanged -= OnThemeChanged;
 
     private async Task OpenConnectionEditorAsync(ProviderCapacityCardViewModel card)
     {

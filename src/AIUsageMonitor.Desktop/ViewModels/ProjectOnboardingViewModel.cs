@@ -64,6 +64,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
     private bool _isBusy;
     private bool _isCompletionTerminal;
     private string? _errorMessage;
+    private Func<string?>? _pathPicker;
 
     private static readonly IReadOnlyList<string> TrackerOptionsList =
         ["No tracker / Skip", "Jira", "Azure Boards", "Other / Manual reference"];
@@ -72,12 +73,14 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         IProjectOnboardingService service,
         IDefaultAgentCatalog catalog,
         Func<ProjectOnboardingResult, Task>? onFinished = null,
-        Action? onCanceled = null)
+        Action? onCanceled = null,
+        Func<string?>? pathPicker = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         ArgumentNullException.ThrowIfNull(catalog);
         _onFinished = onFinished;
         _onCanceled = onCanceled;
+        _pathPicker = pathPicker;
         AgentOptions = new ObservableCollection<ProjectOnboardingAgentOptionViewModel>(
             catalog.GetDefaults().Select(static definition => new ProjectOnboardingAgentOptionViewModel(definition)));
 
@@ -92,6 +95,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             () => !IsBusy && IsRepositoryStep);
         FinishCommand = new AsyncCommand(FinishAsync, CanFinish);
         CancelCommand = new RelayCommand(Cancel, () => !IsBusy && !IsCompletionTerminal);
+        BrowsePathCommand = new RelayCommand(BrowsePath, CanBrowsePath);
     }
 
     public ObservableCollection<ProjectOnboardingAgentOptionViewModel> AgentOptions { get; }
@@ -315,6 +319,14 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
     public AsyncCommand FinishCommand { get; }
     public RelayCommand CancelCommand { get; }
 
+    public RelayCommand BrowsePathCommand { get; }
+
+    public void SetPathPicker(Func<string?> pathPicker)
+    {
+        _pathPicker = pathPicker ?? throw new ArgumentNullException(nameof(pathPicker));
+        BrowsePathCommand.NotifyCanExecuteChanged();
+    }
+
     private bool CanNext() => !IsBusy && CurrentStep != ProjectOnboardingStep.Agents && IsCurrentStepValid();
 
     private void Next()
@@ -363,6 +375,17 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
 
     private bool CanInspectRepository() =>
         !IsBusy && IsRepositoryStep && !string.IsNullOrWhiteSpace(LocalPath);
+
+    private bool CanBrowsePath() => !IsBusy && IsProjectStep && _pathPicker is not null;
+
+    private void BrowsePath()
+    {
+        var selectedPath = _pathPicker?.Invoke();
+        if (!string.IsNullOrWhiteSpace(selectedPath))
+        {
+            LocalPath = selectedPath;
+        }
+    }
 
     private async Task InspectRepositoryAsync()
     {
@@ -492,5 +515,6 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         SkipRepositoryCommand.NotifyCanExecuteChanged();
         FinishCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
+        BrowsePathCommand.NotifyCanExecuteChanged();
     }
 }
