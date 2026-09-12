@@ -11,11 +11,12 @@ inside it says `CURRENT` or `ACTIVE`.
 
 ## CURRENT - APO-70 owner-rejection functional recovery (this session)
 
-**Last Updated:** 12 September 2026 (bounded remediation; orchestration surface remains a proven limitation)
+**Last Updated:** 12 September 2026 (bounded remediation and fresh owner-run evidence)
 
 ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
 BRANCH = `feature/APO-70-v1-desktop-product-recovery`
 STARTING HEAD = `a8fdebe5e7dbf6e7500f733442f4304c015f7ecf`
+DELIVERED CODE HEAD = `58b9734555fb8d88d3c3f5aa0cc8c917e6c3795b`
 PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
 PR STATE = OPEN / DRAFT / NOT MERGED
 V1 RELEASE = FROZEN / NOT AUTHORIZED
@@ -41,12 +42,17 @@ Application bounded-execution service requires planner-authored persisted contra
 handoff, workspace, and recovery references, and the current Desktop has no safe request-authoring
 boundary. Mission Control remains a truthful read model; this is the remaining P0 functional gap.
 
-Validation so far: focused Desktop remediation tests 55 passed / 0 failed / 0 skipped; provider
+Validation: focused Desktop remediation tests 55 passed / 0 failed / 0 skipped; provider
 session/locator tests 14 passed / 0 failed / 0 skipped; full solution 1,314 passed / 0 failed / 0
-skipped (28 Domain, 306 Connection, 196 Provider, 109 Desktop, 675 Infrastructure). Interactive
-Windows validation is blocked because the Computer Use surface exposes no targetable native apps;
-no owner visual acceptance is claimed. Fresh current-head publish, exact-head CI, push, and PR
-evidence update remain pending.
+skipped (28 Domain, 306 Connection, 196 Provider, 109 Desktop, 675 Infrastructure); Release build
+0 warnings / 0 errors. Remote CI run `34715313646` passed on the delivered code head, including
+the canonical test job and win-x86, win-x64, and win-arm64 publish jobs. Fresh owner-run publish
+passed on that head at `2026-09-12T19:50:42Z`: executable
+`artifacts/local-run/win-x64/AIUsageMonitor.Desktop.exe`, SHA256
+`ABBB6987535CF74F5A8D629E11F3535507A8DCE47F059C3F1AD3099718D6D10B`, PID `25376`, title
+`AI Orchestrator`, responsive, one process, and explicitly left running. Interactive Windows
+validation is blocked because the Computer Use surface exposes no targetable native apps; no owner
+visual acceptance is claimed. PR evidence update is complete.
 
 No merge, main push, force push, release, tag, deployment, tracker closure, credential access, or
 owner acceptance was performed.
