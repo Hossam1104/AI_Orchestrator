@@ -32,13 +32,13 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # No job here writes to the repository, so the checkout token is not left in .git/config.
           persist-credentials: false
 
       - name: Set up .NET 10 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
@@ -90,7 +90,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AI_Orchestrator-test-results
           path: TestResults/**/*.trx
@@ -114,12 +114,12 @@ jobs:
       PUBLISH_DIRECTORY: artifacts/publish/${{ matrix.rid }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Set up .NET 10 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
@@ -148,7 +148,7 @@ jobs:
             -RuntimeIdentifier $env:RID
 
       - name: Upload ${{ matrix.rid }} package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AI_Orchestrator-Release-${{ matrix.rid }}
           path: ${{ env.PUBLISH_DIRECTORY }}
