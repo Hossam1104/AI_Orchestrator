@@ -41,7 +41,16 @@ public sealed class MainWindowViewModel : ObservableObject
         ShowMissionControlCommand = new RelayCommand(ShowMissionControl);
         ShowProjectsCommand = new RelayCommand(ShowProjects);
         ShowAiCapacityCommand = new RelayCommand(ShowAiCapacity);
-        AddExistingProjectCommand = new RelayCommand(OpenAddExistingProject);
+        Projects.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(ProjectsViewModel.CanAddExistingProject) or nameof(ProjectsViewModel.AddExistingProjectStateText))
+            {
+                OnPropertyChanged(nameof(CanAddExistingProject));
+                OnPropertyChanged(nameof(AddExistingProjectStateText));
+                (AddExistingProjectCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            }
+        };
+        AddExistingProjectCommand = new RelayCommand(OpenAddExistingProject, () => CanAddExistingProject);
         ToggleThemeCommand = new RelayCommand(ToggleTheme);
     }
 
@@ -83,6 +92,10 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public ICommand AddExistingProjectCommand { get; }
 
+    public bool CanAddExistingProject => Projects.CanAddExistingProject;
+
+    public string AddExistingProjectStateText => Projects.AddExistingProjectStateText;
+
     public ICommand ToggleThemeCommand { get; }
 
     public bool IsDarkTheme => ThemeManager.CurrentTheme == ThemeVariant.Dark;
@@ -101,6 +114,9 @@ public sealed class MainWindowViewModel : ObservableObject
             MissionControl.InitializeAsync(cancellationToken),
             AiCapacity.InitializeAsync(cancellationToken),
             Projects.InitializeAsync(cancellationToken)).ConfigureAwait(true);
+        OnPropertyChanged(nameof(CanAddExistingProject));
+        OnPropertyChanged(nameof(AddExistingProjectStateText));
+        (AddExistingProjectCommand as RelayCommand)?.NotifyCanExecuteChanged();
     }
 
     public async Task InitializeDegradedAsync(CancellationToken cancellationToken = default)
@@ -153,6 +169,11 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void OpenAddExistingProject()
     {
+        if (!CanAddExistingProject)
+        {
+            return;
+        }
+
         ShowProjects();
         Projects.AddExistingProjectCommand.Execute(null);
     }

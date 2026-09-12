@@ -54,7 +54,7 @@ public sealed class SystemExecutableLocatorTests : IDisposable
     }
 
     [Fact]
-    public void EarlierPathEntriesStillWin()
+    public void ARealImageWinsOverAnEarlierPathWrapper()
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -63,8 +63,8 @@ public sealed class SystemExecutableLocatorTests : IDisposable
 
         var first = CreateDirectory("first");
         var second = CreateDirectory("second");
-        var expected = WriteCommand(first, "codex.cmd");
-        WriteCommand(second, "codex.exe");
+        WriteCommand(first, "codex.cmd");
+        var expected = WriteCommand(second, "codex.exe");
 
         Assert.Equal(expected, CreateLocator(first, second).Find("codex"));
     }

@@ -81,8 +81,16 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
     public IReadOnlyList<ProviderAuthenticationMode> AuthenticationModeOptions { get; } =
         Enum.GetValues<ProviderAuthenticationMode>();
 
-    public IReadOnlyList<ProviderCapacityMode> CapacityModeOptions { get; } =
-        Enum.GetValues<ProviderCapacityMode>();
+    public IReadOnlyList<ProviderCapacityMode> CapacityModeOptions =>
+        SupportsAutomaticCapacity
+            ? [ProviderCapacityMode.Automatic, ProviderCapacityMode.Manual, ProviderCapacityMode.Unavailable]
+            : [ProviderCapacityMode.Manual, ProviderCapacityMode.Unavailable];
+
+    public string CapacityModeReason => SupportsAutomaticCapacity
+        ? Code == ProviderCode.Claude
+            ? "Automatic reads organization API usage only; it does not represent consumer subscription capacity."
+            : "Automatic is available through this provider's declared typed adapter."
+        : "Automatic capacity is unavailable for the selected authentication channel; use Manual or Unavailable.";
 
     public string ProviderName
     {
@@ -121,10 +129,18 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
         {
             if (SetProperty(ref _authenticationMode, value))
             {
+                if (!SupportsAutomaticCapacity && _capacityMode == ProviderCapacityMode.Automatic)
+                {
+                    _capacityMode = ProviderCapacityMode.Manual;
+                    OnPropertyChanged(nameof(CapacityMode));
+                }
+
                 OnPropertyChanged(nameof(IsLocalSession));
                 OnPropertyChanged(nameof(IsApiKey));
                 OnPropertyChanged(nameof(IsExternalManual));
                 OnPropertyChanged(nameof(CredentialStateText));
+                OnPropertyChanged(nameof(CapacityModeOptions));
+                OnPropertyChanged(nameof(CapacityModeReason));
             }
         }
     }
@@ -132,7 +148,9 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
     public ProviderCapacityMode CapacityMode
     {
         get => _capacityMode;
-        set => SetProperty(ref _capacityMode, value);
+        set => SetProperty(ref _capacityMode, value == ProviderCapacityMode.Automatic && !SupportsAutomaticCapacity
+            ? ProviderCapacityMode.Manual
+            : value);
     }
 
     public bool IsLocalSession => AuthenticationMode == ProviderAuthenticationMode.LocalSession;
@@ -140,6 +158,11 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
     public bool IsApiKey => AuthenticationMode == ProviderAuthenticationMode.ApiKey;
 
     public bool IsExternalManual => AuthenticationMode == ProviderAuthenticationMode.ExternalManual;
+
+    private bool SupportsAutomaticCapacity =>
+        _definition.HasCapability(ProviderCapabilities.SupportsCapacityRefresh) &&
+        AuthenticationMode != ProviderAuthenticationMode.ExternalManual &&
+        (AuthenticationMode == ProviderAuthenticationMode.ApiKey || Code != ProviderCode.Claude);
 
     public CopilotBillingScope CopilotScope
     {
@@ -309,6 +332,11 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
         if (IsCustom && CapacityMode == ProviderCapacityMode.Automatic)
         {
             return "Automatic capacity requires a registered typed adapter; use Manual or Unavailable.";
+        }
+
+        if (CapacityMode == ProviderCapacityMode.Automatic && !SupportsAutomaticCapacity)
+        {
+            return "Automatic capacity is unavailable for the selected authentication channel.";
         }
 
         if (!IsApiKey && !string.IsNullOrWhiteSpace(newSecret))

@@ -57,6 +57,7 @@
                 <StackPanel Grid.Column="2">
                     <TextBlock Text="Capacity mode" Style="{StaticResource CaptionTextStyle}" />
                     <ComboBox ItemsSource="{Binding CapacityModeOptions}" SelectedItem="{Binding CapacityMode}" Margin="0,6,0,0" AutomationProperties.Name="Provider capacity mode" />
+                    <TextBlock Text="{Binding CapacityModeReason}" Margin="0,6,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                 </StackPanel>
             </Grid>
 

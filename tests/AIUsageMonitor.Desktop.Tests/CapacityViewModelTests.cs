@@ -71,6 +71,93 @@ public sealed class CapacityViewModelTests
     }
 
     [Fact]
+    public void SavedAutomaticCapacityMode_RehydratesWhenExplicitApiCapacityIsSupported()
+    {
+        var definition = ProviderDefinition.BuiltIn(
+            Guid.NewGuid(),
+            ProviderCode.Claude,
+            "Claude",
+            ProviderAuthenticationMode.LocalSession,
+            ProviderCapacityMode.Manual,
+            ProviderCapabilities.SupportsCapacityRefresh | ProviderCapabilities.SupportsConfiguration,
+            0);
+        var card = new ProviderCapacityCardViewModel(definition, new FakeProvider(ProviderCode.Claude));
+        var connection = new ProviderConnection(
+            Guid.NewGuid(),
+            definition.Id,
+            ProviderConnectionType.ApiKey,
+            ProviderConnectionStatus.Connected,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "opaque-reference",
+            new Dictionary<string, string?>
+            {
+                [ProviderConnectionConfigurationKeys.CapacityMode] = ProviderCapacityMode.Automatic.ToString()
+            });
+
+        card.SetConnection(connection);
+
+        Assert.Equal(ProviderCapacityMode.Automatic, card.CapacityMode);
+        Assert.True(card.CanRefresh);
+    }
+
+    [Fact]
+    public void LocalSessionDoesNotExposeAutomaticCapacityForAProviderThatNeedsAnApiChannel()
+    {
+        var definition = ProviderDefinition.BuiltIn(
+            Guid.NewGuid(),
+            ProviderCode.Claude,
+            "Claude",
+            ProviderAuthenticationMode.LocalSession,
+            ProviderCapacityMode.Manual,
+            ProviderCapabilities.SupportsCapacityRefresh | ProviderCapabilities.SupportsConfiguration,
+            0);
+        var card = new ProviderCapacityCardViewModel(definition, new FakeProvider(ProviderCode.Claude));
+        var connection = new ProviderConnection(
+            Guid.NewGuid(),
+            definition.Id,
+            ProviderConnectionType.LocalSession,
+            ProviderConnectionStatus.Connected,
+            null,
+            null,
+            null,
+            null,
+            null,
+            configuration: new Dictionary<string, string?>
+            {
+                [ProviderConnectionConfigurationKeys.CapacityMode] = ProviderCapacityMode.Automatic.ToString()
+            });
+
+        card.SetConnection(connection);
+
+        Assert.Equal(ProviderCapacityMode.Manual, card.CapacityMode);
+        Assert.False(card.CanRefresh);
+        Assert.Contains("separate from subscription capacity", card.StatusDetail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CapacityEditorOnlyOffersAutomaticForAnExplicitSupportedApiChannel()
+    {
+        var definition = ProviderDefinition.BuiltIn(
+            Guid.NewGuid(),
+            ProviderCode.Claude,
+            "Claude",
+            ProviderAuthenticationMode.LocalSession,
+            ProviderCapacityMode.Manual,
+            ProviderCapabilities.SupportsCapacityRefresh | ProviderCapabilities.SupportsConfiguration,
+            0);
+        var editor = new ProviderConnectionEditorViewModel(definition, null, new FakeConnectionService());
+
+        Assert.DoesNotContain(ProviderCapacityMode.Automatic, editor.CapacityModeOptions);
+        editor.AuthenticationMode = ProviderAuthenticationMode.ApiKey;
+
+        Assert.Contains(ProviderCapacityMode.Automatic, editor.CapacityModeOptions);
+    }
+
+    [Fact]
     public async Task DegradedShell_ExposesWarningStateAndDoesNotClaimPersistenceReady()
     {
         var viewModel = new MainWindowViewModel(new AiCapacityViewModel(new FakeExecutableLocator()));
@@ -342,9 +429,9 @@ public sealed class CapacityViewModelTests
 
         Assert.Equal("Error", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Kimi).StatusText);
         Assert.All(viewModel.Cards, card => Assert.False(card.IsRefreshing));
-        Assert.All(providers.Where(provider => provider.Code is not (ProviderCode.Codex or ProviderCode.Antigravity)), provider => Assert.Equal(1, provider.RefreshCount));
-        Assert.All(providers.Where(provider => provider.Code is ProviderCode.Codex or ProviderCode.Antigravity), provider => Assert.Equal(0, provider.RefreshCount));
-        Assert.All(providers.Where(provider => provider.Code is not (ProviderCode.Codex or ProviderCode.Antigravity)), provider => Assert.Equal(1, provider.MaxConcurrentRefreshes));
+        Assert.All(providers.Where(provider => provider.Code is ProviderCode.Kimi or ProviderCode.Copilot), provider => Assert.Equal(1, provider.RefreshCount));
+        Assert.All(providers.Where(provider => provider.Code is ProviderCode.Codex or ProviderCode.Claude or ProviderCode.Antigravity), provider => Assert.Equal(0, provider.RefreshCount));
+        Assert.All(providers.Where(provider => provider.Code is ProviderCode.Kimi or ProviderCode.Copilot), provider => Assert.Equal(1, provider.MaxConcurrentRefreshes));
     }
 
     [Fact]

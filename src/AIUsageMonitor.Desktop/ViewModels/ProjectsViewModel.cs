@@ -373,6 +373,24 @@ public sealed class ProjectsViewModel : ObservableObject
 
     public bool IsRegistryInteractionEnabled => !IsEditing && !IsOnboardingVisible && !IsSaving && !IsLoading;
 
+    public bool CanAddExistingProject => AddExistingProjectCommand.CanExecute(null);
+
+    public string AddExistingProjectStateText => CanAddExistingProject
+        ? string.Empty
+        : !IsStorageAvailable
+            ? "Project storage unavailable."
+            : IsLoading
+                ? "Loading the local project registry…"
+                : HasLoadError
+                    ? "Project registry could not be loaded. Retry before adding a workspace."
+                    : IsSaving
+                        ? "A project change is still being saved."
+                        : IsVerifying
+                            ? "Repository verification is still running."
+                            : IsOnboardingVisible
+                                ? "Finish or cancel the current onboarding flow first."
+                                : "Project onboarding is unavailable.";
+
     public bool IsVerifying
     {
         get => _isVerifying;
@@ -1083,6 +1101,8 @@ public sealed class ProjectsViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowEmptyRegistryState));
         OnPropertyChanged(nameof(ShowNoMatchState));
         OnPropertyChanged(nameof(IsRegistryInteractionEnabled));
+        OnPropertyChanged(nameof(CanAddExistingProject));
+        OnPropertyChanged(nameof(AddExistingProjectStateText));
         OnPropertyChanged(nameof(IsEditorVisible));
         OnPropertyChanged(nameof(IsOnboardingVisible));
         RefreshCommand.NotifyCanExecuteChanged();

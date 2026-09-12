@@ -279,6 +279,8 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
         ? HasCredentialSaved ? "API key configured securely" : "No API key configured"
         : "No APO-managed credential required";
 
+    public ProviderCapacityMode CapacityMode => _capacityMode;
+
     public bool IsInitialized => _isInitialized;
 
     internal ProviderConnection? Connection => _connection;
@@ -307,15 +309,31 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
         {
             LastSuccessfulRefresh ??= connection.LastSuccessfulSync;
             AuthenticationMode = AuthenticationModeFor(connection.ConnectionType, AuthenticationMode);
+            var configuredCapacityMode = Definition.CapacityMode;
+            if (connection.Configuration.TryGetValue(
+                    ProviderConnectionConfigurationKeys.CapacityMode,
+                    out var capacityMode) &&
+                Enum.TryParse<ProviderCapacityMode>(capacityMode, ignoreCase: true, out var parsedCapacityMode))
+            {
+                configuredCapacityMode = parsedCapacityMode;
+            }
+
+            _capacityMode = configuredCapacityMode == ProviderCapacityMode.Automatic &&
+                !SupportsAutomaticCapacity
+                    ? ProviderCapacityMode.Manual
+                    : configuredCapacityMode;
+            CapacityState = CapacityStateFor(_capacityMode);
+            OnPropertyChanged(nameof(CapacityMode));
             if (AuthenticationMode == ProviderAuthenticationMode.ApiKey)
             {
                 AuthenticationState = HasCredentialSaved
                     ? ProviderAuthenticationState.ApiKeyConfigured
                     : ProviderAuthenticationState.AuthenticationRequired;
-                CapacityState = _capacityMode == ProviderCapacityMode.Automatic
-                    ? ProviderCapacityState.Unknown
-                    : CapacityStateFor(_capacityMode);
                 StatusDetail = "API key mode is explicit; local session state is not used as a fallback.";
+            }
+            else if (Definition.HasCapability(ProviderCapabilities.SupportsCapacityRefresh))
+            {
+                StatusDetail = "Local session authentication is separate from subscription capacity; automatic consumer capacity is unavailable.";
             }
         }
 
@@ -472,9 +490,12 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
     }
 
     private bool CapacityModeAllowsRefresh =>
-        _capacityMode == ProviderCapacityMode.Automatic ||
-        (Definition.HasCapability(ProviderCapabilities.SupportsCapacityRefresh) &&
-         AuthenticationMode == ProviderAuthenticationMode.ApiKey);
+        _capacityMode == ProviderCapacityMode.Automatic && SupportsAutomaticCapacity;
+
+    private bool SupportsAutomaticCapacity =>
+        Definition.HasCapability(ProviderCapabilities.SupportsCapacityRefresh) &&
+        AuthenticationMode != ProviderAuthenticationMode.ExternalManual &&
+        (AuthenticationMode == ProviderAuthenticationMode.ApiKey || BuiltInCode != ProviderCode.Claude);
 
     private void RestoreConfiguredState(string message)
     {

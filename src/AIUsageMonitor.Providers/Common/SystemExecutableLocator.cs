@@ -2,13 +2,8 @@ namespace AIUsageMonitor.Providers.Common;
 
 public sealed class SystemExecutableLocator : IExecutableLocator
 {
-    /// <summary>
-    /// Windows probe order. Directly launchable images come first because the bounded process host
-    /// starts processes with UseShellExecute disabled, where Windows can only run a real image.
-    /// Script wrappers and extensionless POSIX shims are still reported last so that presence
-    /// detection stays truthful, but they are never preferred over a launchable sibling.
-    /// </summary>
-    private static readonly string[] WindowsExtensions = [".exe", ".com", ".cmd", ".bat", ""];
+    private static readonly string[] WindowsExecutableExtensions = [".exe", ".com"];
+    private static readonly string[] WindowsWrapperExtensions = [".cmd", ".bat", ""];
 
     private readonly Func<string?> _pathProvider;
 
@@ -38,17 +33,38 @@ public sealed class SystemExecutableLocator : IExecutableLocator
 
         var probeWindowsExtensions =
             OperatingSystem.IsWindows() && Path.GetExtension(commandName).Length == 0;
-        var candidates = probeWindowsExtensions
-            ? WindowsExtensions.Select(extension => commandName + extension).ToArray()
-            : [commandName];
-
-        // Directory-major, extension-minor: the same order Windows itself resolves a command in, so
-        // APO reports the executable the operator's own shell would run.
-        foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        var directories = path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        if (probeWindowsExtensions)
         {
-            foreach (var candidate in candidates)
+            // Prefer a directly launchable image anywhere on PATH. The bounded process host does
+            // not invoke cmd.exe, so an earlier npm shim must not hide a later real CLI image.
+            foreach (var extension in WindowsExecutableExtensions)
             {
-                if (ResolveExisting(directory, candidate) is { } resolved)
+                foreach (var directory in directories)
+                {
+                    if (ResolveExisting(directory, commandName + extension) is { } resolved)
+                    {
+                        return resolved;
+                    }
+                }
+            }
+
+            foreach (var extension in WindowsWrapperExtensions)
+            {
+                foreach (var directory in directories)
+                {
+                    if (ResolveExisting(directory, commandName + extension) is { } resolved)
+                    {
+                        return resolved;
+                    }
+                }
+            }
+        }
+        else
+        {
+            foreach (var directory in directories)
+            {
+                if (ResolveExisting(directory, commandName) is { } resolved)
                 {
                     return resolved;
                 }

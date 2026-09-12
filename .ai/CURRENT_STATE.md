@@ -9,6 +9,50 @@ inside it says `CURRENT` or `ACTIVE`.
 
 ---
 
+## CURRENT - APO-70 owner-rejection functional recovery (this session)
+
+**Last Updated:** 12 September 2026 (bounded remediation; orchestration surface remains a proven limitation)
+
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+STARTING HEAD = `a8fdebe5e7dbf6e7500f733442f4304c015f7ecf`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = PENDING / NOT CLAIMED
+OWNER FUNCTIONAL ACCEPTANCE = PENDING / NOT CLAIMED
+SOL ACCEPTANCE = PENDING ON THE NEW EXACT HEAD
+
+This session reproduced the provider configuration defect in source: connection hydration applied
+authentication mode to the card but not the persisted capacity mode. The card now rehydrates the
+saved mode, rejects Automatic for Claude local-session authentication, and exposes the effective
+mode for regression coverage. The editor now derives capacity options from provider capability and
+authentication channel, explains the organization-API versus consumer-subscription boundary, and
+rejects impossible Automatic saves. Codex executable lookup now prefers a directly launchable image
+across PATH entries before `.cmd`/`.bat` wrappers; the machine's direct Codex status probe reported
+an authenticated session without reading or storing credentials. Claude's official local status
+probe reported logged-in truth; no output beyond the bounded boolean is exposed by the provider.
+
+Project onboarding command state now propagates through the shell: a healthy loaded registry enables
+`Add Existing Project`, and unavailable states expose a reason instead of a mysteriously disabled
+CTA. Provider cards use a wrapping panel with a bounded card width instead of a fixed three-column
+grid. No orchestration Desktop start/contract-authoring surface was fabricated: the existing
+Application bounded-execution service requires planner-authored persisted contract, graph, routing,
+handoff, workspace, and recovery references, and the current Desktop has no safe request-authoring
+boundary. Mission Control remains a truthful read model; this is the remaining P0 functional gap.
+
+Validation so far: focused Desktop remediation tests 55 passed / 0 failed / 0 skipped; provider
+session/locator tests 14 passed / 0 failed / 0 skipped; full solution 1,314 passed / 0 failed / 0
+skipped (28 Domain, 306 Connection, 196 Provider, 109 Desktop, 675 Infrastructure). Interactive
+Windows validation is blocked because the Computer Use surface exposes no targetable native apps;
+no owner visual acceptance is claimed. Fresh current-head publish, exact-head CI, push, and PR
+evidence update remain pending.
+
+No merge, main push, force push, release, tag, deployment, tracker closure, credential access, or
+owner acceptance was performed.
+
+---
+
 ## CURRENT - APO-70 deterministic fresh desktop run workflow
 
 **Last Updated:** 12 September 2026 (deterministic fresh-run workflow implementation)

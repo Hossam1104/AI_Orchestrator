@@ -135,7 +135,8 @@
                             <TextBlock Text="SELECT A PROJECT" Style="{StaticResource EyebrowTextStyle}" />
                             <TextBlock Text="Mission Control will not guess between multiple active projects." Margin="0,8,0,0" Style="{StaticResource SectionHeadingStyle}" />
                             <TextBlock Text="Choose a project above to load its project-scoped evidence." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
-                            <Button Content="Add Existing Project" Command="{Binding DataContext.AddExistingProjectCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" AutomationProperties.Name="Add Existing Project from Mission Control" Margin="0,16,0,0" HorizontalAlignment="Left" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Content="Add Existing Project" Command="{Binding DataContext.AddExistingProjectCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" AutomationProperties.Name="Add Existing Project from Mission Control" Margin="0,16,0,0" HorizontalAlignment="Left" Style="{StaticResource PrimaryButtonStyle}" ToolTip="{Binding DataContext.AddExistingProjectStateText, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" />
+                            <TextBlock Text="{Binding DataContext.AddExistingProjectStateText, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{StaticResource BrandWarningBrush}" Style="{StaticResource CaptionTextStyle}" Visibility="{Binding DataContext.CanAddExistingProject, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
                         </StackPanel>
                     </Border>
 
@@ -288,12 +289,12 @@
                     <ItemsControl Margin="0,22,0,0" ItemsSource="{Binding Cards}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid Columns="3" />
+                                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="0,0,16,16" Style="{StaticResource CardStyle}" MinHeight="300">
+                                <Border Width="320" Margin="0,0,16,16" Style="{StaticResource CardStyle}" MinHeight="300">
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
@@ -597,6 +598,7 @@
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                         <Button Content="Refresh" Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh projects" Style="{StaticResource SecondaryButtonStyle}" />
                         <Button Content="Add Existing Project" Command="{Binding AddExistingProjectCommand}" AutomationProperties.Name="Add Existing Project" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
+                        <TextBlock Text="{Binding AddExistingProjectStateText}" Margin="8,7,0,0" TextWrapping="Wrap" Foreground="{StaticResource BrandWarningBrush}" Style="{StaticResource CaptionTextStyle}" />
                     </StackPanel>
                 </Grid>
 
