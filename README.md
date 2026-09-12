@@ -25,8 +25,13 @@
 
 `FAST V1 CLOSEOUT MODE` is complete. APO-48, APO-51, APO-49, APO-63, APO-50, and APO-33 are
 delivered and accepted. APO-33 merged through PR #109, and GitHub Actions CI is active on `main`.
-The active implementation current gate is `NONE`. The next planner boundary is the Final V1
-Release Audit, which has not started; v1.0.0 has not been released.
+The next planner boundary is the Final V1 Release Audit, which has not started; v1.0.0 has not been
+released.
+
+The active implementation gate is **APO-70 (GitHub issue #111)**, V1 desktop product recovery, on
+branch `feature/APO-70-v1-desktop-product-recovery` and open as a Draft PR. It is not merged and
+not accepted: owner visual acceptance and Sol acceptance both remain outstanding. The V1 release
+freeze holds — no tag, release, or deployment has been created.
 
 V1 execution is focused on OpenAI, Claude, and Antigravity Plus. `COPILOT = POST-V1`, and all new
 inactive-provider-specific work is deferred until after V1. No new provider integration enters V1
@@ -248,7 +253,11 @@ AI_Orchestrator/
 |   |-- IMPLEMENTATION_PLAN.md
 |   |-- LEGACY_IMPLEMENTATION_MAP.md
 |   |-- STRATEGIC_ROADMAP.md
-|   `-- SESSION_PROMPTS.md
+|   |-- SESSION_PROMPTS.md
+|   |-- APO-31_PROVIDER_EVIDENCE.md
+|   `-- evidence/ (retained acceptance screenshots)
+|-- scripts/Validate-PublishOutput.ps1
+|-- .github/workflows/ci.yml
 |-- src/
 |   |-- AIUsageMonitor.Desktop/
 |   |   `-- Resources/ (WPF brand dictionaries)
@@ -277,6 +286,15 @@ The commands below use the compatibility-preserved solution name:
 dotnet restore AIUsageMonitor.sln
 dotnet build AIUsageMonitor.sln
 dotnet test AIUsageMonitor.sln
+```
+
+The desktop test project builds for the `x64` platform. Running it on its own, rather than through
+the solution, needs that platform stated explicitly or the run will silently execute a stale
+`AnyCPU` assembly:
+
+```powershell
+dotnet test tests/AIUsageMonitor.Desktop.Tests/AIUsageMonitor.Desktop.Tests.csproj `
+  -p:Platform=x64
 ```
 
 For a self-contained Windows artifact, use one of the desktop publish profiles:
@@ -322,7 +340,8 @@ shipped runtime claims:
 1. **Delivered P0 control plane — APO-38..46 and APO-68:** agent/model truth, progressive onboarding, contracts, dependency graphs, handoffs, durable recovery, quality-first routing, bounded execution, isolated workspaces, and workspace-preparation hardening.
 2. **P0 tracker/evidence inputs — APO-47 and APO-62 delivered:** Jira/Azure Boards awareness (APO-47) and read-only remote SCM/CI evidence (APO-62) are both delivered.
 3. **P0 evidence, approval, and delivery — APO-48, APO-49, and APO-63 delivered:** independent QA evidence, gates, human approval policy, and controlled remote delivery are accepted.
-4. **P0 Mission Control — APO-50:** one evidence-backed command-center read model and surface.
+4. **P0 Mission Control — APO-50 delivered:** one evidence-backed command-center read model and
+   surface, accepted.
 5. **P1 acceleration — APO-51..56:** APO-51 Review Inbox is delivered and accepted; later P1 capabilities remain deferred until separately authorized.
 6. **P2 controlled expansion — APO-57..58:** bounded background housekeeping and optional remote approval security design.
 7. **P3 remaining/planned hardening — APO-59..61 (Jira: To Do):** APO-37 evidence bounds, verification UX truthfulness, and explicit real-Git availability semantics.
