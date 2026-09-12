@@ -12,6 +12,22 @@ AI Orchestrator identity and existing application/domain services. Complete the 
 functional surface work for Mission Control, Projects, AI Capacity, truthful global status, theme
 switching, native local-path selection, and Post-V1 navigation treatment.
 
+## Rounds on this branch
+
+APO-70 is one gate delivered over successive rounds on the same branch. All of them are still
+unmerged and unaccepted:
+
+1. **Desktop product recovery** — the RMS-family visual system, shell treatment, truthful global
+   state pill, theme switching, native local-path selection, Post-V1 navigation treatment.
+2. **Provider authentication and dynamic registry** — local-session-first Codex/Claude
+   authentication, optional API-key fallback, registry-driven AI Providers page, generic custom
+   providers, explicit availability/authentication/capacity states.
+3. **Architecture health, deep clean, and remediation** (owner-authorized Opus execution exception,
+   named scope) — the project-folder selection gap, shell lifetime, selection-refresh disposal,
+   provider identity, rendered-name collisions, executable resolution, bounded process-host
+   lifetime, the deferred CI findings, and documentation/governance reconciliation. Detail and
+   evidence are in [`.ai/CURRENT_STATE.md`](.ai/CURRENT_STATE.md).
+
 ## Acceptance evidence
 
 - RMS reference source inspected at `D:\AI Tools\Active Projects\RMS_Support_Hub`.
@@ -21,7 +37,8 @@ switching, native local-path selection, and Post-V1 navigation treatment.
   reused; no fake runtime data, tokens, database, browser, or new provider is authorized.
 - Release build, full tests, and `win-x86`, `win-x64`, and `win-arm64` publish validation are
   required before PR handoff.
-- Owner visual acceptance is required before merge or release promotion.
+- Owner visual acceptance is required before merge or release promotion. Automated render checks are
+  not owner visual acceptance and never satisfy this gate.
 
 ## Governance boundaries
 

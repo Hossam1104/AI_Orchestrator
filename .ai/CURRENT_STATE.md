@@ -1,8 +1,82 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 10 September 2026 (APO-33 controlled integration and final closeout)
+**Last Updated:** 12 September 2026 (APO-70 architecture-health and remediation session)
 
-## APO-70 owner-rejected UI remediation - latest state
+Only the sections above the `Historical record` divider describe the current state of the
+repository. Everything below that divider is retained evidence from a boundary that has already
+closed: it is preserved for provenance and must not be read as current status, even where a line
+inside it says `CURRENT` or `ACTIVE`.
+
+---
+
+## CURRENT — APO-70 architecture health, deep clean, and remediation
+
+**Last Updated:** 12 September 2026 (owner-authorized Opus execution session)
+
+SESSION AUTHORITY = OWNER-AUTHORIZED OPUS EXECUTION EXCEPTION, NAMED SCOPE, NOT A NEW DEFAULT ROUTE
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = NOT PRESENTED / NOT APPROVED
+SOL ACCEPTANCE = PENDING
+
+This session continued APO-70 on the same branch as an audit-and-fix pass rather than a review
+report. Defects were repaired where they were proven and safely repairable inside the project
+boundary:
+
+- **Project folder selection (§11 gap).** The picker now prefers the last successfully used project
+  folder, then `D:\AI Tools\Active Projects`, then the ordinary Windows fallback. Nothing is
+  auto-registered or auto-selected, the preference is persisted through the existing
+  `ISettingsService` boundary rather than an ad-hoc repository write, and an absent directory
+  degrades truthfully instead of hard-failing on another machine.
+- **Shell lifetime.** `MainWindow` releases its static theme subscription on close, so a closed
+  shell no longer stays reachable from `ThemeManager`.
+- **Selection refresh.** A superseded selection no longer disposes the cancellation token of a
+  refresh that is still in flight.
+- **Provider identity.** The built-in provider identifier table moved to the Domain layer, and the
+  Application-layer registry contract stopped minting a fresh `Guid` per call, which had made
+  `FindDefinition(id)` unable to match a definition the same contract had just returned.
+- **Rendered-name collisions.** Duplicate detection now compares the label an operator actually
+  sees, so two registrations can no longer render under one identical title.
+- **Executable resolution.** The locator probes directory-major, extension-minor in Windows order
+  and prefers a directly launchable image, because the bounded process host runs with
+  `UseShellExecute` disabled, where Windows cannot launch a `.cmd`, `.bat`, or extensionless shim.
+  Such shims are still reported when they are the only match, so presence stays truthful.
+- **Bounded process host.** The timeout timer is cancelled on every exit path, output readers are
+  cancelled once the process exits, and abandoned readers are observed so a late fault cannot
+  surface as an unobserved task exception attributed to unrelated code.
+- **Deferred CI findings.** `OPUS-33-02` (timing-sensitive test) now races a deterministic signal
+  instead of sleeping; `OPUS-33-03` (suite completeness) is self-enforcing — CI fails if a test
+  project exists outside the canonical list; `OPUS-33-04` (job timeouts) is bounded on both jobs.
+  Checkout no longer persists its token, as no job writes to the repository.
+- **Tooling.** The Codex host's Serena MCP registration uses the `codex` context instead of the
+  `claude-code` context.
+
+No credential value, token, or session secret is read, copied, logged, or persisted by any of this
+work; only opaque credential references are stored. Workspace discovery remains read-only. No demo
+project, fake provider, fake capacity, fake connected state, or fake tracker/CI data was added.
+
+Repository cleanliness audit: nothing to delete. The working tree is clean with no untracked files,
+every retained asset is referenced, and `docs/evidence/*.png` plus
+`.ai/history/CURRENT_STATE_ARCHIVE.md` are legitimate retained historical evidence.
+
+Jira writes = NONE. Merge, push to `main`, force push, history rewrite, branch-protection bypass,
+release, tag, and deployment = NONE.
+
+### Validation evidence
+
+Recorded in the final validation section of this file once the exact pushed head has been verified
+remotely. Owner visual acceptance is a separate human gate and is never claimed by this session.
+
+---
+
+## CURRENT — APO-70 provider-authentication and dynamic-registry scope
+
+Delivered earlier on this same branch and still part of the unmerged APO-70 gate. The test and CI
+figures quoted in this section are the figures of that earlier session; the current counts are in
+the final validation section of this file.
 
 **Last Updated:** 11 September 2026 (APO-70 provider-authentication and dynamic-registry implementation; exact-head CI passed; owner visual acceptance pending)
 
@@ -44,7 +118,11 @@ claiming a false result.
 
 The branch remains unmerged and release frozen pending Sol review and the owner's visual response.
 
-## APO-70 V1 desktop product recovery — latest state
+## CURRENT — APO-70 V1 desktop product recovery scope
+
+Delivered first on this same branch and still part of the unmerged APO-70 gate. The test and CI
+figures quoted in this section are the figures of that session; the current counts are in the final
+validation section of this file.
 
 **Last Updated:** 11 September 2026 (APO-70 acceptance completion; release remains frozen)
 
@@ -95,7 +173,35 @@ COMPUTER USE SURFACE = UNAVAILABLE (no controllable Windows app surface exposed)
 LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED
 NEXT AUTHORITY = GPT-5.6 Sol for exact-head review and owner visual response
 
-## APO-33 final controlled integration closeout
+## V1 active AI execution resources
+
+Canonical routing, model portfolio, effort selection, quota governance, and execution share targets
+live in [`AI_MODEL_ROUTING.md`](AI_MODEL_ROUTING.md) and
+[`AI_EXECUTION_POLICY.md`](AI_EXECUTION_POLICY.md). That policy is authoritative; this file does not
+restate it.
+
+Two providers are active for AI-assisted execution: OpenAI/Codex and Anthropic/Claude. Antigravity
+and GitHub Copilot are APO **product-domain** providers that APO can monitor; neither is an active
+execution provider for work in this repository.
+
+`COPILOT = POST-V1`
+
+`ALL NEW PROVIDER-SPECIFIC WORK OUTSIDE THE ACTIVE V1 RESOURCE SET = POST-V1`
+
+Existing optional provider adapters and provider-independent architecture remain in the repository;
+provider cleanup/removal is deferred and is not part of this closeout.
+
+---
+
+# Historical record
+
+Everything below this line is retained evidence from a closed boundary. It is preserved for
+provenance and is **not** current status. Where a historical line reads `CURRENT GATE`, `ACTIVE`,
+or `NONE`, it was true when written and has since been superseded by the current sections above.
+
+---
+
+## HISTORICAL / SUPERSEDED — APO-33 final controlled integration closeout
 
 APO GITHUB MIGRATION = COMPLETE
 CANONICAL ISSUES = 69
@@ -382,34 +488,6 @@ current authority snapshot and must not be treated as an executable prompt.
 - PR #25 is `AUTO-MARKED MERGED BY ANCESTRY / SUPERSEDED BY PR #27`; no separate PR #25 merge
   command occurred.
 - PR #26 is `CLOSED / UNMERGED / SUPERSEDED`.
-
-## V1 active AI resources
-
-V1 is intentionally optimized around the currently available resource groups:
-
-### OpenAI
-
-- Two GPT accounts are available.
-- GPT-5.6 Sol: planning, architecture, routing, acceptance, and prompt authority.
-- GPT-5.6 Luna xHigh: main substantial executor.
-- GPT-5.6 Terra HIGH: recovery/finalization or surgical pass when needed.
-
-### Claude
-
-- Claude Sonnet 5: bounded implementation and fixes.
-- Claude Opus 5: critical independent review only.
-
-### Antigravity Plus
-
-- Auxiliary bounded/mechanical execution.
-- Gemini-family usage may be routed here when appropriate and available.
-
-`COPILOT = POST-V1`
-
-`ALL NEW PROVIDER-SPECIFIC WORK OUTSIDE THE ACTIVE V1 RESOURCE SET = POST-V1`
-
-Existing optional provider adapters and provider-independent architecture remain in the repository;
-provider cleanup/removal is deferred and is not part of this closeout.
 
 ## HISTORICAL / SUPERSEDED — APO-63 R1 executor delivery
 
