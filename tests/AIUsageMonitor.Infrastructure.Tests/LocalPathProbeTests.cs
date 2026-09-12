@@ -188,7 +188,21 @@ public sealed class LocalPathProbeTests : IDisposable
 
             // The first call's timeout must not evict the slot. Once the actual core has
             // completed, the next call is allowed to start a fresh underlying probe.
-            var secondResult = await probe.ProbeAsync(_root);
+            //
+            // firstCompleted is signalled from inside the core, so it only proves the core body
+            // ran: the slot is not free until that task is marked complete. Retrying until the
+            // second core actually starts races that handover rather than assuming it has already
+            // happened, so a slow machine only makes the healthy path take longer; it cannot turn
+            // a genuine regression green. A retry that finds the slot still occupied returns the
+            // first probe's own result without invoking the core, so the invocation count below
+            // still pins the number of underlying probes at exactly two.
+            var deadline = Stopwatch.GetTimestamp() + (long)(5 * Stopwatch.Frequency);
+            LocalPathProbeResult secondResult;
+            do
+            {
+                secondResult = await probe.ProbeAsync(_root);
+            }
+            while (!secondStarted.Task.IsCompleted && Stopwatch.GetTimestamp() < deadline);
 
             await secondStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
             Assert.Equal(2, Volatile.Read(ref invocationCount));
