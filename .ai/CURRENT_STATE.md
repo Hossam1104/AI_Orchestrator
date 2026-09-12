@@ -1,11 +1,54 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 12 September 2026 (APO-70 architecture-health and remediation session)
+**Last Updated:** 13 September 2026 (APO-70 execution-spine recovery session)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+---
+
+## CURRENT - APO-70 execution spine and command center recovery
+
+**Last Updated:** 13 September 2026 (bounded implementation; acceptance pending)
+
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = PENDING / NOT CLAIMED
+OWNER FUNCTIONAL ACCEPTANCE = PENDING / NOT CLAIMED
+SOL ACCEPTANCE = PENDING ON THE FINAL EXACT HEAD
+
+The Application now exposes `IExecutionCoordinator`. It accepts bounded owner intent without
+internal authority identifiers, resolves the one enabled planner from the registered project
+context, and delegates creation of the immutable planning contract, single-node work graph,
+quality-first routing decision, redacted planner-to-executor handoff, exact workspace plan and
+receipt, recovery checkpoint, and `BoundedExecutionRequest` to the existing application services.
+The Desktop now exposes an Execution workspace with explicit project selection, request fields,
+Prepare, Start, Cancel, durable preparation evidence, routing details, and truthful runtime/result
+states. No raw prompt, arbitrary command, provider process, credential, or fake progress path was
+added. The shell default window is now 1440x920 with 980x650 minimum size; Cairo is the primary
+font family with Bahnschrift/Segoe UI system fallbacks, and the existing RMS-derived semantic
+cards, logo treatment, sidebar, light/dark resources, and focusable controls are reused.
+
+The current production composition registers no `IExecutionAdapter`. The existing
+`ExecutionAdapterResolver` therefore returns `AdapterUnsupported` for Start and the Execution
+workspace surfaces that exact bounded-service result. This is the proven architectural blocker
+for real provider execution; no provider-specific executor was invented because the repository
+does not yet contain an approved structured adapter contract for Codex or Claude work execution.
+
+Validation on the current worktree: Application build PASS; focused Connection tests 308 passed /
+0 failed / 0 skipped; focused Desktop tests 111 passed / 0 failed / 0 skipped; `git diff --check`
+PASS. Full canonical tests, Release build, multi-RID publish, fresh current run, and exact-head CI
+remain pending until this implementation is committed and pushed. No merge, main push, force push,
+release, tag, deployment, tracker closure, credential access, or owner/Sol acceptance was performed.
+
+The next safe step is to validate the final diff and publish evidence, then hand the exact Draft
+PR head to Sol. Production execution remains blocked until a provider-specific `IExecutionAdapter`
+is approved and registered.
 
 ---
 
@@ -37,10 +80,9 @@ probe reported logged-in truth; no output beyond the bounded boolean is exposed 
 Project onboarding command state now propagates through the shell: a healthy loaded registry enables
 `Add Existing Project`, and unavailable states expose a reason instead of a mysteriously disabled
 CTA. Provider cards use a wrapping panel with a bounded card width instead of a fixed three-column
-grid. No orchestration Desktop start/contract-authoring surface was fabricated: the existing
-Application bounded-execution service requires planner-authored persisted contract, graph, routing,
-handoff, workspace, and recovery references, and the current Desktop has no safe request-authoring
-boundary. Mission Control remains a truthful read model; this is the remaining P0 functional gap.
+grid. This was the pre-coordinator baseline. The safe request-authoring boundary is now implemented
+in the newer execution-spine section above; the remaining P0 gap is the absence of a registered
+provider-specific bounded execution adapter.
 
 Validation: focused Desktop remediation tests 55 passed / 0 failed / 0 skipped; provider
 session/locator tests 14 passed / 0 failed / 0 skipped; full solution 1,314 passed / 0 failed / 0

@@ -2,9 +2,9 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Windows-native faces keep the shell install-free; Bahnschrift is a restrained display accent. -->
-    <FontFamily x:Key="BrandDisplayFontFamily">Bahnschrift</FontFamily>
-    <FontFamily x:Key="BrandBodyFontFamily">Segoe UI</FontFamily>
+    <!-- Cairo gives Arabic-first hierarchy when installed; Windows-native fallbacks keep the shell install-free. -->
+    <FontFamily x:Key="BrandDisplayFontFamily">Cairo, Bahnschrift, Segoe UI</FontFamily>
+    <FontFamily x:Key="BrandBodyFontFamily">Cairo, Segoe UI</FontFamily>
 
     <Style x:Key="EyebrowTextStyle" TargetType="{x:Type TextBlock}">
         <Setter Property="FontFamily" Value="{StaticResource BrandBodyFontFamily}" />

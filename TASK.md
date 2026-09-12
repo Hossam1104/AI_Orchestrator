@@ -12,6 +12,24 @@ AI Orchestrator identity and existing application/domain services. Complete the 
 functional surface work for Mission Control, Projects, AI Capacity, truthful global status, theme
 switching, native local-path selection, and Post-V1 navigation treatment.
 
+## Current execution slice
+
+This assigned APO-70 slice also includes the smallest safe owner-facing execution workflow:
+
+- an Application `IExecutionCoordinator` converts bounded owner intent into the existing planning
+  contract, work graph, routing decision, handoff, workspace preparation, recovery checkpoint, and
+  exact `BoundedExecutionRequest` authorities;
+- the Desktop Execution workspace allows explicit project selection, title/objective/criteria/
+  constraint authoring, Prepare, Start, and Cancel actions, and displays only real coordinator and
+  bounded-service state;
+- no raw prompt, internal authority GUID, direct provider process, or arbitrary command is exposed
+  from WPF;
+- if no exact production `IExecutionAdapter` is registered, Start must remain visibly and
+  truthfully `AdapterUnsupported`; this is a proven architectural blocker, not a simulated run.
+
+Validation and delivery remain bounded to this branch and Draft PR #112. Do not merge, push `main`,
+create a release/tag/deployment, close Issue #111, or claim owner/Sol acceptance.
+
 ## Rounds on this branch
 
 APO-70 is one gate delivered over successive rounds on the same branch. All of them are still

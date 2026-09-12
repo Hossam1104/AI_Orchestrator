@@ -9,22 +9,23 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _isMissionControlSelected;
     private bool _isProjectsSelected;
     private bool _isAiCapacitySelected;
+    private bool _isExecutionSelected;
     private bool _persistenceAvailable;
 
     public MainWindowViewModel()
-        : this(new MissionControlViewModel(), new AiCapacityViewModel(), new ProjectsViewModel())
+        : this(new MissionControlViewModel(), new AiCapacityViewModel(), new ProjectsViewModel(), new ExecutionViewModel())
     {
     }
 
     public MainWindowViewModel(AiCapacityViewModel aiCapacity)
-        : this(new MissionControlViewModel(), aiCapacity, new ProjectsViewModel())
+        : this(new MissionControlViewModel(), aiCapacity, new ProjectsViewModel(), new ExecutionViewModel())
     {
     }
 
     public MainWindowViewModel(
         AiCapacityViewModel aiCapacity,
         ProjectsViewModel projects)
-        : this(new MissionControlViewModel(), aiCapacity, projects)
+        : this(new MissionControlViewModel(), aiCapacity, projects, new ExecutionViewModel())
     {
     }
 
@@ -32,15 +33,26 @@ public sealed class MainWindowViewModel : ObservableObject
         MissionControlViewModel missionControl,
         AiCapacityViewModel aiCapacity,
         ProjectsViewModel projects)
+        : this(missionControl, aiCapacity, projects, new ExecutionViewModel())
+    {
+    }
+
+    public MainWindowViewModel(
+        MissionControlViewModel missionControl,
+        AiCapacityViewModel aiCapacity,
+        ProjectsViewModel projects,
+        ExecutionViewModel execution)
     {
         MissionControl = missionControl ?? throw new ArgumentNullException(nameof(missionControl));
         AiCapacity = aiCapacity ?? throw new ArgumentNullException(nameof(aiCapacity));
         Projects = projects ?? throw new ArgumentNullException(nameof(projects));
+        Execution = execution ?? throw new ArgumentNullException(nameof(execution));
         _activeWorkspace = MissionControl;
         _isMissionControlSelected = true;
         ShowMissionControlCommand = new RelayCommand(ShowMissionControl);
         ShowProjectsCommand = new RelayCommand(ShowProjects);
         ShowAiCapacityCommand = new RelayCommand(ShowAiCapacity);
+        ShowExecutionCommand = new RelayCommand(ShowExecution);
         Projects.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is nameof(ProjectsViewModel.CanAddExistingProject) or nameof(ProjectsViewModel.AddExistingProjectStateText))
@@ -59,6 +71,8 @@ public sealed class MainWindowViewModel : ObservableObject
     public AiCapacityViewModel AiCapacity { get; }
 
     public ProjectsViewModel Projects { get; }
+
+    public ExecutionViewModel Execution { get; }
 
     public object ActiveWorkspace
     {
@@ -84,11 +98,19 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _isProjectsSelected, value);
     }
 
+    public bool IsExecutionSelected
+    {
+        get => _isExecutionSelected;
+        private set => SetProperty(ref _isExecutionSelected, value);
+    }
+
     public ICommand ShowMissionControlCommand { get; }
 
     public ICommand ShowProjectsCommand { get; }
 
     public ICommand ShowAiCapacityCommand { get; }
+
+    public ICommand ShowExecutionCommand { get; }
 
     public ICommand AddExistingProjectCommand { get; }
 
@@ -113,7 +135,8 @@ public sealed class MainWindowViewModel : ObservableObject
         await Task.WhenAll(
             MissionControl.InitializeAsync(cancellationToken),
             AiCapacity.InitializeAsync(cancellationToken),
-            Projects.InitializeAsync(cancellationToken)).ConfigureAwait(true);
+            Projects.InitializeAsync(cancellationToken),
+            Execution.InitializeAsync(cancellationToken)).ConfigureAwait(true);
         OnPropertyChanged(nameof(CanAddExistingProject));
         OnPropertyChanged(nameof(AddExistingProjectStateText));
         (AddExistingProjectCommand as RelayCommand)?.NotifyCanExecuteChanged();
@@ -125,6 +148,8 @@ public sealed class MainWindowViewModel : ObservableObject
         await AiCapacity.InitializeDegradedAsync(cancellationToken).ConfigureAwait(true);
         Projects.SetPersistenceAvailability(false);
         await Projects.InitializeAsync(cancellationToken).ConfigureAwait(true);
+        Execution.SetPersistenceAvailability(false);
+        await Execution.InitializeDegradedAsync(cancellationToken).ConfigureAwait(true);
     }
 
     public void SetPersistenceAvailability(bool persistenceAvailable)
@@ -133,6 +158,7 @@ public sealed class MainWindowViewModel : ObservableObject
         OnPropertyChanged(nameof(GlobalStatusText));
         MissionControl.SetPersistenceAvailability(persistenceAvailable);
         Projects.SetPersistenceAvailability(persistenceAvailable);
+        Execution.SetPersistenceAvailability(persistenceAvailable);
     }
 
     public void RefreshThemeState()
@@ -149,6 +175,7 @@ public sealed class MainWindowViewModel : ObservableObject
         IsMissionControlSelected = true;
         IsProjectsSelected = false;
         IsAiCapacitySelected = false;
+        IsExecutionSelected = false;
     }
 
     private void ShowProjects()
@@ -157,6 +184,7 @@ public sealed class MainWindowViewModel : ObservableObject
         IsMissionControlSelected = false;
         IsProjectsSelected = true;
         IsAiCapacitySelected = false;
+        IsExecutionSelected = false;
     }
 
     private void ShowAiCapacity()
@@ -165,6 +193,16 @@ public sealed class MainWindowViewModel : ObservableObject
         IsMissionControlSelected = false;
         IsProjectsSelected = false;
         IsAiCapacitySelected = true;
+        IsExecutionSelected = false;
+    }
+
+    private void ShowExecution()
+    {
+        ActiveWorkspace = Execution;
+        IsMissionControlSelected = false;
+        IsProjectsSelected = false;
+        IsAiCapacitySelected = false;
+        IsExecutionSelected = true;
     }
 
     private void OpenAddExistingProject()

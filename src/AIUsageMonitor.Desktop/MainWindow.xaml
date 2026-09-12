@@ -6,10 +6,10 @@
     xmlns:converters="clr-namespace:AIUsageMonitor.Desktop.Converters"
     Title="AI Orchestrator"
     Icon="/AIUsageMonitor.Desktop;component/assets/apo-icon.ico"
-    Width="1180"
-    Height="760"
-    MinWidth="860"
-    MinHeight="580"
+    Width="1440"
+    Height="920"
+    MinWidth="980"
+    MinHeight="650"
     Background="{DynamicResource AppBackgroundBrush}"
     Foreground="{DynamicResource TextPrimaryBrush}"
     FontFamily="{DynamicResource BrandBodyFontFamily}"
@@ -24,6 +24,15 @@
 
         <!-- Shared by the Projects registry and New Project onboarding templates. -->
         <Style x:Key="ProjectInputComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource BrandComboBoxStyle}" />
+        <Style x:Key="ExecutionInputTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource SurfaceMutedBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="FontFamily" Value="{DynamicResource BrandBodyFontFamily}" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
         <Style x:Key="ProjectFieldLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource EyebrowTextStyle}">
             <Setter Property="Foreground" Value="{StaticResource BrandMutedTextBrush}" />
             <Setter Property="Margin" Value="0,0,0,5" />
@@ -542,6 +551,100 @@
             </ScrollViewer>
         </DataTemplate>
 
+        <DataTemplate DataType="{x:Type vm:ExecutionViewModel}">
+            <ScrollViewer Padding="28" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="EXECUTION" Style="{StaticResource EyebrowTextStyle}" />
+                            <TextBlock Text="Turn a bounded request into a truthful run" Margin="0,8,0,0" Style="{StaticResource DisplayTitleStyle}" FontSize="28" />
+                            <TextBlock Text="Prepare creates the durable contract, graph, route, handoff, workspace, and recovery checkpoint. Start delegates to the bounded execution service." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Style="{StaticResource StatusChipStyle}" VerticalAlignment="Top" Padding="12,7">
+                            <TextBlock Text="{Binding StateText}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" AutomationProperties.Name="Execution state" />
+                        </Border>
+                    </Grid>
+
+                    <Grid Margin="0,20,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.25*" MinWidth="360" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="1*" MinWidth="300" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="BOUNDED WORK REQUEST" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="Owner input" Margin="0,6,0,0" Style="{StaticResource SectionHeadingStyle}" />
+                                <TextBlock Text="PROJECT" Margin="0,18,0,5" Style="{StaticResource EyebrowTextStyle}" />
+                                <ComboBox ItemsSource="{Binding ProjectOptions}" SelectedItem="{Binding SelectedProject, Mode=TwoWay}" DisplayMemberPath="DisplayText" Style="{StaticResource BrandComboBoxStyle}" AutomationProperties.Name="Execution project selector" />
+                                <TextBlock Text="TITLE" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AutomationProperties.Name="Bounded request title" />
+                                <TextBlock Text="OBJECTIVE" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBox Text="{Binding Objective, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Bounded request objective" />
+                                <TextBlock Text="WORK ITEM REFERENCE (OPTIONAL)" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBox Text="{Binding WorkItemReference, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AutomationProperties.Name="Optional work item reference" />
+                                <TextBlock Text="ACCEPTANCE CRITERIA (ONE PER LINE)" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBox Text="{Binding AcceptanceCriteria, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="86" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Bounded request acceptance criteria" />
+                                <TextBlock Text="CONSTRAINTS (OPTIONAL, ONE PER LINE)" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBox Text="{Binding Constraints, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Bounded request constraints" />
+                                <TextBlock Text="VALIDATION EXPECTATIONS (OPTIONAL, ONE PER LINE)" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBox Text="{Binding ValidationExpectations, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Bounded request validation expectations" />
+                                <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+                                    <Button Content="Prepare" Command="{Binding PrepareCommand}" AutomationProperties.Name="Prepare bounded execution" Style="{StaticResource PrimaryButtonStyle}" />
+                                    <Button Content="Start" Command="{Binding StartCommand}" AutomationProperties.Name="Start bounded execution" Margin="8,0,0,0" Style="{StaticResource SecondaryButtonStyle}" />
+                                    <Button Content="Cancel" Command="{Binding CancelCommand}" AutomationProperties.Name="Cancel bounded execution" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding ErrorMessage}" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="{DynamicResource BrandErrorBrush}" AutomationProperties.Name="Execution error" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel Grid.Column="2">
+                            <Border Style="{StaticResource CardStyle}" Padding="20">
+                                <StackPanel>
+                                    <TextBlock Text="ROUTING" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="Resolved authority" Margin="0,6,0,0" Style="{StaticResource SectionHeadingStyle}" />
+                                    <TextBlock Text="Planner" Margin="0,16,0,3" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="{Binding PlannerText}" Style="{StaticResource BodyTextStyle}" />
+                                    <TextBlock Text="Executor" Margin="0,12,0,3" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="{Binding ExecutorText}" Style="{StaticResource BodyTextStyle}" />
+                                    <TextBlock Text="Reason codes" Margin="0,12,0,3" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="{Binding RouteReasonText}" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Margin="0,16,0,0" Style="{StaticResource CardStyle}" Padding="20">
+                                <StackPanel>
+                                    <TextBlock Text="RUN EVIDENCE" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="Durable preparation" Margin="0,6,0,0" Style="{StaticResource SectionHeadingStyle}" />
+                                    <TextBlock Text="Run ID" Margin="0,16,0,3" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="{Binding RunIdText}" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    <TextBlock Text="Workspace" Margin="0,12,0,3" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="{Binding WorkspaceText}" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    <TextBlock Text="Checkpoint" Margin="0,12,0,3" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="{Binding CheckpointText}" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    <TextBlock Text="Terminal result" Margin="0,12,0,3" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="{Binding TerminalResultText}" Style="{StaticResource BodyTextStyle}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding AdapterSummaryText}" Margin="0,6,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    <TextBlock Text="{Binding ValidationStateText}" Margin="0,14,0,0" TextWrapping="Wrap" Foreground="{DynamicResource BrandWarningBrush}" Style="{StaticResource CaptionTextStyle}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Margin="0,18,0,0" Style="{StaticResource CardStyle}" Padding="20" Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="NO REGISTERED PROJECTS" Style="{StaticResource EyebrowTextStyle}" />
+                            <TextBlock Text="Add an existing project before preparing execution." Margin="0,7,0,0" Style="{StaticResource SectionHeadingStyle}" />
+                            <TextBlock Text="Execution will not create project identity or guess a local workspace." Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:ProjectsViewModel}">
             <DataTemplate.Resources>
                 <Style x:Key="ProjectInputTextBoxStyle" TargetType="TextBox">
@@ -1038,7 +1141,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal">
-                    <Border Width="44" Height="44" Padding="7" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12">
+                    <Border Width="52" Height="52" Padding="6" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
                         <Image Source="/Assets/apo-icon.ico" Stretch="Uniform" />
                     </Border>
                     <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
@@ -1105,6 +1208,13 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <TextBlock Text="▰" FontSize="16" Foreground="{StaticResource BrandCyanBrush}" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="AI Providers" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+                        <Button Tag="{Binding IsExecutionSelected}" Command="{Binding ShowExecutionCommand}" AutomationProperties.Name="Execution" Style="{StaticResource WorkspaceNavButtonStyle}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="&gt;" FontSize="17" Foreground="{StaticResource BrandVioletBrush}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="Execution" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
                     </StackPanel>
