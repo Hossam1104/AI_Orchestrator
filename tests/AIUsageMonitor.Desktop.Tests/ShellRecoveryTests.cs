@@ -78,6 +78,30 @@ public sealed class ShellRecoveryTests
         Assert.Contains("ToggleThemeCommand", shell);
     }
 
+    [Fact]
+    public void FreshDesktopRunner_UsesOnlyNewValidatedOutput()
+    {
+        var root = FindRepositoryRoot();
+        var script = File.ReadAllText(Path.Combine(root, "scripts", "Run-FreshDesktop.ps1"));
+        var readme = File.ReadAllText(Path.Combine(root, "README.md"));
+
+        Assert.Contains("artifacts\\local-run\\win-x64", script);
+        Assert.Contains("[IO.Directory]::Delete($publishDirectory, $true)", script);
+        Assert.Contains("Get-Process -Name $processName", script);
+        Assert.Contains("dotnet publish", script);
+        Assert.Contains("Validate-PublishOutput.ps1", script);
+        Assert.Contains("Start-Process -FilePath $executablePath", script);
+        Assert.Contains("[switch] $SmokeTest", script);
+        Assert.Contains("Stop-Process -Id $process.Id -Force", script);
+        Assert.Contains("APPLICATION LEFT OPEN = YES", script);
+        Assert.Contains("artifacts/local-run/win-x64", readme);
+        Assert.DoesNotContain(
+            string.Join(Path.DirectorySeparatorChar, "publish", "win-x64", "AIUsageMonitor.Desktop.exe"),
+            readme,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("artifacts/", File.ReadAllText(Path.Combine(root, ".gitignore")));
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

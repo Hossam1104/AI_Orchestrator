@@ -9,6 +9,38 @@ inside it says `CURRENT` or `ACTIVE`.
 
 ---
 
+## CURRENT - APO-70 deterministic fresh desktop run workflow
+
+**Last Updated:** 12 September 2026 (deterministic fresh-run workflow implementation)
+
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = NOT PRESENTED / NOT APPROVED
+SOL ACCEPTANCE = PENDING FOR THE NEW HEAD
+
+The stale local root `publish/` output was removed. The canonical owner launch workflow is now
+`scripts/Run-FreshDesktop.ps1`: it captures current Git state, replaces only the ignored
+`artifacts/local-run/win-x64` output, performs a Release self-contained publish with the accepted
+`win-x64` profile, calls `scripts/Validate-PublishOutput.ps1`, hashes the exact executable, and
+launches only that newly created path. Default mode leaves the process running; `-SmokeTest` uses
+a bounded responding-window check and stops only the process it launched. No fallback executable
+or new runtime architecture was introduced.
+
+The root cause of the obsolete owner-visible UI was manual launch from an existing ignored publish
+directory that had not been recreated from the current repository state. Existing binaries are no
+longer current-run evidence under the repository contract.
+
+Validation on the implementation worktree: PowerShell parse PASS; focused fresh-run contract test
+1 / 1 passed; Release solution build PASS with 0 warnings / 0 errors; canonical solution tests
+1,310 passed / 0 failed / 0 skipped; fresh runner smoke mode PASS with publish validation PASS for
+`win-x64` (PE `0x8664`) and final smoke cleanup `APO PROCESS COUNT = 0`.
+
+No credentials, owner LocalAppData state, external repositories, merge, main push, force push,
+release, tag, deployment, or owner visual acceptance were performed.
+
 ## CURRENT — APO-70 architecture health, deep clean, and remediation
 
 **Last Updated:** 12 September 2026 (owner-authorized Opus execution session)

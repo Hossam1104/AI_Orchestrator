@@ -304,6 +304,17 @@ dotnet publish src/AIUsageMonitor.Desktop/AIUsageMonitor.Desktop.csproj `
   -p:PublishProfile=win-x64
 ```
 
+For an owner-visible local run, use the canonical fresh-run script:
+
+```powershell
+.\scripts\Run-FreshDesktop.ps1
+```
+
+It recreates `artifacts/local-run/win-x64`, publishes the current working tree in Release,
+validates the new self-contained executable, reports its Git state and SHA-256, and leaves that
+exact executable running. Use `-SmokeTest` for bounded startup verification and cleanup of only
+the process launched by the script. Existing binaries are not current-run evidence.
+
 The matching profiles for `win-x86` and `win-arm64` are in
 `src/AIUsageMonitor.Desktop/Properties/PublishProfiles/`. Build, test, and publish output should
 be treated as evidence only after the command completes successfully on the current checkout.
