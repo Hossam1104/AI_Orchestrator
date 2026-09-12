@@ -49,8 +49,11 @@ boundary:
   surface as an unobserved task exception attributed to unrelated code.
 - **Deferred CI findings.** `OPUS-33-02` (timing-sensitive test) now races a deterministic signal
   instead of sleeping; `OPUS-33-03` (suite completeness) is self-enforcing — CI fails if a test
-  project exists outside the canonical list; `OPUS-33-04` (job timeouts) is bounded on both jobs.
-  Checkout no longer persists its token, as no job writes to the repository.
+  project exists outside the canonical list; `OPUS-33-04` (job timeouts) is bounded on both jobs;
+  `OPUS-33-05` (Actions major-version / Node runtime hardening) moves checkout, setup-dotnet, and
+  upload-artifact off the deprecated Node 20 runtime, which a CI run on this branch was annotating
+  on every job. Checkout no longer persists its token, as no job writes to the repository. All four
+  deferred APO-33 findings are now remediated.
 - **Tooling.** The Codex host's Serena MCP registration uses the `codex` context instead of the
   `claude-code` context.
 
