@@ -20,7 +20,7 @@ public sealed class BoundedProviderProcessRunner : IProviderProcessRunner
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var workingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var workingDirectory = request.WorkingDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (string.IsNullOrWhiteSpace(workingDirectory) || !Path.IsPathFullyQualified(workingDirectory))
         {
             workingDirectory = Environment.CurrentDirectory;

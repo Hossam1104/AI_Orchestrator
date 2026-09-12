@@ -94,6 +94,7 @@ public enum ExecutionPreparationStage
     None,
     ProjectContext,
     Repository,
+    Planning,
     PlanningContract,
     WorkGraph,
     Routing,
@@ -113,6 +114,8 @@ public enum ExecutionPreparationStatus
     RepositoryUnavailable,
     RepositoryNotClean,
     PlannerUnavailable,
+    PlannerFailed,
+    PlannerInvalid,
     PlanningContractFailed,
     WorkGraphFailed,
     RoutingFailed,
@@ -229,6 +232,8 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
     private readonly IPlanningExecutionContractService _contracts;
     private readonly IWorkGraphService _graphs;
     private readonly IRoutingDecisionService _routing;
+    private readonly IExecutableRoutingPolicyResolver _routingPolicy;
+    private readonly IPlannerAdapterResolver _planners;
     private readonly IHandoffPackageService _handoffs;
     private readonly IWorkspacePreparationPlanningService _workspacePlanning;
     private readonly IWorkspacePreparationService _workspace;
@@ -249,6 +254,8 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
         IPlanningExecutionContractService contracts,
         IWorkGraphService graphs,
         IRoutingDecisionService routing,
+        IExecutableRoutingPolicyResolver routingPolicy,
+        IPlannerAdapterResolver planners,
         IHandoffPackageService handoffs,
         IWorkspacePreparationPlanningService workspacePlanning,
         IWorkspacePreparationService workspace,
@@ -262,6 +269,8 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
         _contracts = contracts ?? throw new ArgumentNullException(nameof(contracts));
         _graphs = graphs ?? throw new ArgumentNullException(nameof(graphs));
         _routing = routing ?? throw new ArgumentNullException(nameof(routing));
+        _routingPolicy = routingPolicy ?? throw new ArgumentNullException(nameof(routingPolicy));
+        _planners = planners ?? throw new ArgumentNullException(nameof(planners));
         _handoffs = handoffs ?? throw new ArgumentNullException(nameof(handoffs));
         _workspacePlanning = workspacePlanning ?? throw new ArgumentNullException(nameof(workspacePlanning));
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
@@ -343,10 +352,39 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
             }
 
             var now = _clock.UtcNow;
-            var contractId = Guid.NewGuid();
             var planner = plannerCandidates[0];
+            var plannerAdapter = _planners.Resolve(planner);
+            if (!plannerAdapter.Succeeded || plannerAdapter.Adapter is null)
+            {
+                return await FailAsync(ExecutionPreparationStatus.PlannerUnavailable, ExecutionPreparationStage.Planning, plannerAdapter.ErrorMessage ?? "No exact planner adapter is available.").ConfigureAwait(false);
+            }
+
+            var plannerResult = await plannerAdapter.Adapter.PlanAsync(
+                    new PlannerInvocationRequest(planner, request, view.Project.LocalPath, TimeSpan.FromMinutes(10)),
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!plannerResult.Succeeded || plannerResult.Plan is null)
+            {
+                var plannerStatus = plannerResult.Status switch
+                {
+                    PlannerInvocationStatus.Cancelled => ExecutionPreparationStatus.Cancelled,
+                    PlannerInvocationStatus.InvalidResult => ExecutionPreparationStatus.PlannerInvalid,
+                    PlannerInvocationStatus.Failed or PlannerInvocationStatus.TimedOut => ExecutionPreparationStatus.PlannerFailed,
+                    _ => ExecutionPreparationStatus.PlannerUnavailable
+                };
+                return await FailAsync(plannerStatus, ExecutionPreparationStage.Planning, plannerResult.ErrorMessage ?? "The configured planner did not produce a valid result.").ConfigureAwait(false);
+            }
+
+            var plannerValidation = PlannerPlanValidator.Validate(plannerResult.Plan, request, planner);
+            if (plannerValidation is not null)
+            {
+                return await FailAsync(ExecutionPreparationStatus.PlannerInvalid, ExecutionPreparationStage.Planning, plannerValidation).ConfigureAwait(false);
+            }
+
+            var plan = plannerResult.Plan;
+            var contractId = Guid.NewGuid();
             var safeTitle = _redaction.Redact(request.Title).Value;
-            var safeObjective = _redaction.Redact(request.Objective).Value;
+            var safeObjective = _redaction.Redact(plan.NormalizedObjective).Value;
             var contractResult = await _contracts.CreateAsync(new PlanningExecutionContractRequest(
                 request.ProjectId,
                 contractId,
@@ -358,14 +396,14 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
                     request.WorkItemReference ?? $"desktop:{request.RequestId:D}",
                     safeTitle),
                 new PlanningRepositoryTarget(PlanningRepositoryMode.LocalGit, view.Project.LocalPath, repository.BranchName, repository.HeadSha),
-                [new PlanningScopeClause("objective", safeObjective)],
-                request.Constraints.Select((value, index) => new PlanningScopeClause($"constraint-{index + 1}", _redaction.Redact(value).Value)).ToArray(),
+                plan.IncludedScope.Select((value, index) => new PlanningScopeClause($"scope-{index + 1}", _redaction.Redact(value).Value)).Concat([new PlanningScopeClause("objective", safeObjective)]).ToArray(),
+                plan.Constraints.Select((value, index) => new PlanningScopeClause($"constraint-{index + 1}", _redaction.Redact(value).Value)).ToArray(),
                 [new PlanningScopeClause("forbidden-default", "Do not modify files outside the approved bounded work request or its prepared workspace.")],
                 [new PlanningDeliverable("bounded-result", "Complete the approved bounded request and return truthful execution evidence.", true)],
-                BuildValidations(request.ValidationExpectations),
-                request.AcceptanceCriteria.Select((value, index) => new PlanningAcceptanceCriterion($"criterion-{index + 1}", _redaction.Redact(value).Value, true)).ToArray(),
-                [new PlanningExecutionBudget(PlanningBudgetKind.Attempts, 1), new PlanningExecutionBudget(PlanningBudgetKind.ElapsedMinutes, 30)],
-                BuildStopConditions()), cancellationToken).ConfigureAwait(false);
+                plan.ValidationExpectations,
+                plan.AcceptanceCriteria.Select((value, index) => new PlanningAcceptanceCriterion($"criterion-{index + 1}", _redaction.Redact(value).Value, true)).ToArray(),
+                plan.ExecutionBudgets,
+                plan.StopConditions), cancellationToken).ConfigureAwait(false);
             if (!contractResult.Succeeded || contractResult.Contract is null)
             {
                 return await FailAsync(ExecutionPreparationStatus.PlanningContractFailed, ExecutionPreparationStage.PlanningContract, contractResult.ErrorMessage ?? contractResult.Status.ToString()).ConfigureAwait(false);
@@ -385,30 +423,22 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
                 return await FailAsync(ExecutionPreparationStatus.WorkGraphFailed, ExecutionPreparationStage.WorkGraph, graphResult.ErrorMessage ?? graphResult.Status.ToString()).ConfigureAwait(false);
             }
 
-            var policyId = view.Context.RoutingPolicyReference ?? $"desktop-routing:{request.ProjectId:D}";
-            if (_redaction.ValidateIdentityText(policyId).RequiresRedaction)
+            var policyResult = await _routingPolicy.ResolveAsync(
+                    request.ProjectId,
+                    plan.Classification,
+                    view.Context.RoutingPolicyReference,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (!policyResult.Succeeded || policyResult.Policy is null)
             {
-                return await FailAsync(ExecutionPreparationStatus.RoutingFailed, ExecutionPreparationStage.Routing, "The project routing policy reference crossed the redaction boundary.").ConfigureAwait(false);
+                return await FailAsync(ExecutionPreparationStatus.RoutingFailed, ExecutionPreparationStage.Routing, policyResult.ErrorMessage ?? "The executable routing policy could not be resolved.").ConfigureAwait(false);
             }
 
-            var policy = new RoutingPolicySnapshot(
-                policyId,
-                request.Classification.RequiredRole,
-                capacityRequirement: request.Classification.CapacityRequirement,
-                independentReviewRequired: request.Classification.IndependentReviewRequired,
-                securityReviewRequired: request.Classification.SecurityReviewRequired,
-                ownerApprovalRequired: request.Classification.OwnerApprovalRequired,
-                requireSupportedConnection: request.Classification.RequiresSupportedConnection,
-                requireVerifiedAvailability: request.Classification.RequiresVerifiedAvailability,
-                requireAuthenticatedAccess: request.Classification.RequiresAuthenticatedAccess,
-                requireVerifiedEntitlement: request.Classification.RequiresVerifiedEntitlement,
-                policyReference: view.Context.RoutingPolicyReference,
-                reason: "Owner-authored bounded work request.");
             var routingResult = await _routing.CreateAsync(new RoutingDecisionRequest(
                 request.ProjectId,
                 contract.Reference,
-                request.Classification,
-                policy), cancellationToken).ConfigureAwait(false);
+                plan.Classification,
+                policyResult.Policy), cancellationToken).ConfigureAwait(false);
             if (!routingResult.Succeeded || routingResult.Decision is null || routingResult.Decision.SelectedAgentId is null)
             {
                 return await FailAsync(ExecutionPreparationStatus.RoutingFailed, ExecutionPreparationStage.Routing, routingResult.ErrorMessage ?? "Routing produced no eligible executor.").ConfigureAwait(false);
@@ -657,30 +687,6 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
 
         return new(status, stage, ErrorMessage: message);
     }
-
-    private static IReadOnlyList<PlanningValidationRequirement> BuildValidations(IReadOnlyList<string> expectations)
-    {
-        if (expectations.Count == 0)
-        {
-            return [new PlanningValidationRequirement("manual-review", PlanningValidationKind.ManualInspection, "Owner reviews the bounded result and evidence.", true)];
-        }
-
-        return expectations
-            .Select((value, index) => new PlanningValidationRequirement($"expectation-{index + 1}", PlanningValidationKind.Custom, value, false))
-            .ToArray();
-    }
-
-    private static IReadOnlyList<PlanningStopCondition> BuildStopConditions() =>
-    [
-        new("immutable-target-moved", PlanningStopConditionKind.ImmutableTargetMoved, "Stop if the source identity no longer matches the prepared authority."),
-        new("scope-violation", PlanningStopConditionKind.ScopeViolation, "Stop if the bounded request would exceed its approved scope."),
-        new("validation-failure", PlanningStopConditionKind.ValidationFailure, "Stop when a required validation fails."),
-        new("budget-exceeded", PlanningStopConditionKind.BudgetExceeded, "Stop after the one-attempt or elapsed-time budget is exhausted."),
-        new("credential-required", PlanningStopConditionKind.CredentialRequired, "Stop when required access is unavailable."),
-        new("owner-approval-required", PlanningStopConditionKind.OwnerApprovalRequired, "Stop when a new owner decision is required."),
-        new("context-insufficient", PlanningStopConditionKind.ContextInsufficient, "Stop when project context is no longer sufficient."),
-        new("security-boundary", PlanningStopConditionKind.SecurityBoundaryReached, "Stop at a security boundary or redaction failure.")
-    ];
 
     private static ExecutionCoordinatorState MapState(BoundedExecutionStatus status) =>
         status switch

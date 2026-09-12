@@ -101,6 +101,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IRoutingInputAssembler, RoutingInputAssembler>();
         services.AddSingleton<IRoutingDecisionEngine, RoutingDecisionEngine>();
         services.AddSingleton<IRoutingDecisionService, RoutingDecisionService>();
+        services.AddSingleton<IExecutableRoutingPolicyResolver, ExecutableRoutingPolicyResolver>();
+        services.AddSingleton<IPlannerAdapterResolver, PlannerAdapterResolver>();
         services.AddSingleton<JsonProjectOrchestrationStore>();
         services.AddSingleton<IProjectOrchestrationStore>(service => service.GetRequiredService<JsonProjectOrchestrationStore>());
         services.AddSingleton<IReviewMetadataReader>(service => service.GetRequiredService<JsonProjectOrchestrationStore>());

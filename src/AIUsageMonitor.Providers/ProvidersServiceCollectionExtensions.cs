@@ -1,6 +1,9 @@
 using AIUsageMonitor.Application.Providers;
 using AIUsageMonitor.Application.Delivery;
 using AIUsageMonitor.Application.RemoteEvidence;
+using AIUsageMonitor.Application.Handoffs;
+using AIUsageMonitor.Application.Orchestration;
+using AIUsageMonitor.Application.Planning;
 using AIUsageMonitor.Application.Trackers;
 using AIUsageMonitor.Providers.Antigravity;
 using AIUsageMonitor.Providers.Claude;
@@ -112,6 +115,8 @@ public static class ProvidersServiceCollectionExtensions
             provider.GetRequiredService<AIUsageMonitor.Application.Time.IClock>(),
             provider.GetRequiredService<IExecutableLocator>(),
             provider.GetService<IProviderProcessRunner>()));
+        services.AddSingleton<IPlannerAdapter, CodexPlannerAdapter>();
+        services.AddSingleton<IExecutionAdapter, CodexExecutionAdapter>();
         services.AddSingleton<AntigravityProvider>();
         services.AddSingleton<JiraWorkItemTrackerAdapter>();
         services.AddSingleton<IWorkItemTrackerAdapter>(provider => provider.GetRequiredService<JiraWorkItemTrackerAdapter>());

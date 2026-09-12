@@ -60,7 +60,8 @@ public enum ProviderProcessOutcome
 public sealed record ProviderProcessRequest(
     string ExecutablePath,
     IReadOnlyList<string> Arguments,
-    TimeSpan Timeout);
+    TimeSpan Timeout,
+    string? WorkingDirectory = null);
 
 public sealed record ProviderProcessResult(
     ProviderProcessOutcome Outcome,

@@ -1,8 +1,10 @@
 using System.IO;
 using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.MissionControl;
+using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Projects;
 using AIUsageMonitor.Application.Planning;
+using AIUsageMonitor.Application.Routing;
 using AIUsageMonitor.Application.Trackers;
 using AIUsageMonitor.Desktop.ViewModels;
 using AIUsageMonitor.Infrastructure;
@@ -129,6 +131,17 @@ public sealed class ProductionCompositionTests : IDisposable
 
         Assert.NotNull(provider.GetRequiredService<IPlanningExecutionContractRepository>());
         Assert.NotNull(provider.GetRequiredService<IPlanningExecutionContractService>());
+    }
+
+    [Fact]
+    public void ProductionComposition_ResolvesExactPlannerExecutionAndPolicyServices()
+    {
+        using var provider = BuildProvider();
+
+        Assert.Single(provider.GetServices<IPlannerAdapter>());
+        Assert.Single(provider.GetServices<IExecutionAdapter>());
+        Assert.NotNull(provider.GetRequiredService<IPlannerAdapterResolver>());
+        Assert.NotNull(provider.GetRequiredService<IExecutableRoutingPolicyResolver>());
     }
 
     [Fact]

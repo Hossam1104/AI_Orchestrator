@@ -596,6 +596,8 @@ internal sealed class RoutingPolicyRecord
     public int? MaxRetries { get; set; }
     public int? MaxReviewRemediationCycles { get; set; }
     public Dictionary<string, string?> Rules { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public List<Guid>? PreferredAgentIds { get; set; }
+    public List<Guid>? ProhibitedAgentIds { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
     public static RoutingPolicyRecord FromApplication(RoutingPolicy value) => new()
@@ -607,6 +609,8 @@ internal sealed class RoutingPolicyRecord
         MaxRetries = value.MaxRetries,
         MaxReviewRemediationCycles = value.MaxReviewRemediationCycles,
         Rules = new Dictionary<string, string?>(value.Rules, StringComparer.OrdinalIgnoreCase),
+        PreferredAgentIds = value.PreferredAgentIds?.ToList(),
+        ProhibitedAgentIds = value.ProhibitedAgentIds?.ToList(),
         UpdatedAt = value.UpdatedAt
     };
 
@@ -618,7 +622,9 @@ internal sealed class RoutingPolicyRecord
         MaxRetries,
         MaxReviewRemediationCycles,
         UpdatedAt,
-        Rules);
+        Rules,
+        PreferredAgentIds,
+        ProhibitedAgentIds);
 }
 
 public sealed class ExecutionRunRecord
