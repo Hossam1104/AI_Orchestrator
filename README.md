@@ -71,8 +71,9 @@ implemented. See [Current implementation status](#current-implementation-status)
 
 ## Orchestration flow
 
-The following is the target product flow. Several stages are still planned and must not be read as
-an assertion that the autonomous runtime exists today.
+The following is the target product flow. APO-70 now implements the bounded planner-to-executor
+slice for an explicitly configured local Codex channel; the full autonomous lifecycle remains
+gated by validation, review, acceptance, and delivery authorities.
 
 ```mermaid
 flowchart TD
@@ -106,7 +107,7 @@ APO is an active foundation, not a finished orchestration product.
 | :white_check_mark: Implemented / validated | APO-38..43 control-plane contracts and services: agent/model truth, progressive onboarding, versioned contracts, dependency-aware work graphs, structured handoffs, and durable Smart Continue/recovery state |
 | :white_check_mark: Implemented / validated | APO-44..46 bounded execution foundation: explainable quality-first routing, isolated workspaces, and bounded cancellable execution with project/authority/recovery safeguards |
 | :white_check_mark: Implemented / validated | APO-68 workspace-preparation hardening: fail-closed approval-index recovery, mutation timeout safety, repository lock identity, and inherited Git-environment hardening |
-| :warning: Partial / validated | APO-70 owner-authored Execution workspace and Application coordinator now create the exact contract, graph, routing, handoff, workspace, recovery, and bounded-request authorities; production Start remains fail-closed until a provider-specific `IExecutionAdapter` is registered |
+| :warning: Partial / validated | APO-70 owner-authored Execution workspace, real structured local Codex planner, exact Codex executor adapter, centralized policy resolution, and durable authorities; live provider execution remains fail-closed until an explicit model-configured pair passes isolated smoke |
 | :white_check_mark: Implemented / validated | APO-47 tracker-agnostic Jira work-item and dependency synchronization with bounded reads, explicit mutation authority, post-verification, and audit evidence |
 | :white_check_mark: Implemented / validated | Official provider capacity adapter surfaces for Codex, Claude, Kimi, GitHub Copilot, and Antigravity, with documented manual/unsupported boundaries |
 | :white_check_mark: Implemented / validated | APO-62 provider-independent, read-only remote SCM and CI evidence (GitHub and Azure Repos) |
@@ -124,8 +125,9 @@ tree `f152699b89b4c1f498c3dbb4357ee07ac00fda77`, merge SHA
 at that earlier acceptance point, `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
 
 Not yet implemented: full consumer capacity surfaces beyond the documented adapter boundaries,
-provider-specific bounded execution adapters/end-to-end autonomous provider execution, tracker
-automation, and the full APO-15 dashboard.
+end-to-end autonomous provider execution across the complete planner/review/acceptance/delivery
+lifecycle, tracker automation, and the full APO-15 dashboard. APO-70 currently supports only the
+bounded local Codex adapter path described above; Claude execution remains unsupported.
 The durable control-plane contracts, bounded execution safeguards, and bounded Jira tracker slice in
 APO-38 through APO-47 and APO-68 are implemented; APO-62 provider-independent, read-only remote
 SCM/CI evidence (GitHub and Azure Repos) is also delivered. APO-48 independent validation evidence
@@ -193,7 +195,7 @@ migration require their own planner-approved work.
 APO follows a quality- and risk-first operating policy. Capacity can inform routing, but it never
 overrides capability, risk, or the required review gate. These are project roles and target policy;
 the routing service is implemented, while provider execution and end-to-end autonomous orchestration
-remain bounded future work.
+remain bounded future work beyond the explicitly configured local Codex slice delivered by APO-70.
 
 | Model | Default role |
 | --- | --- |

@@ -24,8 +24,11 @@ This assigned APO-70 slice also includes the smallest safe owner-facing executio
   bounded-service state;
 - no raw prompt, internal authority GUID, direct provider process, or arbitrary command is exposed
   from WPF;
-- if no exact production `IExecutionAdapter` is registered, Start must remain visibly and
-  truthfully `AdapterUnsupported`; this is a proven architectural blocker, not a simulated run.
+- production composition registers a real Codex local-session planner/executor path; it may run only
+  for an explicitly configured OpenAI/Cli model with an authenticated local session, otherwise the
+  coordinator and bounded service fail closed without a simulated result;
+- planner output is structured, application-validated, and becomes the durable contract/routing
+  authority before workspace preparation or execution.
 
 Validation and delivery remain bounded to this branch and Draft PR #112. Do not merge, push `main`,
 create a release/tag/deployment, close Issue #111, or claim owner/Sol acceptance.
