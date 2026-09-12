@@ -35,7 +35,9 @@ public interface IProviderRegistry
         var isLocalSession = provider.Code is ProviderCode.Codex or ProviderCode.Claude;
         var supportsRefresh = provider.Code is not (ProviderCode.Codex or ProviderCode.Antigravity);
         return ProviderDefinition.BuiltIn(
-            Guid.NewGuid(),
+            // A fresh identifier per call would make FindDefinition(id) unable to ever match a
+            // definition this same contract handed out a moment earlier.
+            BuiltInProviderIdentity.ForProvider(provider.Code),
             provider.Code,
             provider.Code switch
             {

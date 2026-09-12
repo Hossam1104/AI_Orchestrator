@@ -21,7 +21,9 @@ public static class ProvidersServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IExecutableLocator, SystemExecutableLocator>();
+        // The locator carries a test-only PATH seam, so its constructor is selected explicitly
+        // rather than by DI convention.
+        services.AddSingleton<IExecutableLocator>(_ => new SystemExecutableLocator());
         services.TryAddSingleton<CopilotOptions>();
         services.TryAddSingleton<AnthropicOptions>();
         services.TryAddSingleton<KimiOptions>();

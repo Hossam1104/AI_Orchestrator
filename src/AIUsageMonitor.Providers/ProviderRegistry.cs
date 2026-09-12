@@ -82,7 +82,7 @@ public sealed class ProviderRegistry : IProviderRegistry
             {
                 if (definition.Kind != ProviderKind.Custom ||
                     _definitions.ContainsKey(definition.Id) ||
-                    HasDuplicateDisplayName(definition.DisplayName, definition.Id))
+                    HasDuplicateDisplayName(definition.DisplayName, definition.DisplayLabel, definition.Id))
                 {
                     continue;
                 }
@@ -114,7 +114,7 @@ public sealed class ProviderRegistry : IProviderRegistry
                 throw new InvalidOperationException("Built-in providers cannot be replaced by custom registration.");
             }
 
-            if (HasDuplicateDisplayName(displayName, edit.Id))
+            if (HasDuplicateDisplayName(displayName, edit.DisplayLabel, edit.Id))
             {
                 throw new ArgumentException("A provider with this display name is already registered.", nameof(edit));
             }
@@ -238,15 +238,24 @@ public sealed class ProviderRegistry : IProviderRegistry
             description: description);
     }
 
-    private bool HasDuplicateDisplayName(string displayName, Guid? exceptId)
+    /// <summary>
+    /// Compares the label an operator actually sees on both sides. A display label overrides the
+    /// display name in every provider surface, so checking only the raw name would let two
+    /// registrations render under one identical title.
+    /// </summary>
+    private bool HasDuplicateDisplayName(string displayName, string? displayLabel, Guid? exceptId)
     {
+        var candidate = NormalizeName(EffectiveName(displayName, displayLabel));
         return _definitions.Values.Any(definition =>
             definition.Id != exceptId &&
             string.Equals(
                 NormalizeName(definition.EffectiveDisplayName),
-                NormalizeName(displayName),
+                candidate,
                 StringComparison.OrdinalIgnoreCase));
     }
+
+    private static string EffectiveName(string displayName, string? displayLabel) =>
+        string.IsNullOrWhiteSpace(displayLabel) ? displayName : displayLabel;
 
     private int NextCustomSortOrder() =>
         _definitions.Values
