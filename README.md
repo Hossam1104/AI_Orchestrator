@@ -320,6 +320,10 @@ PR #109 at `c139ce188b71ebbc8035f0d1046ec15e2419cf4b`. The accepted PR run `3447
 post-merge `main` run `34486056095` passed; the canonical suite reported 1,249 passed / 0 failed /
 0 skipped.
 
+That is the evidence for `main`. The unmerged APO-70 branch has since grown the suite to 1,309
+passed / 0 failed / 0 skipped with a Release build of 0 warnings / 0 errors; that work is neither
+accepted nor on `main`, and its exact-head run is recorded on PR #112.
+
 ## Documentation
 
 - [Business Requirements Document](docs/BRD.md)

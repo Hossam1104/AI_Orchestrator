@@ -67,8 +67,40 @@ release, tag, and deployment = NONE.
 
 ### Validation evidence
 
-Recorded in the final validation section of this file once the exact pushed head has been verified
-remotely. Owner visual acceptance is a separate human gate and is never claimed by this session.
+RELEASE BUILD = PASS / 0 warnings / 0 errors
+CANONICAL TESTS = 1,309 passed / 0 failed / 0 skipped
+
+| Test project | Passed | Failed | Skipped |
+|---|---|---|---|
+| `AIUsageMonitor.Domain.Tests` | 28 | 0 | 0 |
+| `AIUsageMonitor.Connection.Tests` | 306 | 0 | 0 |
+| `AIUsageMonitor.Provider.Tests` | 196 | 0 | 0 |
+| `AIUsageMonitor.Desktop.Tests` | 104 | 0 | 0 |
+| `AIUsageMonitor.Infrastructure.Tests` | 675 | 0 | 0 |
+
+Focused runs for every area changed in this round:
+
+- provider identity and executable resolution — 14 / 14 passed;
+- shell lifetime, Mission Control, and the project folder picker — 12 / 12 passed;
+- deterministic WPF visual render — 1 / 1 passed;
+- bounded process host, workspace preparation, and settings persistence — 157 / 157 passed.
+
+PUBLISH VALIDATION = PASS for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64`
+(PE `0xAA64`), each self-contained and each checked by `scripts/Validate-PublishOutput.ps1`.
+
+Runtime check: the published `win-x64` executable, SHA-256
+`68719641C59FD349C2C4FEFC48B48E1BF88FF6C18631E366C9C22B65A98837ED`, was launched against a
+disposable temporary state root with no owner credential and no production state. It presented the
+`AI Orchestrator` window, responded, wrote only inside that disposable root, and logged no warning
+or error. The process was then stopped: `APO PROCESS COUNT = 0`,
+`APPLICATION LEFT RUNNING = NO`, and the disposable root was deleted.
+
+Remote CI is verified against the exact pushed head; the run identifier is recorded on PR #112.
+
+AUTOMATED VISUAL VALIDATION = PASS (deterministic structural render assertions only).
+OWNER VISUAL ACCEPTANCE = NOT PRESENTED / NOT APPROVED. Automated render checks are not owner
+visual acceptance and this session does not claim it. No interactive owner walkthrough was
+performed by this session.
 
 ---
 
