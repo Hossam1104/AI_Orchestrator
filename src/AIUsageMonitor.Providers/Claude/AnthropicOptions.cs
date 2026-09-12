@@ -1,3 +1,5 @@
+using AIUsageMonitor.Domain.Providers;
+
 namespace AIUsageMonitor.Providers.Claude;
 
 /// <summary>
@@ -8,4 +10,5 @@ public sealed class AnthropicOptions
 {
     public string? CredentialReference { get; init; }
     public DateTimeOffset? StartingAt { get; init; }
+    public ProviderAuthenticationMode AuthenticationMode { get; init; } = ProviderAuthenticationMode.LocalSession;
 }

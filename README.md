@@ -25,8 +25,13 @@
 
 `FAST V1 CLOSEOUT MODE` is complete. APO-48, APO-51, APO-49, APO-63, APO-50, and APO-33 are
 delivered and accepted. APO-33 merged through PR #109, and GitHub Actions CI is active on `main`.
-The active implementation current gate is `NONE`. The next planner boundary is the Final V1
-Release Audit, which has not started; v1.0.0 has not been released.
+The next planner boundary is the Final V1 Release Audit, which has not started; v1.0.0 has not been
+released.
+
+The active implementation gate is **APO-70 (GitHub issue #111)**, V1 desktop product recovery, on
+branch `feature/APO-70-v1-desktop-product-recovery` and open as a Draft PR. It is not merged and
+not accepted: owner visual acceptance and Sol acceptance both remain outstanding. The V1 release
+freeze holds — no tag, release, or deployment has been created.
 
 V1 execution is focused on OpenAI, Claude, and Antigravity Plus. `COPILOT = POST-V1`, and all new
 inactive-provider-specific work is deferred until after V1. No new provider integration enters V1
@@ -66,8 +71,9 @@ implemented. See [Current implementation status](#current-implementation-status)
 
 ## Orchestration flow
 
-The following is the target product flow. Several stages are still planned and must not be read as
-an assertion that the autonomous runtime exists today.
+The following is the target product flow. APO-70 now implements the bounded planner-to-executor
+slice for an explicitly configured local Codex channel; the full autonomous lifecycle remains
+gated by validation, review, acceptance, and delivery authorities.
 
 ```mermaid
 flowchart TD
@@ -101,6 +107,7 @@ APO is an active foundation, not a finished orchestration product.
 | :white_check_mark: Implemented / validated | APO-38..43 control-plane contracts and services: agent/model truth, progressive onboarding, versioned contracts, dependency-aware work graphs, structured handoffs, and durable Smart Continue/recovery state |
 | :white_check_mark: Implemented / validated | APO-44..46 bounded execution foundation: explainable quality-first routing, isolated workspaces, and bounded cancellable execution with project/authority/recovery safeguards |
 | :white_check_mark: Implemented / validated | APO-68 workspace-preparation hardening: fail-closed approval-index recovery, mutation timeout safety, repository lock identity, and inherited Git-environment hardening |
+| :warning: Partial / validated | APO-70 owner-authored Execution workspace, real structured local Codex planner, exact Codex executor adapter, centralized policy resolution, and durable authorities; live provider execution remains fail-closed until an explicit model-configured pair passes isolated smoke |
 | :white_check_mark: Implemented / validated | APO-47 tracker-agnostic Jira work-item and dependency synchronization with bounded reads, explicit mutation authority, post-verification, and audit evidence |
 | :white_check_mark: Implemented / validated | Official provider capacity adapter surfaces for Codex, Claude, Kimi, GitHub Copilot, and Antigravity, with documented manual/unsupported boundaries |
 | :white_check_mark: Implemented / validated | APO-62 provider-independent, read-only remote SCM and CI evidence (GitHub and Azure Repos) |
@@ -118,7 +125,9 @@ tree `f152699b89b4c1f498c3dbb4357ee07ac00fda77`, merge SHA
 at that earlier acceptance point, `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
 
 Not yet implemented: full consumer capacity surfaces beyond the documented adapter boundaries,
-end-to-end autonomous provider execution, tracker automation, and the full APO-15 dashboard.
+end-to-end autonomous provider execution across the complete planner/review/acceptance/delivery
+lifecycle, tracker automation, and the full APO-15 dashboard. APO-70 currently supports only the
+bounded local Codex adapter path described above; Claude execution remains unsupported.
 The durable control-plane contracts, bounded execution safeguards, and bounded Jira tracker slice in
 APO-38 through APO-47 and APO-68 are implemented; APO-62 provider-independent, read-only remote
 SCM/CI evidence (GitHub and Azure Repos) is also delivered. APO-48 independent validation evidence
@@ -186,7 +195,7 @@ migration require their own planner-approved work.
 APO follows a quality- and risk-first operating policy. Capacity can inform routing, but it never
 overrides capability, risk, or the required review gate. These are project roles and target policy;
 the routing service is implemented, while provider execution and end-to-end autonomous orchestration
-remain bounded future work.
+remain bounded future work beyond the explicitly configured local Codex slice delivered by APO-70.
 
 | Model | Default role |
 | --- | --- |
@@ -248,7 +257,11 @@ AI_Orchestrator/
 |   |-- IMPLEMENTATION_PLAN.md
 |   |-- LEGACY_IMPLEMENTATION_MAP.md
 |   |-- STRATEGIC_ROADMAP.md
-|   `-- SESSION_PROMPTS.md
+|   |-- SESSION_PROMPTS.md
+|   |-- APO-31_PROVIDER_EVIDENCE.md
+|   `-- evidence/ (retained acceptance screenshots)
+|-- scripts/Validate-PublishOutput.ps1
+|-- .github/workflows/ci.yml
 |-- src/
 |   |-- AIUsageMonitor.Desktop/
 |   |   `-- Resources/ (WPF brand dictionaries)
@@ -279,12 +292,32 @@ dotnet build AIUsageMonitor.sln
 dotnet test AIUsageMonitor.sln
 ```
 
+The desktop test project builds for the `x64` platform. Running it on its own, rather than through
+the solution, needs that platform stated explicitly or the run will silently execute a stale
+`AnyCPU` assembly:
+
+```powershell
+dotnet test tests/AIUsageMonitor.Desktop.Tests/AIUsageMonitor.Desktop.Tests.csproj `
+  -p:Platform=x64
+```
+
 For a self-contained Windows artifact, use one of the desktop publish profiles:
 
 ```powershell
 dotnet publish src/AIUsageMonitor.Desktop/AIUsageMonitor.Desktop.csproj `
   -p:PublishProfile=win-x64
 ```
+
+For an owner-visible local run, use the canonical fresh-run script:
+
+```powershell
+.\scripts\Run-FreshDesktop.ps1
+```
+
+It recreates `artifacts/local-run/win-x64`, publishes the current working tree in Release,
+validates the new self-contained executable, reports its Git state and SHA-256, and leaves that
+exact executable running. Use `-SmokeTest` for bounded startup verification and cleanup of only
+the process launched by the script. Existing binaries are not current-run evidence.
 
 The matching profiles for `win-x86` and `win-arm64` are in
 `src/AIUsageMonitor.Desktop/Properties/PublishProfiles/`. Build, test, and publish output should
@@ -301,6 +334,10 @@ truth for their self-contained, single-file settings. APO-33 was Sol-accepted an
 PR #109 at `c139ce188b71ebbc8035f0d1046ec15e2419cf4b`. The accepted PR run `34478101086` and the
 post-merge `main` run `34486056095` passed; the canonical suite reported 1,249 passed / 0 failed /
 0 skipped.
+
+That is the evidence for `main`. The unmerged APO-70 branch has since grown the suite to 1,309
+passed / 0 failed / 0 skipped with a Release build of 0 warnings / 0 errors; that work is neither
+accepted nor on `main`, and its exact-head run is recorded on PR #112.
 
 ## Documentation
 
@@ -322,7 +359,8 @@ shipped runtime claims:
 1. **Delivered P0 control plane — APO-38..46 and APO-68:** agent/model truth, progressive onboarding, contracts, dependency graphs, handoffs, durable recovery, quality-first routing, bounded execution, isolated workspaces, and workspace-preparation hardening.
 2. **P0 tracker/evidence inputs — APO-47 and APO-62 delivered:** Jira/Azure Boards awareness (APO-47) and read-only remote SCM/CI evidence (APO-62) are both delivered.
 3. **P0 evidence, approval, and delivery — APO-48, APO-49, and APO-63 delivered:** independent QA evidence, gates, human approval policy, and controlled remote delivery are accepted.
-4. **P0 Mission Control — APO-50:** one evidence-backed command-center read model and surface.
+4. **P0 Mission Control — APO-50 delivered:** one evidence-backed command-center read model and
+   surface, accepted.
 5. **P1 acceleration — APO-51..56:** APO-51 Review Inbox is delivered and accepted; later P1 capabilities remain deferred until separately authorized.
 6. **P2 controlled expansion — APO-57..58:** bounded background housekeeping and optional remote approval security design.
 7. **P3 remaining/planned hardening — APO-59..61 (Jira: To Do):** APO-37 evidence bounds, verification UX truthfulness, and explicit real-Git availability semantics.

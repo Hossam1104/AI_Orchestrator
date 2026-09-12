@@ -552,8 +552,12 @@ public sealed class OfficialProviderAdapterTests
         var services = new ServiceCollection();
         services.AddSingleton<IClock>(new TestClock());
         services.AddSingleton<ISecureCredentialStore>(credentials);
+        services.AddSingleton(new AnthropicOptions
+        {
+            CredentialReference = "anthropic-admin",
+            AuthenticationMode = ProviderAuthenticationMode.ApiKey
+        });
         services.AddProviders();
-        services.AddSingleton(new AnthropicOptions { CredentialReference = "anthropic-admin" });
         services.AddHttpClient(ClaudeProvider.HttpClientName, client => client.BaseAddress = redirectProbe.OriginUri);
 
         using var serviceProvider = services.BuildServiceProvider();

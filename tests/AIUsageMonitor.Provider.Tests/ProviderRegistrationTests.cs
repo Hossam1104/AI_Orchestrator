@@ -46,15 +46,18 @@ public sealed class ProviderRegistrationTests
         using var serviceProvider = services.BuildServiceProvider();
         var registry = serviceProvider.GetRequiredService<AIUsageMonitor.Application.Providers.IProviderRegistry>();
 
-        Assert.Equal(Enum.GetValues<ProviderCode>().Length, registry.GetAll().Count);
+        Assert.Equal(3, registry.GetAll().Count);
         Assert.Equal(
-            Enum.GetValues<ProviderCode>().OrderBy(code => code),
+            new[] { ProviderCode.Codex, ProviderCode.Claude, ProviderCode.Antigravity },
             registry.GetAll().Select(provider => provider.Code));
 
-        foreach (var code in Enum.GetValues<ProviderCode>())
+        foreach (var code in new[] { ProviderCode.Codex, ProviderCode.Claude, ProviderCode.Antigravity })
         {
             Assert.NotNull(registry.Find(code));
         }
+
+        Assert.Null(registry.Find(ProviderCode.Kimi));
+        Assert.Null(registry.Find(ProviderCode.Copilot));
     }
 
     [Fact]

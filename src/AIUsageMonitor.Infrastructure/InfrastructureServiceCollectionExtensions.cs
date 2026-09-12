@@ -58,6 +58,7 @@ public static class InfrastructureServiceCollectionExtensions
 
         services.AddSingleton<IUsageSnapshotRepository, JsonUsageSnapshotRepository>();
         services.AddSingleton<IProviderRepository, JsonProviderRepository>();
+        services.AddSingleton<IProviderDefinitionRepository, JsonProviderDefinitionRepository>();
         services.AddSingleton<IProviderConnectionRepository, JsonProviderConnectionRepository>();
         services.AddSingleton<IProviderConnectionService, ProviderConnectionService>();
         services.AddSingleton<ISubscriptionService, JsonSubscriptionService>();
@@ -75,6 +76,11 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IDefaultAgentCatalog, DefaultAgentCatalog>();
         services.AddSingleton<IProjectContextReferenceRepository, JsonProjectContextReferenceRepository>();
         services.AddSingleton<IProjectContextResolver, ProjectContextResolver>();
+
+        // The folder-picker preference has a test/host seam for the directory probe and default
+        // root, so its constructor is selected explicitly rather than by DI convention.
+        services.AddSingleton<IProjectFolderPreferenceService>(service =>
+            new ProjectFolderPreferenceService(service.GetRequiredService<ISettingsService>()));
         services.AddSingleton<IProjectOnboardingService, ProjectOnboardingService>();
         services.AddSingleton<IPlanningExecutionContractRepository, JsonPlanningExecutionContractRepository>();
         services.AddSingleton<IPlanningExecutionContractService, PlanningExecutionContractService>();
@@ -95,6 +101,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IRoutingInputAssembler, RoutingInputAssembler>();
         services.AddSingleton<IRoutingDecisionEngine, RoutingDecisionEngine>();
         services.AddSingleton<IRoutingDecisionService, RoutingDecisionService>();
+        services.AddSingleton<IExecutableRoutingPolicyResolver, ExecutableRoutingPolicyResolver>();
+        services.AddSingleton<IPlannerAdapterResolver, PlannerAdapterResolver>();
         services.AddSingleton<JsonProjectOrchestrationStore>();
         services.AddSingleton<IProjectOrchestrationStore>(service => service.GetRequiredService<JsonProjectOrchestrationStore>());
         services.AddSingleton<IReviewMetadataReader>(service => service.GetRequiredService<JsonProjectOrchestrationStore>());
@@ -104,7 +112,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IExecutionAdapterResolver, ExecutionAdapterResolver>();
         services.AddSingleton<IExecutionBudgetTimeoutProvider, ExecutionBudgetTimeoutProvider>();
         services.AddSingleton<IBoundedExecutionService, BoundedExecutionService>();
+        services.AddSingleton<IExecutionCoordinator, ExecutionCoordinator>();
         services.AddSingleton<IBoundedProcessHost, BoundedProcessHost>();
+        services.AddSingleton<IProviderProcessRunner, BoundedProviderProcessRunner>();
         services.AddSingleton<IManagedWorkspacePathProvider, ManagedWorkspacePathProvider>();
         services.AddSingleton<IWorkspaceRepository, GitWorkspaceRepository>();
         services.AddSingleton<IWorkspacePreparedWorkspaceVerifier>(service =>

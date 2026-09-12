@@ -1,35 +1,70 @@
-# AI_Orchestrator — Planner Handoff
+# AI_Orchestrator — APO-70 V1 Desktop Product Recovery
 
-**Project:** `AI_Orchestrator`
-**Mode:** `FINAL V1 PLANNER BOUNDARY`
+**Mode:** BOUNDED EXECUTION CONTRACT
+**Tracker:** GitHub issue #111 (`APO-70`)
+**Branch:** `feature/APO-70-v1-desktop-product-recovery`
+**Base:** `origin/main` at `d7c1231df9ea1a4d008aa473210d0ccc735c0302`
 
-## Current authority
+## Scope
 
-- Active tracker: GitHub Issues in `Hossam1104/AI_Orchestrator`.
-- APO-33 is **COMPLETE** and Sol accepted.
-- Issue #71 is **CLOSED / COMPLETED** with `status:done`; `status:review` and `current-gate` are absent.
-- PR #109 is **MERGED** into `main` at `c139ce188b71ebbc8035f0d1046ec15e2419cf4b`.
-- GitHub Actions CI is **IMPLEMENTED / ACTIVE**. Post-merge main run `34486056095` passed for the merge SHA.
-- Supported publish RIDs: `win-x86`, `win-x64`, and `win-arm64`.
-- Active implementation current gate: **NONE**.
-- Final V1 Release Audit: **NOT STARTED**.
-- v1.0.0: **NOT RELEASED**.
+Recover the V1 WPF desktop shell using the accepted RMS Support Hub visual system while retaining
+AI Orchestrator identity and existing application/domain services. Complete the bounded visual and
+functional surface work for Mission Control, Projects, AI Capacity, truthful global status, theme
+switching, native local-path selection, and Post-V1 navigation treatment.
 
-## Closeout evidence
+## Current execution slice
 
-- Sol-accepted PR head: `33cec23df6774957008e44befac91cb7a9725413`.
-- Accepted PR CI run: `34478101086` passed with restore/build/test and all three publish legs successful.
-- Canonical tests: `1,249 passed / 0 failed / 0 skipped`.
-- OPUS-33-01 and OPUS-33-06 are fixed.
-- OPUS-33-02, OPUS-33-03, OPUS-33-04, and OPUS-33-05 remain deferred, non-blocking inputs to the Final V1 Release Audit.
-- Jira was not modified. No release, tag, deployment, or Final V1 Release Audit work was performed.
+This assigned APO-70 slice also includes the smallest safe owner-facing execution workflow:
 
-## Planner boundary
+- an Application `IExecutionCoordinator` converts bounded owner intent into the existing planning
+  contract, work graph, routing decision, handoff, workspace preparation, recovery checkpoint, and
+  exact `BoundedExecutionRequest` authorities;
+- the Desktop Execution workspace allows explicit project selection, title/objective/criteria/
+  constraint authoring, Prepare, Start, and Cancel actions, and displays only real coordinator and
+  bounded-service state;
+- no raw prompt, internal authority GUID, direct provider process, or arbitrary command is exposed
+  from WPF;
+- production composition registers a real Codex local-session planner/executor path; it may run only
+  for an explicitly configured OpenAI/Cli model with an authenticated local session, otherwise the
+  coordinator and bounded service fail closed without a simulated result;
+- planner output is structured, application-validated, and becomes the durable contract/routing
+  authority before workspace preparation or execution.
 
-Next authority is **GPT-5.6 Sol** for Final V1 Release Audit planning.
+Validation and delivery remain bounded to this branch and Draft PR #112. Do not merge, push `main`,
+create a release/tag/deployment, close Issue #111, or claim owner/Sol acceptance.
 
-- No automatic Final V1 Release Audit is authorized.
-- No automatic v1.0.0 release is authorized.
-- A new standalone lowercase `p` from the owner is required before any new executor/reviewer prompt is generated.
+## Rounds on this branch
 
-This file is a planner handoff, not an active executor contract. Do not begin the audit or release from this handoff alone.
+APO-70 is one gate delivered over successive rounds on the same branch. All of them are still
+unmerged and unaccepted:
+
+1. **Desktop product recovery** — the RMS-family visual system, shell treatment, truthful global
+   state pill, theme switching, native local-path selection, Post-V1 navigation treatment.
+2. **Provider authentication and dynamic registry** — local-session-first Codex/Claude
+   authentication, optional API-key fallback, registry-driven AI Providers page, generic custom
+   providers, explicit availability/authentication/capacity states.
+3. **Architecture health, deep clean, and remediation** (owner-authorized Opus execution exception,
+   named scope) — the project-folder selection gap, shell lifetime, selection-refresh disposal,
+   provider identity, rendered-name collisions, executable resolution, bounded process-host
+   lifetime, the deferred CI findings, and documentation/governance reconciliation. Detail and
+   evidence are in [`.ai/CURRENT_STATE.md`](.ai/CURRENT_STATE.md).
+
+## Acceptance evidence
+
+- RMS reference source inspected at `D:\AI Tools\Active Projects\RMS_Support_Hub`.
+- Light and dark semantic themes, shared cards/controls, header, sidebar, status pills, and
+  keyboard/focus behavior are covered by source and automated checks.
+- Existing project, Mission Control, provider, persistence, and credential-reference services are
+  reused; no fake runtime data, tokens, database, browser, or new provider is authorized.
+- Release build, full tests, and `win-x86`, `win-x64`, and `win-arm64` publish validation are
+  required before PR handoff.
+- Owner visual acceptance is required before merge or release promotion. Automated render checks are
+  not owner visual acceptance and never satisfy this gate.
+
+## Governance boundaries
+
+- V1 release remains frozen. Do not create a tag, release, deployment, or release assets.
+- Use one feature branch and one Draft PR against `main`; do not merge or bypass protection.
+- Jira is historical provenance only; no Jira writes.
+- Agents and Activity remain Post-V1 and must not appear as shipped primary navigation.
+- Stop at the Sol acceptance boundary after validation and PR handoff.

@@ -27,12 +27,18 @@ jobs:
   validate:
     name: Restore, build, and test
     runs-on: windows-2022
+    # The suite includes WPF tests that drive a real dispatcher. Without an explicit bound a hung
+    # STA thread would hold a runner for the six-hour GitHub default instead of failing.
+    timeout-minutes: 45
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          # No job here writes to the repository, so the checkout token is not left in .git/config.
+          persist-credentials: false
 
       - name: Set up .NET 10 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
@@ -59,6 +65,18 @@ jobs:
             @{ Path = 'tests/AIUsageMonitor.Desktop.Tests/AIUsageMonitor.Desktop.Tests.csproj'; Arguments = @('-p:Platform=x64') },
             @{ Path = 'tests/AIUsageMonitor.Infrastructure.Tests/AIUsageMonitor.Infrastructure.Tests.csproj'; Arguments = @() }
           )
+          # The list is explicit because the Desktop project needs its own platform argument, so it
+          # cannot be inferred. It is checked against the repository instead, otherwise a newly
+          # added test project would be skipped by a green run that claims to be the whole suite.
+          $discovered = Get-ChildItem -Path tests -Recurse -Filter '*.Tests.csproj' |
+            ForEach-Object { (Resolve-Path -Relative $_.FullName) -replace '\\', '/' -replace '^\./', '' }
+          $declared = $testProjects | ForEach-Object { $_.Path }
+          $missing = $discovered | Where-Object { $declared -notcontains $_ }
+          if ($missing) {
+            Write-Error "These test projects exist but are not in the canonical suite: $($missing -join ', ')"
+            exit 1
+          }
+
           foreach ($testProject in $testProjects) {
             Write-Host "Running tests in $($testProject.Path)"
             dotnet test $testProject.Path --configuration $env:CONFIGURATION --no-build --no-restore --nologo `
@@ -72,7 +90,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AI_Orchestrator-test-results
           path: TestResults/**/*.trx
@@ -83,6 +101,7 @@ jobs:
     name: Publish ${{ matrix.rid }}
     needs: validate
     runs-on: windows-2022
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -95,10 +114,12 @@ jobs:
       PUBLISH_DIRECTORY: artifacts/publish/${{ matrix.rid }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up .NET 10 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
@@ -127,7 +148,7 @@ jobs:
             -RuntimeIdentifier $env:RID
 
       - name: Upload ${{ matrix.rid }} package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AI_Orchestrator-Release-${{ matrix.rid }}
           path: ${{ env.PUBLISH_DIRECTORY }}

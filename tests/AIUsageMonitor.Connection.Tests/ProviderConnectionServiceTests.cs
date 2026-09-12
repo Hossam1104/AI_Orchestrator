@@ -44,6 +44,35 @@ public sealed class ProviderConnectionServiceTests
     }
 
     [Fact]
+    public async Task CustomApiKey_UsesStableIdNamespaceAndNeverPersistsSecretMaterial()
+    {
+        using var store = new TemporaryStore();
+        var repository = new JsonProviderConnectionRepository(
+            store.Paths,
+            store.Files,
+            NullLogger<JsonProviderConnectionRepository>.Instance);
+        var credentials = new FakeCredentialStore();
+        var service = CreateService(repository, credentials, new FakeRuntimeSettingsUpdater());
+        var providerId = Guid.Parse("d9dfed05-6c31-4d16-a4ca-7fc5c36e6df7");
+
+        var saved = await service.SaveAsync(ProviderConnectionEdit.ForProvider(
+            providerId,
+            ProviderConnectionType.ApiKey,
+            new Dictionary<string, string?>
+            {
+                [ProviderConnectionConfigurationKeys.AuthenticationMode] = ProviderAuthenticationMode.ApiKey.ToString(),
+                [ProviderConnectionConfigurationKeys.CapacityMode] = ProviderCapacityMode.Unavailable.ToString()
+            },
+            secret: "custom-secret-material"));
+
+        Assert.StartsWith($"apo-custom-{providerId:N}-", saved.CredentialReference, StringComparison.Ordinal);
+        Assert.Equal("custom-secret-material", await credentials.RetrieveAsync(saved.CredentialReference!));
+        var json = await File.ReadAllTextAsync(store.Paths.ConnectionsFile);
+        Assert.DoesNotContain("custom-secret-material", json, StringComparison.Ordinal);
+        Assert.Contains(providerId.ToString("N"), saved.CredentialReference, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task FailedPersistence_RemovesStagedCredential_AndPreservesPreviousReference()
     {
         var repository = new InMemoryConnectionRepository { FailWrites = true };

@@ -1,0 +1,117 @@
+using System.IO;
+using System.Xml.Linq;
+using AIUsageMonitor.Desktop.ViewModels;
+
+namespace AIUsageMonitor.Desktop.Tests;
+
+public sealed class ShellRecoveryTests
+{
+    [Fact]
+    public void GlobalStatus_DescribesLocalPersistenceTruthfully()
+    {
+        var viewModel = new MainWindowViewModel(new AiCapacityViewModel());
+
+        Assert.Equal("SETUP REQUIRED", viewModel.GlobalStatusText);
+
+        viewModel.SetPersistenceAvailability(true);
+
+        Assert.Equal("LOCAL READY", viewModel.GlobalStatusText);
+    }
+
+    [Fact]
+    public void PrimaryNavigation_ChangesTheActiveWorkspace()
+    {
+        var viewModel = new MainWindowViewModel(new AiCapacityViewModel());
+
+        viewModel.ShowProjectsCommand.Execute(null);
+        Assert.Same(viewModel.Projects, viewModel.ActiveWorkspace);
+        Assert.True(viewModel.IsProjectsSelected);
+
+        viewModel.ShowAiCapacityCommand.Execute(null);
+        Assert.Same(viewModel.AiCapacity, viewModel.ActiveWorkspace);
+        Assert.True(viewModel.IsAiCapacitySelected);
+
+        viewModel.ShowMissionControlCommand.Execute(null);
+        Assert.Same(viewModel.MissionControl, viewModel.ActiveWorkspace);
+        Assert.True(viewModel.IsMissionControlSelected);
+    }
+
+    [Fact]
+    public void ThemeResources_ExposeLightDarkTokensAndShellHasNoRejectedClaims()
+    {
+        var root = FindRepositoryRoot();
+        var light = XDocument.Load(Path.Combine(root, "src", "AIUsageMonitor.Desktop", "Resources", "Colors.xaml"));
+        var theme = XDocument.Load(Path.Combine(root, "src", "AIUsageMonitor.Desktop", "Resources", "Theme.xaml"));
+        var dark = XDocument.Load(Path.Combine(root, "src", "AIUsageMonitor.Desktop", "Resources", "Theme.Dark.xaml"));
+        var shell = File.ReadAllText(Path.Combine(root, "src", "AIUsageMonitor.Desktop", "MainWindow.xaml"));
+        var brushes = File.ReadAllText(Path.Combine(root, "src", "AIUsageMonitor.Desktop", "Resources", "Brushes.xaml"));
+        var controls = File.ReadAllText(Path.Combine(root, "src", "AIUsageMonitor.Desktop", "Resources", "Controls.xaml"));
+
+        var xNamespace = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml");
+        var lightKeys = light.Descendants().Select(element => (string?)element.Attribute(xNamespace + "Key")).ToArray();
+        var darkKeys = dark.Descendants().Select(element => (string?)element.Attribute(xNamespace + "Key")).ToArray();
+
+        Assert.Contains("CanvasColor", lightKeys);
+        Assert.Contains("TextPrimaryColor", lightKeys);
+        Assert.Contains("ThemeVariant", lightKeys);
+        Assert.Contains("CanvasColor", darkKeys);
+        Assert.Contains("ThemeVariant", darkKeys);
+        Assert.Contains("Colors.xaml", theme.ToString());
+        Assert.Contains("NavigationSelectedGradientBrush", brushes);
+        Assert.Contains("BrandFocusBrush", brushes);
+        Assert.Contains("StatusPillStyle", controls);
+        Assert.Contains("AI Orchestrator", shell);
+        Assert.Contains("AI PROJECT ORCHESTRATOR", shell);
+        Assert.Contains("Add Existing Project", shell);
+        Assert.Contains("Mission Control", shell);
+        Assert.Contains("AI Providers", shell);
+        Assert.Contains("Projects", shell);
+        Assert.DoesNotContain("Agents (planned)", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Activity (planned)", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CAPACITY READY", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Text=\"SOON\"", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("RMS+", shell, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("DBS", shell, StringComparison.OrdinalIgnoreCase);
+
+        var app = File.ReadAllText(Path.Combine(root, "src", "AIUsageMonitor.Desktop", "App.xaml.cs"));
+        Assert.Contains("ThemeManager.Apply(ThemeVariant.Light)", app);
+        Assert.Contains("ToggleThemeCommand", shell);
+    }
+
+    [Fact]
+    public void FreshDesktopRunner_UsesOnlyNewValidatedOutput()
+    {
+        var root = FindRepositoryRoot();
+        var script = File.ReadAllText(Path.Combine(root, "scripts", "Run-FreshDesktop.ps1"));
+        var readme = File.ReadAllText(Path.Combine(root, "README.md"));
+
+        Assert.Contains("artifacts\\local-run\\win-x64", script);
+        Assert.Contains("[IO.Directory]::Delete($publishDirectory, $true)", script);
+        Assert.Contains("Get-Process -Name $processName", script);
+        Assert.Contains("dotnet publish", script);
+        Assert.Contains("Validate-PublishOutput.ps1", script);
+        Assert.Contains("Start-Process -FilePath $executablePath", script);
+        Assert.Contains("[switch] $SmokeTest", script);
+        Assert.Contains("Stop-Process -Id $process.Id -Force", script);
+        Assert.Contains("APPLICATION LEFT OPEN = YES", script);
+        Assert.Contains("artifacts/local-run/win-x64", readme);
+        Assert.DoesNotContain(
+            string.Join(Path.DirectorySeparatorChar, "publish", "win-x64", "AIUsageMonitor.Desktop.exe"),
+            readme,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("artifacts/", File.ReadAllText(Path.Combine(root, ".gitignore")));
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "AIUsageMonitor.sln")))
+            {
+                return directory.FullName;
+            }
+        }
+
+        throw new DirectoryNotFoundException("The repository root could not be located from the test output directory.");
+    }
+}

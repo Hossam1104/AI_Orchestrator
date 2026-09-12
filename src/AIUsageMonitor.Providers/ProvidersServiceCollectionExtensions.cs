@@ -1,6 +1,9 @@
 using AIUsageMonitor.Application.Providers;
 using AIUsageMonitor.Application.Delivery;
 using AIUsageMonitor.Application.RemoteEvidence;
+using AIUsageMonitor.Application.Handoffs;
+using AIUsageMonitor.Application.Orchestration;
+using AIUsageMonitor.Application.Planning;
 using AIUsageMonitor.Application.Trackers;
 using AIUsageMonitor.Providers.Antigravity;
 using AIUsageMonitor.Providers.Claude;
@@ -11,6 +14,7 @@ using AIUsageMonitor.Providers.Kimi;
 using AIUsageMonitor.Providers.Jira;
 using AIUsageMonitor.Providers.Remote;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace AIUsageMonitor.Providers;
 
@@ -20,10 +24,12 @@ public static class ProvidersServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IExecutableLocator, SystemExecutableLocator>();
-        services.AddSingleton<CopilotOptions>();
-        services.AddSingleton<AnthropicOptions>();
-        services.AddSingleton<KimiOptions>();
+        // The locator carries a test-only PATH seam, so its constructor is selected explicitly
+        // rather than by DI convention.
+        services.AddSingleton<IExecutableLocator>(_ => new SystemExecutableLocator());
+        services.TryAddSingleton<CopilotOptions>();
+        services.TryAddSingleton<AnthropicOptions>();
+        services.TryAddSingleton<KimiOptions>();
         services.AddSingleton<IProviderRuntimeSettingsAccessor>(provider =>
             new ProviderRuntimeSettingsAccessor(
                 provider.GetRequiredService<CopilotOptions>(),
@@ -97,14 +103,20 @@ public static class ProvidersServiceCollectionExtensions
             provider.GetRequiredService<IHttpClientFactory>(),
             provider.GetRequiredService<AIUsageMonitor.Application.Security.ISecureCredentialStore>(),
             provider.GetRequiredService<IExecutableLocator>(),
-            provider.GetRequiredService<IProviderRuntimeSettingsAccessor>()));
+            provider.GetRequiredService<IProviderRuntimeSettingsAccessor>(),
+            provider.GetService<IProviderProcessRunner>()));
         services.AddSingleton<KimiProvider>(provider => new KimiProvider(
             provider.GetRequiredService<AIUsageMonitor.Application.Time.IClock>(),
             provider.GetRequiredService<IHttpClientFactory>(),
             provider.GetRequiredService<AIUsageMonitor.Application.Security.ISecureCredentialStore>(),
             provider.GetRequiredService<IExecutableLocator>(),
             provider.GetRequiredService<IProviderRuntimeSettingsAccessor>()));
-        services.AddSingleton<CodexProvider>();
+        services.AddSingleton<CodexProvider>(provider => new CodexProvider(
+            provider.GetRequiredService<AIUsageMonitor.Application.Time.IClock>(),
+            provider.GetRequiredService<IExecutableLocator>(),
+            provider.GetService<IProviderProcessRunner>()));
+        services.AddSingleton<IPlannerAdapter, CodexPlannerAdapter>();
+        services.AddSingleton<IExecutionAdapter, CodexExecutionAdapter>();
         services.AddSingleton<AntigravityProvider>();
         services.AddSingleton<JiraWorkItemTrackerAdapter>();
         services.AddSingleton<IWorkItemTrackerAdapter>(provider => provider.GetRequiredService<JiraWorkItemTrackerAdapter>());
@@ -124,11 +136,11 @@ public static class ProvidersServiceCollectionExtensions
 
         services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<CodexProvider>());
         services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<ClaudeProvider>());
-        services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<KimiProvider>());
-        services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<CopilotProvider>());
         services.AddSingleton<IAiUsageProvider>(provider => provider.GetRequiredService<AntigravityProvider>());
 
-        services.AddSingleton<IProviderRegistry, ProviderRegistry>();
+        services.AddSingleton<IProviderRegistry>(provider => new ProviderRegistry(
+            provider.GetServices<IAiUsageProvider>(),
+            provider.GetService<IProviderDefinitionRepository>()));
         services.AddSingleton<IProviderDiscoveryService, ProviderDiscoveryService>();
         return services;
     }

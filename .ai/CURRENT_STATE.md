@@ -1,8 +1,392 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 10 September 2026 (APO-33 controlled integration and final closeout)
+**Last Updated:** 13 September 2026 (APO-70 real local Codex vertical slice)
 
-## APO-33 final controlled integration closeout
+Only the sections above the `Historical record` divider describe the current state of the
+repository. Everything below that divider is retained evidence from a boundary that has already
+closed: it is preserved for provenance and must not be read as current status, even where a line
+inside it says `CURRENT` or `ACTIVE`.
+
+---
+
+## CURRENT - APO-70 execution spine and command center recovery
+
+**Last Updated:** 13 September 2026 (implementation commit cfa07dc; exact-head validation complete; acceptance pending)
+
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+CURRENT IMPLEMENTATION HEAD = `cfa07dc22d37a6948771bf9f651ae263dca2a14d`
+LOCAL DELIVERY HEAD = `720778c432a408f1c631d67c3ad2e6f9c8c8ba23`
+REMOTE FEATURE HEAD = `2227c2e8a7bd88cbc4c784b3e168c81e2179c0ec` (last verified; push blocked by GitHub connection)
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = PENDING / NOT CLAIMED
+OWNER FUNCTIONAL ACCEPTANCE = PENDING / NOT CLAIMED
+SOL ACCEPTANCE = PENDING ON THE FINAL EXACT HEAD
+
+The Application now exposes `IExecutionCoordinator` with a real planner boundary. It resolves one
+enabled planner, verifies the exact clean repository first, invokes one exact planner adapter, validates
+the structured provider-independent plan, and only then creates the immutable planning contract,
+single-node work graph, centralized persisted-policy routing decision, redacted planner-to-executor
+handoff, exact workspace plan and receipt, recovery checkpoint, and `BoundedExecutionRequest`.
+Planner output now carries normalized objective, included scope, typed validation expectations,
+acceptance criteria, constraints, routing classification, typed stop conditions, and bounded budgets;
+owner acceptance and constraints cannot be dropped. The persisted routing policy now carries typed
+preferred/prohibited agent ids, resolved by `IExecutableRoutingPolicyResolver` with project-over-global
+inheritance and default role metadata.
+
+Production composition now registers one exact local Codex planner and one exact local Codex executor.
+Both require a direct `.exe`, explicit OpenAI/Cli model identity, authenticated `codex login status`,
+bounded typed arguments, strict output schemas, redaction checks, cancellation/timeouts, and the
+prepared workspace. Planning uses `read-only`; execution uses `workspace-write`; APO does not invoke a
+shell or authorize commit, push, merge, deployment, or unrelated deletion. The default catalog still
+has Unknown connection/model metadata, so it fails closed until an eligible configured local Codex
+planner/executor pair exists. No fake Claude path or silent model fallback was added.
+
+The Desktop Execution workspace remains bounded and truthful. Its touched presentation is extracted
+to `Views/ExecutionView.xaml`; the shell continues to reuse the existing RMS-derived semantic cards,
+logo treatment, sidebar, light/dark resources, and focusable controls. No raw prompt, arbitrary command,
+credential, transcript, or fake progress path is exposed.
+
+Validation on implementation commit `cfa07dc22d37a6948771bf9f651ae263dca2a14d`: Release solution
+build PASS with 0 warnings / 0 errors; canonical solution tests 1,326 passed / 0 failed / 0 skipped
+(28 Domain, 312 Connection, 199 Provider, 112 Desktop, 675 Infrastructure); focused new planner,
+routing, adapter, and composition coverage PASS; `git diff --check` PASS; and self-contained
+single-file publish validation PASS for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and
+`win-arm64` (PE `0xAA64`). The installed direct Codex probe found
+`C:\Users\Win11\.vscode\extensions\openai.chatgpt-26.908.40401-win32-x64\bin\windows-x86_64\codex.exe`,
+version `codex-cli 0.154.0-alpha.6.2`, and login-status exit `0`; account/session output was not read
+or stored.
+
+Fresh current-run evidence on the clean implementation commit: `scripts/Run-FreshDesktop.ps1 -SmokeTest`
+published and launched `artifacts/local-run/win-x64/AIUsageMonitor.Desktop.exe` with
+SHA-256 `441EE78F1535E8882CBD4BB22630CB1590C43F94E7F370FDAC519879672CC431`; PID `60216`, title
+`AI Orchestrator`, responding, smoke test PASS, and stopped by the script. Computer Use still exposes
+no targetable native apps (`apps: []`), so owner visual/functional acceptance is not claimed. A live
+planner/executor invocation was not attempted because the product registry has no persisted explicit
+model configuration; this is a truthful configuration boundary, not a provider success claim.
+
+No merge, main push, force push, release, tag, deployment, tracker closure, credential access, or
+owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review, followed by
+owner visual/functional acceptance and, only after explicit model configuration, a separately authorized
+real bounded Codex execution attempt.
+
+Local delivery contains the implementation and evidence commits, but two push attempts failed before
+remote mutation with `Failed to connect to github.com:443`. PR #112 and Issue #111 were not updated after
+the failed push; rerun the bounded push/evidence handoff when GitHub connectivity is available.
+
+---
+
+## CURRENT - APO-70 owner-rejection functional recovery (this session)
+
+**Last Updated:** 12 September 2026 (bounded remediation and fresh owner-run evidence)
+
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+STARTING HEAD = `a8fdebe5e7dbf6e7500f733442f4304c015f7ecf`
+DELIVERED CODE HEAD = `58b9734555fb8d88d3c3f5aa0cc8c917e6c3795b`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = PENDING / NOT CLAIMED
+OWNER FUNCTIONAL ACCEPTANCE = PENDING / NOT CLAIMED
+SOL ACCEPTANCE = PENDING ON THE NEW EXACT HEAD
+
+This session reproduced the provider configuration defect in source: connection hydration applied
+authentication mode to the card but not the persisted capacity mode. The card now rehydrates the
+saved mode, rejects Automatic for Claude local-session authentication, and exposes the effective
+mode for regression coverage. The editor now derives capacity options from provider capability and
+authentication channel, explains the organization-API versus consumer-subscription boundary, and
+rejects impossible Automatic saves. Codex executable lookup now prefers a directly launchable image
+across PATH entries before `.cmd`/`.bat` wrappers; the machine's direct Codex status probe reported
+an authenticated session without reading or storing credentials. Claude's official local status
+probe reported logged-in truth; no output beyond the bounded boolean is exposed by the provider.
+
+Project onboarding command state now propagates through the shell: a healthy loaded registry enables
+`Add Existing Project`, and unavailable states expose a reason instead of a mysteriously disabled
+CTA. Provider cards use a wrapping panel with a bounded card width instead of a fixed three-column
+grid. This was the pre-coordinator baseline. The safe request-authoring boundary is now implemented
+in the newer execution-spine section above; the remaining P0 gap is the absence of a registered
+provider-specific bounded execution adapter.
+
+Validation: focused Desktop remediation tests 55 passed / 0 failed / 0 skipped; provider
+session/locator tests 14 passed / 0 failed / 0 skipped; full solution 1,314 passed / 0 failed / 0
+skipped (28 Domain, 306 Connection, 196 Provider, 109 Desktop, 675 Infrastructure); Release build
+0 warnings / 0 errors. Remote CI run `34715313646` passed on the delivered code head, including
+the canonical test job and win-x86, win-x64, and win-arm64 publish jobs. Fresh owner-run publish
+passed on that head at `2026-09-12T19:50:42Z`: executable
+`artifacts/local-run/win-x64/AIUsageMonitor.Desktop.exe`, SHA256
+`ABBB6987535CF74F5A8D629E11F3535507A8DCE47F059C3F1AD3099718D6D10B`, PID `25376`, title
+`AI Orchestrator`, responsive, one process, and explicitly left running. Interactive Windows
+validation is blocked because the Computer Use surface exposes no targetable native apps; no owner
+visual acceptance is claimed. PR evidence update is complete.
+
+No merge, main push, force push, release, tag, deployment, tracker closure, credential access, or
+owner acceptance was performed.
+
+---
+
+## CURRENT - APO-70 deterministic fresh desktop run workflow
+
+**Last Updated:** 12 September 2026 (deterministic fresh-run workflow implementation)
+
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = NOT PRESENTED / NOT APPROVED
+SOL ACCEPTANCE = PENDING FOR THE NEW HEAD
+
+The stale local root `publish/` output was removed. The canonical owner launch workflow is now
+`scripts/Run-FreshDesktop.ps1`: it captures current Git state, replaces only the ignored
+`artifacts/local-run/win-x64` output, performs a Release self-contained publish with the accepted
+`win-x64` profile, calls `scripts/Validate-PublishOutput.ps1`, hashes the exact executable, and
+launches only that newly created path. Default mode leaves the process running; `-SmokeTest` uses
+a bounded responding-window check and stops only the process it launched. No fallback executable
+or new runtime architecture was introduced.
+
+The root cause of the obsolete owner-visible UI was manual launch from an existing ignored publish
+directory that had not been recreated from the current repository state. Existing binaries are no
+longer current-run evidence under the repository contract.
+
+Validation on the implementation worktree: PowerShell parse PASS; focused fresh-run contract test
+1 / 1 passed; Release solution build PASS with 0 warnings / 0 errors; canonical solution tests
+1,310 passed / 0 failed / 0 skipped; fresh runner smoke mode PASS with publish validation PASS for
+`win-x64` (PE `0x8664`) and final smoke cleanup `APO PROCESS COUNT = 0`.
+
+No credentials, owner LocalAppData state, external repositories, merge, main push, force push,
+release, tag, deployment, or owner visual acceptance were performed.
+
+## CURRENT — APO-70 architecture health, deep clean, and remediation
+
+**Last Updated:** 12 September 2026 (owner-authorized Opus execution session)
+
+SESSION AUTHORITY = OWNER-AUTHORIZED OPUS EXECUTION EXCEPTION, NAMED SCOPE, NOT A NEW DEFAULT ROUTE
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = NOT PRESENTED / NOT APPROVED
+SOL ACCEPTANCE = PENDING
+
+This session continued APO-70 on the same branch as an audit-and-fix pass rather than a review
+report. Defects were repaired where they were proven and safely repairable inside the project
+boundary:
+
+- **Project folder selection (§11 gap).** The picker now prefers the last successfully used project
+  folder, then `D:\AI Tools\Active Projects`, then the ordinary Windows fallback. Nothing is
+  auto-registered or auto-selected, the preference is persisted through the existing
+  `ISettingsService` boundary rather than an ad-hoc repository write, and an absent directory
+  degrades truthfully instead of hard-failing on another machine.
+- **Shell lifetime.** `MainWindow` releases its static theme subscription on close, so a closed
+  shell no longer stays reachable from `ThemeManager`.
+- **Selection refresh.** A superseded selection no longer disposes the cancellation token of a
+  refresh that is still in flight.
+- **Provider identity.** The built-in provider identifier table moved to the Domain layer, and the
+  Application-layer registry contract stopped minting a fresh `Guid` per call, which had made
+  `FindDefinition(id)` unable to match a definition the same contract had just returned.
+- **Rendered-name collisions.** Duplicate detection now compares the label an operator actually
+  sees, so two registrations can no longer render under one identical title.
+- **Executable resolution.** The locator probes directory-major, extension-minor in Windows order
+  and prefers a directly launchable image, because the bounded process host runs with
+  `UseShellExecute` disabled, where Windows cannot launch a `.cmd`, `.bat`, or extensionless shim.
+  Such shims are still reported when they are the only match, so presence stays truthful.
+- **Bounded process host.** The timeout timer is cancelled on every exit path, output readers are
+  cancelled once the process exits, and abandoned readers are observed so a late fault cannot
+  surface as an unobserved task exception attributed to unrelated code.
+- **Deferred CI findings.** `OPUS-33-02` (timing-sensitive test) now races a deterministic signal
+  instead of sleeping; `OPUS-33-03` (suite completeness) is self-enforcing — CI fails if a test
+  project exists outside the canonical list; `OPUS-33-04` (job timeouts) is bounded on both jobs;
+  `OPUS-33-05` (Actions major-version / Node runtime hardening) moves checkout, setup-dotnet, and
+  upload-artifact off the deprecated Node 20 runtime, which a CI run on this branch was annotating
+  on every job. Checkout no longer persists its token, as no job writes to the repository. All four
+  deferred APO-33 findings are now remediated.
+- **Tooling.** The Codex host's Serena MCP registration uses the `codex` context instead of the
+  `claude-code` context.
+
+No credential value, token, or session secret is read, copied, logged, or persisted by any of this
+work; only opaque credential references are stored. Workspace discovery remains read-only. No demo
+project, fake provider, fake capacity, fake connected state, or fake tracker/CI data was added.
+
+Repository cleanliness audit: nothing to delete. The working tree is clean with no untracked files,
+every retained asset is referenced, and `docs/evidence/*.png` plus
+`.ai/history/CURRENT_STATE_ARCHIVE.md` are legitimate retained historical evidence.
+
+Jira writes = NONE. Merge, push to `main`, force push, history rewrite, branch-protection bypass,
+release, tag, and deployment = NONE.
+
+### Validation evidence
+
+RELEASE BUILD = PASS / 0 warnings / 0 errors
+CANONICAL TESTS = 1,309 passed / 0 failed / 0 skipped
+
+| Test project | Passed | Failed | Skipped |
+|---|---|---|---|
+| `AIUsageMonitor.Domain.Tests` | 28 | 0 | 0 |
+| `AIUsageMonitor.Connection.Tests` | 306 | 0 | 0 |
+| `AIUsageMonitor.Provider.Tests` | 196 | 0 | 0 |
+| `AIUsageMonitor.Desktop.Tests` | 104 | 0 | 0 |
+| `AIUsageMonitor.Infrastructure.Tests` | 675 | 0 | 0 |
+
+Focused runs for every area changed in this round:
+
+- provider identity and executable resolution — 14 / 14 passed;
+- shell lifetime, Mission Control, and the project folder picker — 12 / 12 passed;
+- deterministic WPF visual render — 1 / 1 passed;
+- bounded process host, workspace preparation, and settings persistence — 157 / 157 passed.
+
+PUBLISH VALIDATION = PASS for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64`
+(PE `0xAA64`), each self-contained and each checked by `scripts/Validate-PublishOutput.ps1`.
+
+Runtime check: the published `win-x64` executable, SHA-256
+`68719641C59FD349C2C4FEFC48B48E1BF88FF6C18631E366C9C22B65A98837ED`, was launched against a
+disposable temporary state root with no owner credential and no production state. It presented the
+`AI Orchestrator` window, responded, wrote only inside that disposable root, and logged no warning
+or error. The process was then stopped: `APO PROCESS COUNT = 0`,
+`APPLICATION LEFT RUNNING = NO`, and the disposable root was deleted.
+
+Remote CI is verified against the exact pushed head; the run identifier is recorded on PR #112.
+
+AUTOMATED VISUAL VALIDATION = PASS (deterministic structural render assertions only).
+OWNER VISUAL ACCEPTANCE = NOT PRESENTED / NOT APPROVED. Automated render checks are not owner
+visual acceptance and this session does not claim it. No interactive owner walkthrough was
+performed by this session.
+
+---
+
+## CURRENT — APO-70 provider-authentication and dynamic-registry scope
+
+Delivered earlier on this same branch and still part of the unmerged APO-70 gate. The test and CI
+figures quoted in this section are the figures of that earlier session; the current counts are in
+the final validation section of this file.
+
+**Last Updated:** 11 September 2026 (APO-70 provider-authentication and dynamic-registry implementation; exact-head CI passed; owner visual acceptance pending)
+
+REMEDIATION STATUS = IMPLEMENTED / PENDING OWNER VISUAL ACCEPTANCE
+REMEDIATION SCOPE = local-session-first Codex/Claude authentication, optional API-key fallback, dynamic provider registry, generic custom providers, explicit availability/authentication/capacity states
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+
+This same-branch remediation keeps the existing recovery shell and replaces the rejected fixed
+provider-authentication surface with a registry-driven AI Providers page. The default catalog is
+Codex, Claude, and Antigravity; Kimi and GitHub Copilot remain supported only as legacy persisted
+data/compatibility adapters and are not default cards. Codex and Claude default to local-session
+authentication, with explicit optional API-key mode. Custom provider definitions support safe
+metadata, external/manual or API-key authentication, truthful manual/unavailable capacity, stable
+IDs, secure credential references, persistence, and registration-only removal. No provider
+credentials, file contents, remote mutations, demo data, release, tag, or merge were added.
+
+Validation evidence: Release build passed with 0 warnings / 0 errors; the full solution passed
+1,273 / 1,273 with 0 failures and 0 skips; the focused WPF visual render passed 1 / 1 and retained
+15 deterministic PNGs, including light/dark AI Providers, custom manual registration, local-session
+and API-key editor states, and the existing recovery shell states. `win-x86`, `win-x64`, and
+`win-arm64` self-contained publish outputs passed `scripts/Validate-PublishOutput.ps1`. Exact-head
+remote CI run `34641371944` passed its canonical test job and all three publish jobs for commit
+`b87d4bcfcd052e9552c357ef4f0c2cf379fb21cf`. The final local x64 executable is
+`C:\Users\Win11\AppData\Local\Temp\apo70-publish-final-1c818b1ec8f14c049837d2eb6e845491\win-x64\AIUsageMonitor.Desktop.exe`
+with SHA-256 `8B2AE035910C6A21AA3DB6D201445069BE89B5AEBE793459EB2CE127911DED35`. Computer
+Use returned no targetable apps (`apps: []`) and its trusted RPC was unavailable, so owner
+interactive visual acceptance is not claimed. The manual fallback x64 process is running from an
+isolated temp root with no credential entry (PID `45068`, title `AI Orchestrator`, responding).
+
+Read-only local tooling observation: Codex tooling was detected and its supported CLI status command
+reported an authenticated session; Claude tooling was detected and `claude auth status --json`
+reported an authenticated session. APO does not copy either session credential. The application
+detector invokes only native executable paths through the bounded no-shell process host; if a local
+wrapper cannot be safely invoked, its UI remains `authentication not machine-verifiable` rather than
+claiming a false result.
+
+The branch remains unmerged and release frozen pending Sol review and the owner's visual response.
+
+## CURRENT — APO-70 V1 desktop product recovery scope
+
+Delivered first on this same branch and still part of the unmerged APO-70 gate. The test and CI
+figures quoted in this section are the figures of that session; the current counts are in the final
+validation section of this file.
+
+**Last Updated:** 11 September 2026 (APO-70 acceptance completion; release remains frozen)
+
+PREVIOUS_VISUAL_CHECKPOINT = OWNER REJECTED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+v1.0.0 = NOT RELEASED
+V1 TAG = NOT CREATED
+V1 RELEASE = NOT CREATED
+ACTIVE CURRENT GATE = APO-70 / GitHub issue #111
+RECOVERY ISSUE = `https://github.com/Hossam1104/AI_Orchestrator/issues/111`
+BASE SHA = `d7c1231df9ea1a4d008aa473210d0ccc735c0302`
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+RMS REFERENCE PATH = `D:\AI Tools\Active Projects\RMS_Support_Hub`
+RMS REFERENCE SHA = `fe3d06d2337093d322cb29cb3fefc369248e60a1`
+
+Recovery implementation covers the RMS-family light/dark semantic resource system, WPF shell
+header/sidebar/card/control treatment, truthful global local-state pill, session theme switching,
+native local-path selection, and hiding Post-V1 Agents/Activity entries from primary navigation.
+Existing Mission Control, Projects, AI Capacity, persistence, provider, and credential-reference
+services remain the source of runtime data; no demo data or secrets were added.
+
+Acceptance completion added a test-only deterministic WPF render suite with 14 retained temporary
+PNG renders and structural assertions for light/dark Mission Control, Projects, New Project,
+AI Capacity, provider connection, friendly error, and open-combobox states. The dark overlay now
+owns its semantic brushes and gradients at runtime; the prior nested-resource defect left dark
+renders visually light. A focused render run passed 1/1, and the full solution passed 1,253 / 1,253
+with 0 failures and 0 skips. `win-x86`, `win-x64`, and `win-arm64` self-contained publish outputs
+also passed `scripts/Validate-PublishOutput.ps1`.
+
+The x64 published executable launched from an isolated `%TEMP%` state root and responded with an
+`AI Orchestrator` window before cleanup. A disposable local Git workspace was created outside both
+repositories with two commits for the acceptance boundary. Native Computer Use remained unavailable
+(`apps: []`; no controllable Windows app surface), so the interactive Projects persistence,
+AI Capacity/provider, theme-toggle, and owner visual walkthrough are not claimed.
+
+Jira writes = NONE. Product remote mutation, release/tag/deploy, merge, force push, bypass, and
+auto-merge = NONE.
+
+### APO-70 handoff evidence
+
+IMPLEMENTATION COMMIT = `cd142d8` (`test(APO-70): add visual acceptance coverage`)
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+CI RUN = `34601533946`
+CI REQUIRED CHECKS = PASS (Restore, build, and test; Publish win-x86; Publish win-x64; Publish win-arm64)
+OWNER VISUAL CHECKPOINT = NOT PRESENTED / NOT APPROVED
+COMPUTER USE SURFACE = UNAVAILABLE (no controllable Windows app surface exposed)
+LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED
+NEXT AUTHORITY = GPT-5.6 Sol for exact-head review and owner visual response
+
+## V1 active AI execution resources
+
+Canonical routing, model portfolio, effort selection, quota governance, and execution share targets
+live in [`AI_MODEL_ROUTING.md`](AI_MODEL_ROUTING.md) and
+[`AI_EXECUTION_POLICY.md`](AI_EXECUTION_POLICY.md). That policy is authoritative; this file does not
+restate it.
+
+Two providers are active for AI-assisted execution: OpenAI/Codex and Anthropic/Claude. Antigravity
+and GitHub Copilot are APO **product-domain** providers that APO can monitor; neither is an active
+execution provider for work in this repository.
+
+`COPILOT = POST-V1`
+
+`ALL NEW PROVIDER-SPECIFIC WORK OUTSIDE THE ACTIVE V1 RESOURCE SET = POST-V1`
+
+Existing optional provider adapters and provider-independent architecture remain in the repository;
+provider cleanup/removal is deferred and is not part of this closeout.
+
+---
+
+# Historical record
+
+Everything below this line is retained evidence from a closed boundary. It is preserved for
+provenance and is **not** current status. Where a historical line reads `CURRENT GATE`, `ACTIVE`,
+or `NONE`, it was true when written and has since been superseded by the current sections above.
+
+---
+
+## HISTORICAL / SUPERSEDED — APO-33 final controlled integration closeout
 
 APO GITHUB MIGRATION = COMPLETE
 CANONICAL ISSUES = 69
@@ -289,34 +673,6 @@ current authority snapshot and must not be treated as an executable prompt.
 - PR #25 is `AUTO-MARKED MERGED BY ANCESTRY / SUPERSEDED BY PR #27`; no separate PR #25 merge
   command occurred.
 - PR #26 is `CLOSED / UNMERGED / SUPERSEDED`.
-
-## V1 active AI resources
-
-V1 is intentionally optimized around the currently available resource groups:
-
-### OpenAI
-
-- Two GPT accounts are available.
-- GPT-5.6 Sol: planning, architecture, routing, acceptance, and prompt authority.
-- GPT-5.6 Luna xHigh: main substantial executor.
-- GPT-5.6 Terra HIGH: recovery/finalization or surgical pass when needed.
-
-### Claude
-
-- Claude Sonnet 5: bounded implementation and fixes.
-- Claude Opus 5: critical independent review only.
-
-### Antigravity Plus
-
-- Auxiliary bounded/mechanical execution.
-- Gemini-family usage may be routed here when appropriate and available.
-
-`COPILOT = POST-V1`
-
-`ALL NEW PROVIDER-SPECIFIC WORK OUTSIDE THE ACTIVE V1 RESOURCE SET = POST-V1`
-
-Existing optional provider adapters and provider-independent architecture remain in the repository;
-provider cleanup/removal is deferred and is not part of this closeout.
 
 ## HISTORICAL / SUPERSEDED — APO-63 R1 executor delivery
 

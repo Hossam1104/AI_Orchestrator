@@ -3,27 +3,34 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style x:Key="CardStyle" TargetType="{x:Type Border}">
-        <Setter Property="Background" Value="{StaticResource BrandSurfaceGradientBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BrandBorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BrandSurfaceGradientBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrandBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="CornerRadius" Value="{DynamicResource CardCornerRadius}" />
         <Setter Property="Padding" Value="18" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect Color="{DynamicResource ShadowColor}" Direction="270" ShadowDepth="4" BlurRadius="16" Opacity="0.10" />
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="StatusChipStyle" TargetType="{x:Type Border}">
-        <Setter Property="Background" Value="{StaticResource BrandNavyBlueBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BrandBorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BrandNavyBlueBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrandBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="CornerRadius" Value="{DynamicResource PillCornerRadius}" />
         <Setter Property="Padding" Value="12,7" />
     </Style>
+
+    <Style x:Key="StatusPillStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource StatusChipStyle}" />
 
     <Style x:Key="BaseButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Foreground" Value="{StaticResource BrandTextBrush}" />
-        <Setter Property="FontFamily" Value="{StaticResource BrandBodyFontFamily}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        <Setter Property="FontFamily" Value="{DynamicResource BrandBodyFontFamily}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="Padding" Value="12,9" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -34,9 +41,9 @@
                 <ControlTemplate TargetType="{x:Type Button}">
                     <Border
                         x:Name="ButtonChrome"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
+                        Background="{Binding Background, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
+                        BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
+                        BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=1, FallbackValue=1}"
                         CornerRadius="8"
                         SnapsToDevicePixels="True">
                         <ContentPresenter
@@ -47,14 +54,14 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="ButtonChrome" Property="BorderBrush" Value="{StaticResource BrandFocusBrush}" />
+                            <Setter TargetName="ButtonChrome" Property="BorderBrush" Value="{DynamicResource BrandFocusBrush}" />
                             <Setter TargetName="ButtonChrome" Property="Opacity" Value="0.92" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="ButtonChrome" Property="Opacity" Value="0.76" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="ButtonChrome" Property="BorderBrush" Value="{StaticResource BrandFocusBrush}" />
+                            <Setter TargetName="ButtonChrome" Property="BorderBrush" Value="{DynamicResource BrandFocusBrush}" />
                             <Setter TargetName="ButtonChrome" Property="BorderThickness" Value="2" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -67,24 +74,24 @@
     </Style>
 
     <Style x:Key="PrimaryButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource BaseButtonStyle}">
-        <Setter Property="Background" Value="{StaticResource BrandAccentGradientBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource BrandDeepNavyBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BrandAccentGradientBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandDeepNavyBrush}" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
     <Style x:Key="SecondaryButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource BaseButtonStyle}">
-        <Setter Property="Background" Value="{StaticResource BrandSurfaceRaisedBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BrandBorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BrandSurfaceRaisedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrandBorderBrush}" />
     </Style>
 
     <Style x:Key="GhostButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource BaseButtonStyle}">
-        <Setter Property="Foreground" Value="{StaticResource BrandMutedTextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandMutedTextBrush}" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
     </Style>
 
     <Style x:Key="NavigationItemStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource BaseButtonStyle}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource BrandMutedTextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandMutedTextBrush}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Padding" Value="12,10" />
         <Setter Property="Margin" Value="0,2" />
@@ -94,17 +101,17 @@
         <Setter Property="Width" Value="36" />
         <Setter Property="Height" Value="36" />
         <Setter Property="Padding" Value="0" />
-        <Setter Property="Background" Value="{StaticResource BrandSurfaceRaisedBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BrandBorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BrandSurfaceRaisedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrandBorderBrush}" />
     </Style>
 
     <!-- Dark, accessible ComboBox chrome shared by every APO status/filter selector. -->
     <Style x:Key="BrandComboBoxItemStyle" TargetType="{x:Type ComboBoxItem}">
         <Setter Property="Padding" Value="10,7" />
         <Setter Property="Margin" Value="2" />
-        <Setter Property="Foreground" Value="{StaticResource BrandTextBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="FontFamily" Value="{StaticResource BrandBodyFontFamily}" />
+        <Setter Property="FontFamily" Value="{DynamicResource BrandBodyFontFamily}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
@@ -112,7 +119,7 @@
                 <ControlTemplate TargetType="{x:Type ComboBoxItem}">
                     <Border
                         x:Name="ItemBorder"
-                        Background="{TemplateBinding Background}"
+                        Background="{Binding Background, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
                         Padding="{TemplateBinding Padding}"
                         CornerRadius="6"
                         SnapsToDevicePixels="True">
@@ -120,11 +127,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
-                            <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource BrandSurfaceRaisedBrush}" />
+                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource BrandSurfaceRaisedBrush}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource BrandSurfaceRaisedBrush}" />
-                            <Setter Property="Foreground" Value="{StaticResource BrandCyanBrush}" />
+                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource BrandSurfaceRaisedBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource BrandCyanBrush}" />
                             <Setter Property="FontWeight" Value="SemiBold" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -134,12 +141,12 @@
     </Style>
 
     <Style x:Key="BrandComboBoxStyle" TargetType="{x:Type ComboBox}">
-        <Setter Property="Background" Value="{StaticResource BrandNavyBlueBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource BrandTextBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BrandBorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource BrandNavyBlueBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrandBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="9,7" />
-        <Setter Property="FontFamily" Value="{StaticResource BrandBodyFontFamily}" />
+        <Setter Property="FontFamily" Value="{DynamicResource BrandBodyFontFamily}" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="ItemContainerStyle" Value="{StaticResource BrandComboBoxItemStyle}" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -149,9 +156,9 @@
                     <Grid>
                         <Border
                             x:Name="MainBorder"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Background="{Binding Background, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
+                            BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
+                            BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=1, FallbackValue=1}"
                             CornerRadius="8"
                             SnapsToDevicePixels="True">
                             <Grid>
@@ -173,7 +180,7 @@
                                 <Path
                                     Grid.Column="1"
                                     Data="M0,0 L4,4 L8,0 Z"
-                                    Fill="{StaticResource BrandMutedTextBrush}"
+                                    Fill="{DynamicResource BrandMutedTextBrush}"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center" />
                             </Grid>
@@ -203,8 +210,8 @@
                                 MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                 MaxHeight="260"
                                 Margin="0,4,0,0"
-                                Background="{StaticResource BrandNavyBlueBrush}"
-                                BorderBrush="{StaticResource BrandBorderBrush}"
+                                Background="{DynamicResource BrandNavyBlueBrush}"
+                                BorderBrush="{DynamicResource BrandBorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="8"
                                 SnapsToDevicePixels="True">
@@ -219,13 +226,13 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="MainBorder" Property="BorderBrush" Value="{StaticResource BrandFocusBrush}" />
+                            <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource BrandFocusBrush}" />
                         </Trigger>
                         <Trigger Property="IsDropDownOpen" Value="True">
-                            <Setter TargetName="MainBorder" Property="BorderBrush" Value="{StaticResource BrandCyanBrush}" />
+                            <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource BrandCyanBrush}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                            <Setter TargetName="MainBorder" Property="BorderBrush" Value="{StaticResource BrandFocusBrush}" />
+                            <Setter TargetName="MainBorder" Property="BorderBrush" Value="{DynamicResource BrandFocusBrush}" />
                             <Setter TargetName="MainBorder" Property="BorderThickness" Value="2" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -237,4 +244,75 @@
         </Setter>
     </Style>
 
+    <!-- RMS-style compact scrollbars keep long evidence surfaces usable without
+         competing visually with the content. -->
+    <Style x:Key="ApoScrollBarThumbStyle" TargetType="{x:Type Thumb}">
+        <Setter Property="Background" Value="{DynamicResource ScrollBarThumbBrush}" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="MinWidth" Value="28" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                    <Border
+                        Margin="1"
+                        Background="{DynamicResource ScrollBarThumbBrush}"
+                        CornerRadius="{DynamicResource ControlCornerRadius}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource ScrollBarThumbHoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsDragging" Value="True">
+                <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <ControlTemplate x:Key="ApoVerticalScrollBarTemplate" TargetType="{x:Type ScrollBar}">
+        <Grid Width="{TemplateBinding Width}" Background="{TemplateBinding Background}">
+            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageUpCommand" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Opacity="0" />
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb Style="{StaticResource ApoScrollBarThumbStyle}" />
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageDownCommand" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Opacity="0" />
+                </Track.IncreaseRepeatButton>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <ControlTemplate x:Key="ApoHorizontalScrollBarTemplate" TargetType="{x:Type ScrollBar}">
+        <Grid Height="{TemplateBinding Height}" Background="{TemplateBinding Background}">
+            <Track x:Name="PART_Track">
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Opacity="0" />
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb Style="{StaticResource ApoScrollBarThumbStyle}" />
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Command="ScrollBar.PageRightCommand" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Opacity="0" />
+                </Track.IncreaseRepeatButton>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <Style TargetType="{x:Type ScrollBar}">
+        <Setter Property="Background" Value="{DynamicResource ScrollBarTrackBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SurfaceRaisedBrush}" />
+        <Setter Property="Width" Value="12" />
+        <Setter Property="Template" Value="{StaticResource ApoVerticalScrollBarTemplate}" />
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="Height" Value="12" />
+                <Setter Property="Template" Value="{StaticResource ApoHorizontalScrollBarTemplate}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

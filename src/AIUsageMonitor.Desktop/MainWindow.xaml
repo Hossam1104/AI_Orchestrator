@@ -3,15 +3,17 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="clr-namespace:AIUsageMonitor.Desktop.ViewModels"
+    xmlns:views="clr-namespace:AIUsageMonitor.Desktop.Views"
     xmlns:converters="clr-namespace:AIUsageMonitor.Desktop.Converters"
-    Title="AI_Orchestrator"
-    Icon="/Assets/apo-icon.ico"
-    Width="1180"
-    Height="760"
-    MinWidth="860"
-    MinHeight="580"
-    Background="{StaticResource BrandDeepNavyBrush}"
-    Foreground="{StaticResource BrandTextBrush}"
+    Title="AI Orchestrator"
+    Icon="/AIUsageMonitor.Desktop;component/assets/apo-icon.ico"
+    Width="1440"
+    Height="920"
+    MinWidth="980"
+    MinHeight="650"
+    Background="{DynamicResource AppBackgroundBrush}"
+    Foreground="{DynamicResource TextPrimaryBrush}"
+    FontFamily="{DynamicResource BrandBodyFontFamily}"
     UseLayoutRounding="True"
     SnapsToDevicePixels="True"
     WindowStartupLocation="CenterScreen">
@@ -21,13 +23,67 @@
         <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
 
-        <Style x:Key="WorkspaceNavButtonStyle" TargetType="Button" BasedOn="{StaticResource NavigationItemStyle}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource BrandSurfaceRaisedBrush}" />
-                    <Setter Property="Foreground" Value="{StaticResource BrandTextBrush}" />
-                </DataTrigger>
-            </Style.Triggers>
+        <!-- Shared by the Projects registry and New Project onboarding templates. -->
+        <Style x:Key="ProjectInputComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource BrandComboBoxStyle}" />
+        <Style x:Key="ProjectFieldLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource EyebrowTextStyle}">
+            <Setter Property="Foreground" Value="{StaticResource BrandMutedTextBrush}" />
+            <Setter Property="Margin" Value="0,0,0,5" />
+        </Style>
+
+        <Style x:Key="WorkspaceNavButtonStyle" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="MinHeight" Value="46" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border
+                            x:Name="NavBorder"
+                            Background="{Binding Background, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
+                            BorderBrush="{DynamicResource FocusRingBrush}"
+                            BorderThickness="0"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="4" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="NavIndicator" Width="4" Background="Transparent" CornerRadius="2" />
+                                <ContentPresenter
+                                    Grid.Column="1"
+                                    Margin="12,0,0,0"
+                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalAlignment="Center"
+                                    TextElement.Foreground="{TemplateBinding Foreground}" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="True">
+                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource NavigationSelectedGradientBrush}" />
+                                <Setter TargetName="NavIndicator" Property="Background" Value="{DynamicResource AccentVioletBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="NavBorder" Property="BorderThickness" Value="1" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <DataTemplate DataType="{x:Type vm:MissionControlViewModel}">
@@ -80,6 +136,8 @@
                             <TextBlock Text="SELECT A PROJECT" Style="{StaticResource EyebrowTextStyle}" />
                             <TextBlock Text="Mission Control will not guess between multiple active projects." Margin="0,8,0,0" Style="{StaticResource SectionHeadingStyle}" />
                             <TextBlock Text="Choose a project above to load its project-scoped evidence." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
+                            <Button Content="Add Existing Project" Command="{Binding DataContext.AddExistingProjectCommand, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" AutomationProperties.Name="Add Existing Project from Mission Control" Margin="0,16,0,0" HorizontalAlignment="Left" Style="{StaticResource PrimaryButtonStyle}" ToolTip="{Binding DataContext.AddExistingProjectStateText, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" />
+                            <TextBlock Text="{Binding DataContext.AddExistingProjectStateText, RelativeSource={RelativeSource AncestorType={x:Type Window}}}" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{StaticResource BrandWarningBrush}" Style="{StaticResource CaptionTextStyle}" Visibility="{Binding DataContext.CanAddExistingProject, RelativeSource={RelativeSource AncestorType={x:Type Window}}, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
                         </StackPanel>
                     </Border>
 
@@ -201,28 +259,43 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="AI CAPACITY" Style="{StaticResource EyebrowTextStyle}" />
-                            <TextBlock Text="Provider connections, usage and remaining capacity" Margin="0,8,0,0" Style="{StaticResource DisplayTitleStyle}" FontSize="27" />
-                            <TextBlock Text="Five approved provider surfaces, with unknown values kept explicit." Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock Text="AI PROVIDERS" Style="{StaticResource EyebrowTextStyle}" />
+                            <TextBlock Text="Authentication and remaining capacity" Margin="0,8,0,0" Style="{StaticResource DisplayTitleStyle}" FontSize="27" TextWrapping="Wrap" />
+                            <TextBlock Text="Local sessions, optional API keys, and manual provider state stay visibly separate." Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                             <StackPanel Margin="0,0,14,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding RefreshStateText}" HorizontalAlignment="Right" Style="{StaticResource CaptionTextStyle}" />
                                 <TextBlock Text="{Binding LastRefreshText}" HorizontalAlignment="Right" Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" />
                             </StackPanel>
-                            <Button Content="Refresh all" Command="{Binding RefreshAllCommand}" AutomationProperties.Name="Refresh all AI providers" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Content="Detect sessions" Command="{Binding DetectSessionsCommand}" AutomationProperties.Name="Detect local AI sessions" Style="{StaticResource SecondaryButtonStyle}" />
+                            <Button Content="Refresh capacity" Command="{Binding RefreshCapacityCommand}" AutomationProperties.Name="Refresh supported AI provider capacity" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
                         </StackPanel>
                     </Grid>
+
+                    <Border Margin="0,20,0,0" Padding="14" Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="PROVIDER REGISTRY" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="Add a manual registration for a service that has no typed adapter yet." Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="+ Add AI Provider" Command="{Binding AddProviderCommand}" AutomationProperties.Name="Add AI Provider" Style="{StaticResource GhostButtonStyle}" />
+                        </Grid>
+                    </Border>
 
                     <ItemsControl Margin="0,22,0,0" ItemsSource="{Binding Cards}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid Columns="3" />
+                                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="0,0,16,16" Style="{StaticResource CardStyle}" MinHeight="240">
+                                <Border Width="320" Margin="0,0,16,16" Style="{StaticResource CardStyle}" MinHeight="300">
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
@@ -237,7 +310,7 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="{Binding DisplayName}" Style="{StaticResource SectionHeadingStyle}" />
-                                                <TextBlock Text="{Binding Code}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" />
+                                                <TextBlock Text="{Binding Kind}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" />
                                             </StackPanel>
                                             <Border Grid.Column="1" Style="{StaticResource StatusChipStyle}" Padding="9,5">
                                                 <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource BrandTextBrush}" FontWeight="SemiBold" />
@@ -246,6 +319,25 @@
                                         <TextBlock Grid.Row="1" Text="{Binding StatusDetail}" Margin="0,13,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
 
                                         <StackPanel Grid.Row="2" Margin="0,14,0,14">
+                                            <Border Padding="10" Background="{StaticResource BrandNavyBlueBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="1" CornerRadius="9">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="AVAILABILITY" Style="{StaticResource EyebrowTextStyle}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding AvailabilityText}" HorizontalAlignment="Right" Style="{StaticResource CaptionTextStyle}" />
+                                                    <TextBlock Grid.Row="1" Text="AUTHENTICATION" Margin="0,8,16,0" Style="{StaticResource EyebrowTextStyle}" />
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding AuthenticationText}" HorizontalAlignment="Right" Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
+                                                    <TextBlock Grid.Row="2" Text="CAPACITY" Margin="0,8,16,0" Style="{StaticResource EyebrowTextStyle}" />
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CapacityText}" HorizontalAlignment="Right" Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" />
+                                                </Grid>
+                                            </Border>
                                             <StackPanel Visibility="{Binding AccountDisplayName, Converter={StaticResource NullToVisibilityConverter}}">
                                                 <TextBlock Text="ACCOUNT" Style="{StaticResource EyebrowTextStyle}" />
                                                 <TextBlock Text="{Binding AccountDisplayName}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" />
@@ -268,7 +360,7 @@
                                                                     <TextBlock Grid.Column="1" Text="{Binding RemainingText}" Foreground="{StaticResource BrandTealBrush}" FontWeight="SemiBold" />
                                                                 </Grid>
                                                                 <TextBlock Text="{Binding UsageText}" Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" />
-                                                                <ProgressBar Value="{Binding ProgressValue}" Minimum="0" Maximum="100" Height="5" Margin="0,8,0,0" Visibility="{Binding HasProgress, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                                <ProgressBar Value="{Binding ProgressValue, Mode=OneWay}" Minimum="0" Maximum="100" Height="5" Margin="0,8,0,0" Visibility="{Binding HasProgress, Converter={StaticResource BoolToVisibilityConverter}}" />
                                                                 <TextBlock Text="{Binding ResetText}" Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" />
                                                                 <TextBlock Text="{Binding SourceText}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
                                                             </StackPanel>
@@ -281,8 +373,10 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                                            <Button Content="Refresh" Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh provider" Style="{StaticResource SecondaryButtonStyle}" />
-                                            <Button Content="Connect / edit" Command="{Binding EditCommand}" AutomationProperties.Name="Connect or edit provider" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Visibility="{Binding CanEditConnection, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            <Button Content="Check session" Command="{Binding SessionCommand}" AutomationProperties.Name="Check local provider session" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding CanCheckSession, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            <Button Content="Refresh capacity" Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh provider capacity" Style="{StaticResource SecondaryButtonStyle}" Visibility="{Binding CanRefresh, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            <Button Content="Settings" Command="{Binding EditCommand}" AutomationProperties.Name="Open provider settings" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Visibility="{Binding CanConfigure, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            <Button Content="Remove" Command="{Binding RemoveCommand}" AutomationProperties.Name="Remove custom provider" Margin="8,0,0,0" Style="{StaticResource GhostButtonStyle}" Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibilityConverter}}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -313,9 +407,9 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="NEW PROJECT" Style="{StaticResource EyebrowTextStyle}" />
-                            <TextBlock Text="A useful project in four short steps" Margin="0,7,0,0" Style="{StaticResource DisplayTitleStyle}" FontSize="25" />
-                            <TextBlock Text="Optional integrations stay explicit and unverified until a later capability proves them." Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock Text="ADD EXISTING PROJECT" Style="{StaticResource EyebrowTextStyle}" />
+                            <TextBlock Text="Register an existing workspace" Margin="0,7,0,0" Style="{StaticResource DisplayTitleStyle}" FontSize="25" />
+                            <TextBlock Text="APO observes the selected folder and stores only local registry metadata. The workspace itself stays read-only." Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                         </StackPanel>
                         <Border Grid.Column="1" Style="{StaticResource StatusChipStyle}" VerticalAlignment="Top" Padding="10,6">
                             <TextBlock Text="{Binding StepNumber, StringFormat=Step {0} of 4}" Foreground="{StaticResource BrandTextBrush}" FontWeight="SemiBold" />
@@ -327,7 +421,7 @@
                             <TextBlock Text="1  Project" Style="{StaticResource CaptionTextStyle}" />
                         </Border>
                         <Border Margin="0,0,6,0" Padding="8" CornerRadius="8" Background="{StaticResource BrandNavyBlueBrush}">
-                            <TextBlock Text="2  Repository" Style="{StaticResource CaptionTextStyle}" />
+                                <TextBlock Text="2  Preview" Style="{StaticResource CaptionTextStyle}" />
                         </Border>
                         <Border Margin="0,0,6,0" Padding="8" CornerRadius="8" Background="{StaticResource BrandNavyBlueBrush}">
                             <TextBlock Text="3  Tracker" Style="{StaticResource CaptionTextStyle}" />
@@ -340,21 +434,28 @@
                     <Border Margin="0,16,0,0" Padding="18" Background="{StaticResource BrandNavyBlueBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="1" CornerRadius="12">
                         <Grid>
                             <StackPanel Visibility="{Binding IsProjectStep, Converter={StaticResource BoolToVisibilityConverter}}">
-                                <TextBlock Text="PROJECT" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBlock Text="Name the workspace and choose its local folder." Margin="0,7,0,0" Style="{StaticResource SectionHeadingStyle}" />
-                                <TextBlock Text="These two fields are enough to create the project; advanced settings remain optional." Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
-                                <TextBlock Text="PROJECT NAME" Margin="0,18,0,5" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="WORKSPACE" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="Choose the existing local folder to register." Margin="0,7,0,0" Style="{StaticResource SectionHeadingStyle}" />
+                                <TextBlock Text="Use the native folder picker so APO can validate and preview the workspace before registration." Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                <TextBlock Text="DISPLAY NAME" Margin="0,18,0,5" Style="{StaticResource EyebrowTextStyle}" />
                                 <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource OnboardingInputTextBoxStyle}" AutomationProperties.Name="Onboarding project name" />
                                 <TextBlock Text="LOCAL WORKSPACE PATH" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBox Text="{Binding LocalPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource OnboardingInputTextBoxStyle}" AutomationProperties.Name="Onboarding local workspace path" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding LocalPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource OnboardingInputTextBoxStyle}" AutomationProperties.Name="Onboarding local workspace path" />
+                                    <Button Grid.Column="1" Margin="8,0,0,0" Content="Choose folder" Command="{Binding BrowsePathCommand}" AutomationProperties.Name="Choose existing project folder" Style="{StaticResource SecondaryButtonStyle}" />
+                                </Grid>
                             </StackPanel>
 
                             <StackPanel Visibility="{Binding IsRepositoryStep, Converter={StaticResource BoolToVisibilityConverter}}">
-                                <TextBlock Text="REPOSITORY" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBlock Text="Inspect local Git safely, then choose what to retain." Margin="0,7,0,0" Style="{StaticResource SectionHeadingStyle}" />
+                                <TextBlock Text="WORKSPACE PREVIEW" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="Review the discovered project evidence before adding it." Margin="0,7,0,0" Style="{StaticResource SectionHeadingStyle}" />
                                 <TextBlock Text="Inspection is read-only and local. It does not read file contents, contact a remote, fetch, pull, or push." Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                 <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                                    <Button Content="Inspect local repository" Command="{Binding InspectRepositoryCommand}" AutomationProperties.Name="Inspect local repository" Style="{StaticResource PrimaryButtonStyle}" />
+                                    <Button Content="Discover workspace" Command="{Binding InspectRepositoryCommand}" AutomationProperties.Name="Discover existing workspace" Style="{StaticResource PrimaryButtonStyle}" />
                                     <Button Content="Continue without repository integration" Command="{Binding SkipRepositoryCommand}" Margin="8,0,0,0" AutomationProperties.Name="Continue without repository integration" Style="{StaticResource GhostButtonStyle}" />
                                 </StackPanel>
                                 <TextBlock Text="{Binding RepositoryStatusText}" Margin="0,16,0,0" Style="{StaticResource BodyTextStyle}" FontWeight="SemiBold" />
@@ -370,10 +471,24 @@
                                     <TextBlock Grid.Row="3" Text="CAPTURED" Style="{StaticResource ProjectFieldLabelStyle}" />
                                     <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding RepositoryCapturedAtText}" Margin="16,0,0,0" Style="{StaticResource CaptionTextStyle}" />
                                 </Grid>
+                                <TextBlock Text="{Binding WorkspaceReadinessText}" Margin="0,14,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <TextBlock Text="HEAD" Style="{StaticResource ProjectFieldLabelStyle}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding RepositoryHeadText}" Margin="16,0,0,6" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    <TextBlock Grid.Row="1" Text="REMOTE PROVIDER" Style="{StaticResource ProjectFieldLabelStyle}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RemoteProviderText}" Margin="16,0,0,6" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    <TextBlock Grid.Row="2" Text="ORIGIN URL" Style="{StaticResource ProjectFieldLabelStyle}" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding RemoteUrlText}" Margin="16,0,0,6" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                    <TextBlock Grid.Row="3" Text="GOVERNANCE" Style="{StaticResource ProjectFieldLabelStyle}" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding GovernanceFilesText}" Margin="16,0,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                </Grid>
+                                <TextBlock Text="{Binding ProjectFilesText, StringFormat=Project files: {0}}" Margin="0,10,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                 <TextBlock Text="A default branch is proposed only from a normal current branch. Detached or unborn repositories require an explicit branch or skip." Margin="0,14,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                 <TextBox Text="{Binding RepositoryDefaultBranch, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,0,0" Style="{StaticResource OnboardingInputTextBoxStyle}" AutomationProperties.Name="Repository default branch for onboarding" ToolTip="Only needed when no usable current branch was detected" />
                                 <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                                    <Button Content="Accept detected metadata" Command="{Binding AcceptRepositoryCommand}" AutomationProperties.Name="Accept detected repository metadata" Style="{StaticResource SecondaryButtonStyle}" />
+                                    <Button Content="Confirm preview" Command="{Binding AcceptRepositoryCommand}" AutomationProperties.Name="Confirm existing project preview" Style="{StaticResource SecondaryButtonStyle}" />
                                     <TextBlock Text="{Binding RepositoryDecisionText}" Margin="12,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                 </StackPanel>
                             </StackPanel>
@@ -421,11 +536,15 @@
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
                             <Button Content="Back" Command="{Binding BackCommand}" AutomationProperties.Name="Back in project onboarding" Style="{StaticResource SecondaryButtonStyle}" />
                             <Button Content="Next" Command="{Binding NextCommand}" AutomationProperties.Name="Next in project onboarding" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
-                            <Button Content="Finish" Command="{Binding FinishCommand}" AutomationProperties.Name="Finish project onboarding" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
+                            <Button Content="Add Project" Command="{Binding FinishCommand}" AutomationProperties.Name="Add Project" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
             </ScrollViewer>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:ExecutionViewModel}">
+            <views:ExecutionView />
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:ProjectsViewModel}">
@@ -483,7 +602,8 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                         <Button Content="Refresh" Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh projects" Style="{StaticResource SecondaryButtonStyle}" />
-                        <Button Content="New project" Command="{Binding NewProjectCommand}" AutomationProperties.Name="New project" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
+                        <Button Content="Add Existing Project" Command="{Binding AddExistingProjectCommand}" AutomationProperties.Name="Add Existing Project" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
+                        <TextBlock Text="{Binding AddExistingProjectStateText}" Margin="8,7,0,0" TextWrapping="Wrap" Foreground="{StaticResource BrandWarningBrush}" Style="{StaticResource CaptionTextStyle}" />
                     </StackPanel>
                 </Grid>
 
@@ -526,7 +646,26 @@
                             <ColumnDefinition Width="1.1*" MinWidth="295" />
                         </Grid.ColumnDefinitions>
 
-                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="14">
+                        <Border Grid.ColumnSpan="3" Style="{StaticResource CardStyle}" Padding="32" Visibility="{Binding ShowEmptyRegistryState, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="56" Height="56" Background="{DynamicResource SurfaceSelectedBrush}" BorderBrush="{DynamicResource HeroBorderBrush}" BorderThickness="1" CornerRadius="16" VerticalAlignment="Top">
+                                    <TextBlock Text="+" FontSize="28" Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="18,0,24,0">
+                                    <TextBlock Text="NO PROJECTS REGISTERED" Style="{StaticResource EyebrowTextStyle}" />
+                                    <TextBlock Text="Start with an existing local workspace" Margin="0,7,0,0" Style="{StaticResource SectionHeadingStyle}" />
+                                    <TextBlock Text="APO will inspect the folder read-only, preview its Git and governance evidence, then register the workspace in the local project registry." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource BodyTextStyle}" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="Add Existing Project" Command="{Binding AddExistingProjectCommand}" AutomationProperties.Name="Add Existing Project" VerticalAlignment="Center" Style="{StaticResource PrimaryButtonStyle}" />
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="14" Visibility="{Binding ShowEmptyRegistryState, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -560,7 +699,7 @@
                                             <TextBlock Text="NO PROJECTS YET" Style="{StaticResource EyebrowTextStyle}" />
                                             <TextBlock Text="No projects registered yet." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource SectionHeadingStyle}" />
                                             <TextBlock Text="Register a workspace to make its lifecycle and governance metadata visible here." Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
-                                            <Button Content="New project" Command="{Binding NewProjectCommand}" AutomationProperties.Name="New project from empty state" Margin="0,16,0,0" HorizontalAlignment="Left" Style="{StaticResource SecondaryButtonStyle}" />
+                                            <Button Content="Add Existing Project" Command="{Binding AddExistingProjectCommand}" AutomationProperties.Name="Add Existing Project from empty state" Margin="0,16,0,0" HorizontalAlignment="Left" Style="{StaticResource PrimaryButtonStyle}" />
                                         </StackPanel>
                                         <StackPanel Visibility="{Binding ShowNoMatchState, Converter={StaticResource BoolToVisibilityConverter}}">
                                             <TextBlock Text="NO MATCHES" Style="{StaticResource EyebrowTextStyle}" />
@@ -621,7 +760,7 @@
                             </Grid>
                         </Border>
 
-                        <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="20">
+                        <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="20" Visibility="{Binding ShowEmptyRegistryState, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                             <Grid>
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <ScrollViewer.Style>
@@ -786,7 +925,7 @@
 
                                         <StackPanel Visibility="{Binding HasSelectedProject, Converter={StaticResource InverseBoolToVisibilityConverter}}" Margin="0,22,0,0">
                                             <TextBlock Text="Choose a project" Style="{StaticResource SectionHeadingStyle}" />
-                                            <TextBlock Text="Select a registered workspace to inspect its metadata, or use New project to add one." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                             <TextBlock Text="Select a registered workspace to inspect its metadata, or use Add Existing Project to register one." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                         </StackPanel>
                                     </StackPanel>
                                 </ScrollViewer>
@@ -875,7 +1014,7 @@
                                                 <TextBox Text="{Binding EditorSafetyPolicyReference, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ProjectInputTextBoxStyle}" AutomationProperties.Name="Safety policy reference" />
                                             </StackPanel>
                                         </Grid>
-                                        <TextBlock Text="Registration stores metadata only. APO does not check the path, Git, tracker authentication, or repository connectivity in this workspace." Margin="0,18,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                        <TextBlock Text="Registration stores metadata only. APO does not mutate the selected workspace or contact a remote service." Margin="0,18,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                     </StackPanel>
                                 </ScrollViewer>
 
@@ -890,40 +1029,45 @@
         </DataTemplate>
     </Window.Resources>
 
-    <Grid Opacity="0">
-        <Grid.Triggers>
-            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-                <BeginStoryboard>
-                    <Storyboard>
-                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.24" />
-                    </Storyboard>
-                </BeginStoryboard>
-            </EventTrigger>
-        </Grid.Triggers>
+    <Grid Background="{DynamicResource AppBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Padding="24,18" Background="{StaticResource BrandNavyBlueBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="0,0,0,1">
+        <Border Grid.Row="0" Padding="28,16" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal">
-                    <Border Width="44" Height="44" Padding="7" Background="{StaticResource BrandSurfaceRaisedBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="1" CornerRadius="12">
+                    <Border Width="52" Height="52" Padding="6" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14">
                         <Image Source="/Assets/apo-icon.ico" Stretch="Uniform" />
                     </Border>
                     <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
-                        <TextBlock Text="AI PROJECT ORCHESTRATOR" Style="{StaticResource EyebrowTextStyle}" />
-                        <TextBlock Text="Intelligent project &amp; AI execution control" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="AI PROJECT ORCHESTRATOR" Style="{DynamicResource EyebrowTextStyle}" />
+                        <TextBlock Text="AI Orchestrator" Margin="0,2,0,0" Style="{DynamicResource SectionHeadingStyle}" />
+                        <TextBlock Text="Intelligent project &amp; AI execution control" Margin="0,3,0,0" Style="{DynamicResource CaptionTextStyle}" />
                     </StackPanel>
                 </StackPanel>
-                <Border Grid.Column="1" Style="{StaticResource StatusChipStyle}" VerticalAlignment="Center">
+                <Button
+                    Grid.Column="1"
+                    Margin="18,0,14,0"
+                    Command="{Binding ToggleThemeCommand}"
+                    Style="{DynamicResource SecondaryButtonStyle}"
+                    ToolTip="{Binding ThemeToggleToolTip}"
+                    AutomationProperties.Name="{Binding ThemeToggleToolTip}">
                     <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="7" Height="7" Fill="{StaticResource BrandTealBrush}" VerticalAlignment="Center" />
-                        <TextBlock Text="CAPACITY READY" Margin="8,0,0,0" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="{Binding ThemeToggleIcon}" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ThemeToggleText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Border Grid.Column="2" Style="{StaticResource StatusChipStyle}" VerticalAlignment="Center" Padding="14,8">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="8" Height="8" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding GlobalStatusText}" Margin="9,0,0,0" Style="{DynamicResource CaptionTextStyle}" FontWeight="SemiBold" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -931,11 +1075,11 @@
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="244" />
+                <ColumnDefinition Width="264" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Padding="18,22" Background="{StaticResource BrandDeepNavyBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Padding="18,22" Background="{DynamicResource NavigationBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -961,31 +1105,22 @@
                                 <TextBlock Grid.Column="1" Text="Projects" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
-                        <Button Tag="{Binding IsAiCapacitySelected}" Command="{Binding ShowAiCapacityCommand}" AutomationProperties.Name="AI capacity" Style="{StaticResource WorkspaceNavButtonStyle}">
+                        <Button Tag="{Binding IsAiCapacitySelected}" Command="{Binding ShowAiCapacityCommand}" AutomationProperties.Name="AI Providers" Style="{StaticResource WorkspaceNavButtonStyle}">
                             <Grid>
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <TextBlock Text="▰" FontSize="16" Foreground="{StaticResource BrandCyanBrush}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="AI capacity" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="AI Providers" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
-                        <Button AutomationProperties.Name="Agents (planned)" IsEnabled="False" Style="{StaticResource NavigationItemStyle}">
+                        <Button Tag="{Binding IsExecutionSelected}" Command="{Binding ShowExecutionCommand}" AutomationProperties.Name="Execution" Style="{StaticResource WorkspaceNavButtonStyle}">
                             <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <TextBlock Text="◇" FontSize="17" Foreground="{StaticResource BrandPurpleBrush}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="Agents" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="SOON" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
-                        <Button AutomationProperties.Name="Activity (planned)" IsEnabled="False" Style="{StaticResource NavigationItemStyle}">
-                            <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <TextBlock Text="≡" FontSize="19" Foreground="{StaticResource BrandTealBrush}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Text="Activity" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Text="SOON" Style="{StaticResource CaptionTextStyle}" VerticalAlignment="Center" />
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="&gt;" FontSize="17" Foreground="{StaticResource BrandVioletBrush}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="Execution" VerticalAlignment="Center" />
                             </Grid>
                         </Button>
                     </StackPanel>
-                    <Border Grid.Row="2" Padding="12" Background="{StaticResource BrandNavyBlueBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="1" CornerRadius="10">
+                    <Border Grid.Row="2" Padding="12" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
                         <StackPanel>
                             <TextBlock Text="SCOPE NOTE" Style="{StaticResource EyebrowTextStyle}" />
                             <TextBlock Text="Future surfaces stay visibly quiet until their capability is real." Margin="0,7,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />

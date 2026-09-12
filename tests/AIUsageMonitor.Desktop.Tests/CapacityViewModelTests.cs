@@ -13,32 +13,32 @@ namespace AIUsageMonitor.Desktop.Tests;
 public sealed class CapacityViewModelTests
 {
     [Fact]
-    public void DegradedWorkspace_ContainsExactlyFiveProvidersInStableOrder()
+    public void DegradedWorkspace_ContainsTheThreeSupportedProviderSurfacesInStableOrder()
     {
         var viewModel = new AiCapacityViewModel();
 
-        Assert.Equal(5, viewModel.Cards.Count);
+        Assert.Equal(3, viewModel.Cards.Count);
         Assert.Equal(
-            Enum.GetValues<ProviderCode>().OrderBy(code => code),
-            viewModel.Cards.Select(card => card.Code));
+            new[] { ProviderCode.Codex, ProviderCode.Claude, ProviderCode.Antigravity },
+            viewModel.Cards.Select(card => card.Code!.Value));
         Assert.Equal(
-            ["Codex", "Claude / Anthropic", "Kimi", "GitHub Copilot", "Antigravity"],
+            ["Codex", "Claude", "Antigravity"],
             viewModel.Cards.Select(card => card.DisplayName));
     }
 
     [Fact]
     public async Task DegradedWorkspace_UsesOnlyLocalExecutableDetectionAndDisablesConfiguredActions()
     {
-        var locator = new FakeExecutableLocator("codex", "claude", "kimi", "agy");
+        var locator = new FakeExecutableLocator("codex", "claude", "agy");
         var viewModel = new AiCapacityViewModel(locator);
 
         await viewModel.InitializeDegradedAsync();
 
         Assert.True(viewModel.IsDegraded);
         Assert.All(
-            new[] { ProviderCode.Codex, ProviderCode.Claude, ProviderCode.Kimi, ProviderCode.Antigravity },
+            new[] { ProviderCode.Codex, ProviderCode.Claude },
             code => Assert.Equal("Local Detected", Assert.Single(viewModel.Cards, card => card.Code == code).StatusText));
-        Assert.Equal("Not Configured", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Copilot).StatusText);
+        Assert.Equal("Detected", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Antigravity).StatusText);
         Assert.All(viewModel.Cards, card => Assert.False(card.CanEditConnection));
         Assert.False(viewModel.RefreshAllCommand.CanExecute(null));
     }
@@ -50,10 +50,111 @@ public sealed class CapacityViewModelTests
 
         await viewModel.InitializeDegradedAsync();
 
-        Assert.Equal("Unsupported / Manual", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Codex).StatusText);
-        Assert.Equal("Unsupported / Manual", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Antigravity).StatusText);
-        Assert.Equal("Not Configured", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Claude).StatusText);
-        Assert.Equal("Not Configured", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Kimi).StatusText);
+        Assert.Equal("Not Detected", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Codex).StatusText);
+        Assert.Equal("Not Detected", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Antigravity).StatusText);
+        Assert.Equal("Not Detected", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Claude).StatusText);
+    }
+
+    [Fact]
+    public void ManualOnlyProviders_DoNotExposeRefreshActions()
+    {
+        var codex = new ProviderCapacityCardViewModel(ProviderCode.Codex, "Codex", new FakeProvider(ProviderCode.Codex));
+        var copilot = new ProviderCapacityCardViewModel(ProviderCode.Copilot, "GitHub Copilot", new FakeProvider(ProviderCode.Copilot));
+
+        codex.ApplyResult(ProviderRefreshResult.Unsupported(ProviderCode.Codex, DateTimeOffset.UtcNow));
+        copilot.ApplyResult(ProviderRefreshResult.AuthenticationRequired(ProviderCode.Copilot, DateTimeOffset.UtcNow));
+
+        Assert.True(codex.IsManualOnly);
+        Assert.False(codex.CanRefresh);
+        Assert.False(codex.RefreshCommand.CanExecute(null));
+        Assert.True(copilot.CanRefresh);
+    }
+
+    [Fact]
+    public void SavedAutomaticCapacityMode_RehydratesWhenExplicitApiCapacityIsSupported()
+    {
+        var definition = ProviderDefinition.BuiltIn(
+            Guid.NewGuid(),
+            ProviderCode.Claude,
+            "Claude",
+            ProviderAuthenticationMode.LocalSession,
+            ProviderCapacityMode.Manual,
+            ProviderCapabilities.SupportsCapacityRefresh | ProviderCapabilities.SupportsConfiguration,
+            0);
+        var card = new ProviderCapacityCardViewModel(definition, new FakeProvider(ProviderCode.Claude));
+        var connection = new ProviderConnection(
+            Guid.NewGuid(),
+            definition.Id,
+            ProviderConnectionType.ApiKey,
+            ProviderConnectionStatus.Connected,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "opaque-reference",
+            new Dictionary<string, string?>
+            {
+                [ProviderConnectionConfigurationKeys.CapacityMode] = ProviderCapacityMode.Automatic.ToString()
+            });
+
+        card.SetConnection(connection);
+
+        Assert.Equal(ProviderCapacityMode.Automatic, card.CapacityMode);
+        Assert.True(card.CanRefresh);
+    }
+
+    [Fact]
+    public void LocalSessionDoesNotExposeAutomaticCapacityForAProviderThatNeedsAnApiChannel()
+    {
+        var definition = ProviderDefinition.BuiltIn(
+            Guid.NewGuid(),
+            ProviderCode.Claude,
+            "Claude",
+            ProviderAuthenticationMode.LocalSession,
+            ProviderCapacityMode.Manual,
+            ProviderCapabilities.SupportsCapacityRefresh | ProviderCapabilities.SupportsConfiguration,
+            0);
+        var card = new ProviderCapacityCardViewModel(definition, new FakeProvider(ProviderCode.Claude));
+        var connection = new ProviderConnection(
+            Guid.NewGuid(),
+            definition.Id,
+            ProviderConnectionType.LocalSession,
+            ProviderConnectionStatus.Connected,
+            null,
+            null,
+            null,
+            null,
+            null,
+            configuration: new Dictionary<string, string?>
+            {
+                [ProviderConnectionConfigurationKeys.CapacityMode] = ProviderCapacityMode.Automatic.ToString()
+            });
+
+        card.SetConnection(connection);
+
+        Assert.Equal(ProviderCapacityMode.Manual, card.CapacityMode);
+        Assert.False(card.CanRefresh);
+        Assert.Contains("separate from subscription capacity", card.StatusDetail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CapacityEditorOnlyOffersAutomaticForAnExplicitSupportedApiChannel()
+    {
+        var definition = ProviderDefinition.BuiltIn(
+            Guid.NewGuid(),
+            ProviderCode.Claude,
+            "Claude",
+            ProviderAuthenticationMode.LocalSession,
+            ProviderCapacityMode.Manual,
+            ProviderCapabilities.SupportsCapacityRefresh | ProviderCapabilities.SupportsConfiguration,
+            0);
+        var editor = new ProviderConnectionEditorViewModel(definition, null, new FakeConnectionService());
+
+        Assert.DoesNotContain(ProviderCapacityMode.Automatic, editor.CapacityModeOptions);
+        editor.AuthenticationMode = ProviderAuthenticationMode.ApiKey;
+
+        Assert.Contains(ProviderCapacityMode.Automatic, editor.CapacityModeOptions);
     }
 
     [Fact]
@@ -242,7 +343,7 @@ public sealed class CapacityViewModelTests
 
         card.ApplyResult(ProviderRefreshResult.Unsupported(ProviderCode.Codex, DateTimeOffset.UtcNow.AddMinutes(1)));
 
-        Assert.Equal("Unsupported / Manual", card.StatusText);
+        Assert.Equal("Manual", card.StatusText);
         Assert.Empty(card.QuotaWindows);
         Assert.Null(card.AccountDisplayName);
         Assert.Null(card.SubscriptionText);
@@ -310,7 +411,7 @@ public sealed class CapacityViewModelTests
         unsupportedCard.ApplyResult(ProviderRefreshResult.Unsupported(ProviderCode.Codex, DateTimeOffset.UtcNow));
 
         Assert.Equal("Authentication Required", authCard.StatusText);
-        Assert.Equal("Unsupported / Manual", unsupportedCard.StatusText);
+        Assert.Equal("Manual", unsupportedCard.StatusText);
     }
 
     [Fact]
@@ -328,8 +429,9 @@ public sealed class CapacityViewModelTests
 
         Assert.Equal("Error", Assert.Single(viewModel.Cards, card => card.Code == ProviderCode.Kimi).StatusText);
         Assert.All(viewModel.Cards, card => Assert.False(card.IsRefreshing));
-        Assert.All(providers, provider => Assert.Equal(1, provider.RefreshCount));
-        Assert.All(providers, provider => Assert.Equal(1, provider.MaxConcurrentRefreshes));
+        Assert.All(providers.Where(provider => provider.Code is ProviderCode.Kimi or ProviderCode.Copilot), provider => Assert.Equal(1, provider.RefreshCount));
+        Assert.All(providers.Where(provider => provider.Code is ProviderCode.Codex or ProviderCode.Claude or ProviderCode.Antigravity), provider => Assert.Equal(0, provider.RefreshCount));
+        Assert.All(providers.Where(provider => provider.Code is ProviderCode.Kimi or ProviderCode.Copilot), provider => Assert.Equal(1, provider.MaxConcurrentRefreshes));
     }
 
     [Fact]
@@ -366,12 +468,27 @@ public sealed class CapacityViewModelTests
                 "Usage-only.",
                 DateTimeOffset.UtcNow)
         };
-        var connectionService = new FakeConnectionService { ThrowOnRecordRefresh = true };
+        var connectionService = new FakeConnectionService
+        {
+            ThrowOnRecordRefresh = true,
+            Connection = new ProviderConnection(
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                ProviderConnectionType.ApiKey,
+                ProviderConnectionStatus.Connected,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "opaque-reference")
+        };
         var card = new ProviderCapacityCardViewModel(
             ProviderCode.Copilot,
             "GitHub Copilot",
             provider,
             connectionService);
+        card.SetConnection(connectionService.Connection);
 
         await card.RefreshAsync();
 
@@ -538,6 +655,20 @@ public sealed class CapacityViewModelTests
         public IReadOnlyList<IAiUsageProvider> GetAll() => _providers;
 
         public IAiUsageProvider? Find(ProviderCode code) => _providers.FirstOrDefault(provider => provider.Code == code);
+
+        public IReadOnlyList<ProviderDefinition> GetDefinitions() => _providers.Select(provider =>
+            ProviderDefinition.BuiltIn(
+                Guid.NewGuid(),
+                provider.Code,
+                AiCapacityViewModel.DisplayNameFor(provider.Code),
+                ProviderAuthenticationMode.LocalSession,
+                provider.Code is ProviderCode.Codex or ProviderCode.Antigravity
+                    ? ProviderCapacityMode.Manual
+                    : ProviderCapacityMode.Automatic,
+                provider.Code is ProviderCode.Codex or ProviderCode.Antigravity
+                    ? ProviderCapabilities.SupportsConfiguration
+                    : ProviderCapabilities.SupportsCapacityRefresh | ProviderCapabilities.SupportsConfiguration,
+                (int)provider.Code)).ToArray();
 
     }
 

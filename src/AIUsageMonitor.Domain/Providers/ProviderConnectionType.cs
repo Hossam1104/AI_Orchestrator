@@ -5,6 +5,9 @@ namespace AIUsageMonitor.Domain.Providers;
 /// </summary>
 public enum ProviderConnectionType
 {
+    LocalSession,
+    ApiKey,
+    ExternalManual,
     OfficialApi,
     OAuth,
     OfficialCli,

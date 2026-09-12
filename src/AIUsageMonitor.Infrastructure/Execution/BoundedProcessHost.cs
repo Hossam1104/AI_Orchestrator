@@ -232,16 +232,28 @@ public sealed class BoundedProcessHost : IBoundedProcessHost
         var stdoutTask = ReadBoundedAsync(process.StandardOutput.BaseStream, request.MaxStdoutBytes, outputCancellation.Token);
         var stderrTask = ReadBoundedAsync(process.StandardError.BaseStream, request.MaxStderrBytes, outputCancellation.Token);
         var exitTask = process.WaitForExitAsync();
-        var timeoutTask = Task.Delay(request.Timeout);
+
+        // The timer is cancelled on every exit path, so a short-lived process does not leave a
+        // pending timer alive for the whole configured timeout.
+        using var timeoutCancellation = new CancellationTokenSource();
+        var timeoutTask = Task.Delay(request.Timeout, timeoutCancellation.Token);
+        Observe(timeoutTask);
         var cancellationSignal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var cancellationRegistration = cancellationToken.Register(static state =>
             ((TaskCompletionSource<bool>)state!).TrySetResult(true), cancellationSignal);
 
         var completed = await Task.WhenAny(exitTask, timeoutTask, cancellationSignal.Task).ConfigureAwait(false);
+        timeoutCancellation.Cancel();
         if (completed == exitTask)
         {
             await exitTask.ConfigureAwait(false);
             var output = await DrainOutputAsync(stdoutTask, stderrTask, request.DrainTimeout).ConfigureAwait(false);
+
+            // A grandchild that inherited the pipe keeps the readers alive past the parent's exit.
+            // Without this the readers outlive the host, and the process handle they are reading
+            // through is disposed underneath them the moment this method returns.
+            outputCancellation.Cancel();
+            Observe(stdoutTask, stderrTask);
             return new(
                 process.ExitCode == 0 ? BoundedProcessOutcome.ExitedSuccessfully : BoundedProcessOutcome.NonZeroExit,
                 process.ExitCode,
@@ -280,6 +292,7 @@ public sealed class BoundedProcessHost : IBoundedProcessHost
         }
 
         var drained = await DrainOutputAsync(stdoutTask, stderrTask, request.DrainTimeout).ConfigureAwait(false);
+        Observe(stdoutTask, stderrTask);
         var outcome = terminationConfirmed
             ? timedOut ? BoundedProcessOutcome.TimedOut : BoundedProcessOutcome.Cancelled
             : BoundedProcessOutcome.TerminationFailure;
@@ -356,13 +369,33 @@ public sealed class BoundedProcessHost : IBoundedProcessHost
                     }
                 }
             }
-            catch (OperationCanceledException)
+            catch (Exception exception) when (
+                exception is OperationCanceledException or IOException or ObjectDisposedException)
             {
-                // The process was terminated or the bounded drain elapsed. The retained prefix
-                // remains safe in memory and is never logged or persisted by this host.
+                // The process was terminated, the bounded drain elapsed, or the pipe was torn down
+                // with the process. The retained prefix remains safe in memory and is never logged
+                // or persisted by this host. A broken pipe is an ordinary end of output here, not a
+                // host failure: faulting would turn a truthful bounded result into an exception.
             }
 
             return new(Encoding.UTF8.GetString(output.ToArray()), truncated);
+        }
+    }
+
+    /// <summary>
+    /// Marks abandoned reader tasks as observed. A reader that faults after the bounded drain gave
+    /// up would otherwise surface as an unobserved task exception on the finalizer thread, long
+    /// after this host returned and attributed to unrelated code.
+    /// </summary>
+    private static void Observe(params Task[] tasks)
+    {
+        foreach (var task in tasks)
+        {
+            _ = task.ContinueWith(
+                static completed => { _ = completed.Exception; },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
         }
     }
 

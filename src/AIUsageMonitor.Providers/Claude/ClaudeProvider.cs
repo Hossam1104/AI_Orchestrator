@@ -29,16 +29,29 @@ public sealed class ClaudeProvider : ProviderAdapterBase
     private readonly ISecureCredentialStore _credentialStore;
     private readonly IExecutableLocator _executableLocator;
     private readonly IProviderRuntimeSettingsAccessor _settings;
+    private readonly IProviderProcessRunner? _processRunner;
 
     public ClaudeProvider(
         IClock clock,
         IHttpClientFactory httpClientFactory,
         ISecureCredentialStore credentialStore,
         IExecutableLocator executableLocator,
-        AnthropicOptions options)
+        AnthropicOptions options,
+        IProviderProcessRunner? processRunner = null)
         : this(clock, httpClientFactory, credentialStore, executableLocator,
             new ProviderRuntimeSettingsAccessor(
-                new CopilotOptions(), options, new KimiOptions()))
+                new CopilotOptions(),
+                new AnthropicOptions
+                {
+                    CredentialReference = options.CredentialReference,
+                    StartingAt = options.StartingAt,
+                    AuthenticationMode = options.AuthenticationMode == ProviderAuthenticationMode.LocalSession &&
+                        !string.IsNullOrWhiteSpace(options.CredentialReference)
+                        ? ProviderAuthenticationMode.ApiKey
+                        : options.AuthenticationMode
+                },
+                new KimiOptions()),
+            processRunner)
     {
     }
 
@@ -47,7 +60,8 @@ public sealed class ClaudeProvider : ProviderAdapterBase
         IHttpClientFactory httpClientFactory,
         ISecureCredentialStore credentialStore,
         IExecutableLocator executableLocator,
-        IProviderRuntimeSettingsAccessor settings)
+        IProviderRuntimeSettingsAccessor settings,
+        IProviderProcessRunner? processRunner = null)
         : base(clock)
     {
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -55,32 +69,105 @@ public sealed class ClaudeProvider : ProviderAdapterBase
         _credentialStore = credentialStore ?? throw new ArgumentNullException(nameof(credentialStore));
         _executableLocator = executableLocator ?? throw new ArgumentNullException(nameof(executableLocator));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _processRunner = processRunner;
     }
 
     public override ProviderCode Code => ProviderCode.Claude;
 
-    public override Task<ProviderDetectionResult> DetectAsync(CancellationToken cancellationToken = default)
+    public override Task<ProviderDetectionResult> DetectAsync(CancellationToken cancellationToken = default) =>
+        DetectSessionAsync(cancellationToken);
+
+    public async Task<ProviderDetectionResult> DetectSessionAsync(
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var options = _settings.Current.Anthropic;
         var apiConfigured = !string.IsNullOrWhiteSpace(options.CredentialReference);
         var cliDetected = _executableLocator.Find("claude") is not null;
-        return Task.FromResult(new ProviderDetectionResult(
+        if (options.AuthenticationMode == ProviderAuthenticationMode.ApiKey)
+        {
+            return new(
+                Code,
+                cliDetected,
+                apiConfigured
+                    ? ProviderAuthenticationState.ApiKeyConfigured
+                    : ProviderAuthenticationState.AuthenticationRequired,
+                apiConfigured
+                    ? "API key fallback selected; Claude subscription capacity remains a separate channel."
+                    : "API key fallback is selected, but no APO-managed credential is configured.",
+                UtcNow);
+        }
+
+        if (!cliDetected)
+        {
+            return new(
+                Code,
+                false,
+                ProviderAuthenticationState.AuthenticationRequired,
+                "Claude local tool was not detected.",
+                UtcNow);
+        }
+
+        var executablePath = _executableLocator.Find("claude")!;
+        if (_processRunner is null || !string.Equals(
+                Path.GetExtension(executablePath),
+                ".exe",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return new(
+                Code,
+                true,
+                ProviderAuthenticationState.Unknown,
+                "Local Claude tool detected — authentication not machine-verifiable.",
+                UtcNow);
+        }
+
+        var result = await _processRunner.RunAsync(
+                new ProviderProcessRequest(
+                    executablePath,
+                    ["auth", "status", "--json"],
+                    TimeSpan.FromSeconds(8)),
+                cancellationToken)
+            .ConfigureAwait(false);
+        try
+        {
+            using var document = JsonDocument.Parse(result.StandardOutput);
+            if (document.RootElement.TryGetProperty("loggedIn", out var loggedIn) &&
+                loggedIn.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                return new(
+                    Code,
+                    true,
+                    loggedIn.GetBoolean()
+                        ? ProviderAuthenticationState.AuthenticatedLocalSession
+                        : ProviderAuthenticationState.AuthenticationRequired,
+                    loggedIn.GetBoolean()
+                        ? "Connected via local Claude session."
+                        : "Claude local tool is installed, but no authenticated session was reported.",
+                    UtcNow);
+            }
+        }
+        catch (JsonException)
+        {
+            // The safe result below deliberately avoids exposing or guessing from raw CLI output.
+        }
+
+        return new(
             Code,
-            apiConfigured || cliDetected,
-            apiConfigured
-                ? "Anthropic organization Admin API configured; Claude subscription remains separate."
-                : cliDetected
-                    ? "Official Claude CLI detected; subscription capacity is not machine-readable."
-                    : "No configured Admin API credential or official Claude CLI detected.",
-            UtcNow));
+            true,
+            ProviderAuthenticationState.Unknown,
+            result.Outcome is ProviderProcessOutcome.TimedOut or ProviderProcessOutcome.Cancelled
+                ? "Unable to verify the local Claude session."
+                : "Local Claude tool detected — authentication not machine-verifiable.",
+            UtcNow);
     }
 
     public override async Task<ProviderConnectionStatus> GetConnectionStatusAsync(
         CancellationToken cancellationToken = default)
     {
         var options = _settings.Current.Anthropic;
-        if (!string.IsNullOrWhiteSpace(options.CredentialReference))
+        if (options.AuthenticationMode == ProviderAuthenticationMode.ApiKey &&
+            !string.IsNullOrWhiteSpace(options.CredentialReference))
         {
             var token = await _credentialStore.RetrieveAsync(options.CredentialReference, cancellationToken)
                 .ConfigureAwait(false);
@@ -89,15 +176,21 @@ public sealed class ClaudeProvider : ProviderAdapterBase
                 : ProviderConnectionStatus.Connected;
         }
 
-        return _executableLocator.Find("claude") is not null
-            ? ProviderConnectionStatus.LocalDetected
-            : ProviderConnectionStatus.Unsupported;
+        var detection = await DetectSessionAsync(cancellationToken).ConfigureAwait(false);
+        return detection.AuthenticationState switch
+        {
+            ProviderAuthenticationState.AuthenticatedLocalSession => ProviderConnectionStatus.Connected,
+            ProviderAuthenticationState.AuthenticationRequired => ProviderConnectionStatus.AuthenticationRequired,
+            _ when detection.IsDetected => ProviderConnectionStatus.LocalDetected,
+            _ => ProviderConnectionStatus.Unsupported
+        };
     }
 
     protected override async Task<ProviderRefreshResult> RefreshCoreAsync(CancellationToken cancellationToken)
     {
         var options = _settings.Current.Anthropic;
-        if (string.IsNullOrWhiteSpace(options.CredentialReference))
+        if (options.AuthenticationMode != ProviderAuthenticationMode.ApiKey ||
+            string.IsNullOrWhiteSpace(options.CredentialReference))
         {
             return Unsupported();
         }
