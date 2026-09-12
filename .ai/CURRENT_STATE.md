@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 13 September 2026 (APO-70 execution-spine recovery session)
+**Last Updated:** 13 September 2026 (APO-70 real local Codex vertical slice)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
@@ -11,54 +11,64 @@ inside it says `CURRENT` or `ACTIVE`.
 
 ## CURRENT - APO-70 execution spine and command center recovery
 
-**Last Updated:** 13 September 2026 (bounded implementation; exact-head validation complete; acceptance pending)
+**Last Updated:** 13 September 2026 (implementation commit cfa07dc; exact-head validation complete; acceptance pending)
 
 ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
 BRANCH = `feature/APO-70-v1-desktop-product-recovery`
 PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
-CURRENT IMPLEMENTATION HEAD = `3a561fd72365af9c080c9542b7c48c4b19d662ad`
+CURRENT IMPLEMENTATION HEAD = `cfa07dc22d37a6948771bf9f651ae263dca2a14d`
 PR STATE = OPEN / DRAFT / NOT MERGED
 V1 RELEASE = FROZEN / NOT AUTHORIZED
 OWNER VISUAL ACCEPTANCE = PENDING / NOT CLAIMED
 OWNER FUNCTIONAL ACCEPTANCE = PENDING / NOT CLAIMED
 SOL ACCEPTANCE = PENDING ON THE FINAL EXACT HEAD
 
-The Application now exposes `IExecutionCoordinator`. It accepts bounded owner intent without
-internal authority identifiers, resolves the one enabled planner from the registered project
-context, and delegates creation of the immutable planning contract, single-node work graph,
-quality-first routing decision, redacted planner-to-executor handoff, exact workspace plan and
-receipt, recovery checkpoint, and `BoundedExecutionRequest` to the existing application services.
-The Desktop now exposes an Execution workspace with explicit project selection, request fields,
-Prepare, Start, Cancel, durable preparation evidence, routing details, and truthful runtime/result
-states. No raw prompt, arbitrary command, provider process, credential, or fake progress path was
-added. The shell default window is now 1440x920 with 980x650 minimum size; Cairo is the primary
-font family with Bahnschrift/Segoe UI system fallbacks, and the existing RMS-derived semantic
-cards, logo treatment, sidebar, light/dark resources, and focusable controls are reused.
+The Application now exposes `IExecutionCoordinator` with a real planner boundary. It resolves one
+enabled planner, verifies the exact clean repository first, invokes one exact planner adapter, validates
+the structured provider-independent plan, and only then creates the immutable planning contract,
+single-node work graph, centralized persisted-policy routing decision, redacted planner-to-executor
+handoff, exact workspace plan and receipt, recovery checkpoint, and `BoundedExecutionRequest`.
+Planner output now carries normalized objective, included scope, typed validation expectations,
+acceptance criteria, constraints, routing classification, typed stop conditions, and bounded budgets;
+owner acceptance and constraints cannot be dropped. The persisted routing policy now carries typed
+preferred/prohibited agent ids, resolved by `IExecutableRoutingPolicyResolver` with project-over-global
+inheritance and default role metadata.
 
-The current production composition registers no `IExecutionAdapter`. The existing
-`ExecutionAdapterResolver` therefore returns `AdapterUnsupported` for Start and the Execution
-workspace surfaces that exact bounded-service result. This is the proven architectural blocker
-for real provider execution; no provider-specific executor was invented because the repository
-does not yet contain an approved structured adapter contract for Codex or Claude work execution.
+Production composition now registers one exact local Codex planner and one exact local Codex executor.
+Both require a direct `.exe`, explicit OpenAI/Cli model identity, authenticated `codex login status`,
+bounded typed arguments, strict output schemas, redaction checks, cancellation/timeouts, and the
+prepared workspace. Planning uses `read-only`; execution uses `workspace-write`; APO does not invoke a
+shell or authorize commit, push, merge, deployment, or unrelated deletion. The default catalog still
+has Unknown connection/model metadata, so it fails closed until an eligible configured local Codex
+planner/executor pair exists. No fake Claude path or silent model fallback was added.
 
-Validation on the exact implementation head: Release solution build PASS with 0 warnings / 0
-errors; canonical solution tests 1,318 passed / 0 failed / 0 skipped (28 Domain, 308 Connection,
-196 Provider, 111 Desktop, 675 Infrastructure); `git diff --check` PASS; and self-contained
+The Desktop Execution workspace remains bounded and truthful. Its touched presentation is extracted
+to `Views/ExecutionView.xaml`; the shell continues to reuse the existing RMS-derived semantic cards,
+logo treatment, sidebar, light/dark resources, and focusable controls. No raw prompt, arbitrary command,
+credential, transcript, or fake progress path is exposed.
+
+Validation on implementation commit `cfa07dc22d37a6948771bf9f651ae263dca2a14d`: Release solution
+build PASS with 0 warnings / 0 errors; canonical solution tests 1,326 passed / 0 failed / 0 skipped
+(28 Domain, 312 Connection, 199 Provider, 112 Desktop, 675 Infrastructure); focused new planner,
+routing, adapter, and composition coverage PASS; `git diff --check` PASS; and self-contained
 single-file publish validation PASS for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and
-`win-arm64` (PE `0xAA64`). Exact-head GitHub Actions run `34720388238` passed the canonical test
-job and all three publish jobs.
+`win-arm64` (PE `0xAA64`). The installed direct Codex probe found
+`C:\Users\Win11\.vscode\extensions\openai.chatgpt-26.908.40401-win32-x64\bin\windows-x86_64\codex.exe`,
+version `codex-cli 0.154.0-alpha.6.2`, and login-status exit `0`; account/session output was not read
+or stored.
 
-Fresh current-run evidence: `scripts/Run-FreshDesktop.ps1` published and launched
-`artifacts/local-run/win-x64/AIUsageMonitor.Desktop.exe` with SHA-256
-`68F0BC49AF21F5059FC08F4932112477967D76A06E8C77FFE413C659C8CCDA44`; the single process was PID
-`11328`, title `AI Orchestrator`, and responding. The explicit owner instruction for this prompt
-authorizes leaving that process running. Computer Use still exposes no targetable native apps
-(`apps: []`), so owner visual acceptance is not claimed.
+Fresh current-run evidence on the clean implementation commit: `scripts/Run-FreshDesktop.ps1 -SmokeTest`
+published and launched `artifacts/local-run/win-x64/AIUsageMonitor.Desktop.exe` with
+SHA-256 `441EE78F1535E8882CBD4BB22630CB1590C43F94E7F370FDAC519879672CC431`; PID `60216`, title
+`AI Orchestrator`, responding, smoke test PASS, and stopped by the script. Computer Use still exposes
+no targetable native apps (`apps: []`), so owner visual/functional acceptance is not claimed. A live
+planner/executor invocation was not attempted because the product registry has no persisted explicit
+model configuration; this is a truthful configuration boundary, not a provider success claim.
 
 No merge, main push, force push, release, tag, deployment, tracker closure, credential access, or
-owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review followed by
-owner visual/functional acceptance. Production execution remains blocked until a provider-specific
-`IExecutionAdapter` is approved and registered.
+owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review, followed by
+owner visual/functional acceptance and, only after explicit model configuration, a separately authorized
+real bounded Codex execution attempt.
 
 ---
 
