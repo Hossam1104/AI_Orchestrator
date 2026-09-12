@@ -29,12 +29,17 @@ public sealed class VisualRenderAcceptanceTests
     private static readonly Guid ProjectId =
         Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
+    private readonly WpfRenderHarness _harness;
+
+    public VisualRenderAcceptanceTests(WpfRenderHarness harness)
+    {
+        _harness = harness;
+    }
+
     [Fact]
     public void RequiredLightAndDarkRenders_AreDeterministicAndStructurallyValid()
     {
-        using var harness = new WpfRenderHarness();
-
-        harness.Run(() =>
+        _harness.Run(() =>
         {
             var evidenceDirectory = GetEvidenceDirectory();
             if (Directory.Exists(evidenceDirectory))
@@ -594,73 +599,6 @@ public sealed class VisualRenderAcceptanceTests
 
     private sealed record RenderEvidence(string Path, int Width, int Height, byte[] Pixels);
 
-    private sealed class WpfRenderHarness : IDisposable
-    {
-        private readonly Thread _thread;
-        private readonly ManualResetEventSlim _started = new();
-        private Dispatcher? _dispatcher;
-        private Exception? _startupException;
-
-        public WpfRenderHarness()
-        {
-            _thread = new Thread(Start)
-            {
-                IsBackground = true,
-                Name = "APO-70 WPF visual render thread"
-            };
-            _thread.SetApartmentState(ApartmentState.STA);
-            _thread.Start();
-            _started.Wait();
-            if (_startupException is not null)
-            {
-                throw new InvalidOperationException("The WPF render dispatcher could not start.", _startupException);
-            }
-        }
-
-        public void Run(Action action)
-        {
-            ArgumentNullException.ThrowIfNull(action);
-            _dispatcher!.Invoke(action);
-        }
-
-    private void Start()
-    {
-            try
-            {
-                var application = new System.Windows.Application
-                {
-                    ShutdownMode = ShutdownMode.OnExplicitShutdown
-                };
-                application.Resources.MergedDictionaries.Add(new ResourceDictionary
-                {
-                    Source = new Uri(
-                        "/AIUsageMonitor.Desktop;component/Resources/Theme.xaml",
-                        UriKind.Relative)
-                });
-                _dispatcher = Dispatcher.CurrentDispatcher;
-                _started.Set();
-                Dispatcher.Run();
-                application.Shutdown();
-            }
-            catch (Exception exception)
-            {
-                _startupException = exception;
-                _started.Set();
-            }
-        }
-
-        public void Dispose()
-        {
-            if (_dispatcher is not null && !_dispatcher.HasShutdownStarted)
-            {
-                _dispatcher.InvokeShutdown();
-            }
-
-            _thread.Join(TimeSpan.FromSeconds(10));
-            _started.Dispose();
-        }
-    }
-
     private sealed class TestProjectRegistry : IProjectRegistryService
     {
         private readonly IReadOnlyList<Project> _projects;
@@ -737,6 +675,6 @@ public sealed class VisualRenderAcceptanceTests
 }
 
 [CollectionDefinition("WPF visual acceptance", DisableParallelization = true)]
-public sealed class WpfVisualAcceptanceCollection : ICollectionFixture<object>
+public sealed class WpfVisualAcceptanceCollection : ICollectionFixture<WpfRenderHarness>
 {
 }

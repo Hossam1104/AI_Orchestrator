@@ -21,6 +21,10 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
         InitializeComponent();
         Loaded += OnLoaded;
+
+        // ThemeManager.ThemeChanged is static, so a window that never unsubscribes keeps itself
+        // and its whole view-model graph alive for the life of the process.
+        Closed += OnClosed;
     }
 
     public void SetPersistenceAvailability(bool persistenceAvailable)
