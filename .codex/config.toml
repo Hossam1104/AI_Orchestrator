@@ -10,6 +10,6 @@ command = "serena"
 args = [
     "start-mcp-server",
     "--context",
-    "claude-code",
+    "codex",
     "--project-from-cwd",
 ]
