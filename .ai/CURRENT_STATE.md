@@ -11,11 +11,12 @@ inside it says `CURRENT` or `ACTIVE`.
 
 ## CURRENT - APO-70 execution spine and command center recovery
 
-**Last Updated:** 13 September 2026 (bounded implementation; acceptance pending)
+**Last Updated:** 13 September 2026 (bounded implementation; exact-head validation complete; acceptance pending)
 
 ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
 BRANCH = `feature/APO-70-v1-desktop-product-recovery`
 PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+CURRENT IMPLEMENTATION HEAD = `3a561fd72365af9c080c9542b7c48c4b19d662ad`
 PR STATE = OPEN / DRAFT / NOT MERGED
 V1 RELEASE = FROZEN / NOT AUTHORIZED
 OWNER VISUAL ACCEPTANCE = PENDING / NOT CLAIMED
@@ -40,15 +41,24 @@ workspace surfaces that exact bounded-service result. This is the proven archite
 for real provider execution; no provider-specific executor was invented because the repository
 does not yet contain an approved structured adapter contract for Codex or Claude work execution.
 
-Validation on the current worktree: Application build PASS; focused Connection tests 308 passed /
-0 failed / 0 skipped; focused Desktop tests 111 passed / 0 failed / 0 skipped; `git diff --check`
-PASS. Full canonical tests, Release build, multi-RID publish, fresh current run, and exact-head CI
-remain pending until this implementation is committed and pushed. No merge, main push, force push,
-release, tag, deployment, tracker closure, credential access, or owner/Sol acceptance was performed.
+Validation on the exact implementation head: Release solution build PASS with 0 warnings / 0
+errors; canonical solution tests 1,318 passed / 0 failed / 0 skipped (28 Domain, 308 Connection,
+196 Provider, 111 Desktop, 675 Infrastructure); `git diff --check` PASS; and self-contained
+single-file publish validation PASS for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and
+`win-arm64` (PE `0xAA64`). Exact-head GitHub Actions run `34720388238` passed the canonical test
+job and all three publish jobs.
 
-The next safe step is to validate the final diff and publish evidence, then hand the exact Draft
-PR head to Sol. Production execution remains blocked until a provider-specific `IExecutionAdapter`
-is approved and registered.
+Fresh current-run evidence: `scripts/Run-FreshDesktop.ps1` published and launched
+`artifacts/local-run/win-x64/AIUsageMonitor.Desktop.exe` with SHA-256
+`68F0BC49AF21F5059FC08F4932112477967D76A06E8C77FFE413C659C8CCDA44`; the single process was PID
+`11328`, title `AI Orchestrator`, and responding. The explicit owner instruction for this prompt
+authorizes leaving that process running. Computer Use still exposes no targetable native apps
+(`apps: []`), so owner visual acceptance is not claimed.
+
+No merge, main push, force push, release, tag, deployment, tracker closure, credential access, or
+owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review followed by
+owner visual/functional acceptance. Production execution remains blocked until a provider-specific
+`IExecutionAdapter` is approved and registered.
 
 ---
 
