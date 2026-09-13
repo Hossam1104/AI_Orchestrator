@@ -51,7 +51,8 @@ public sealed class BoundedProviderProcessRunner : IProviderProcessRunner
             Redact(result.StandardError),
             result.StandardOutputTruncated,
             result.StandardErrorTruncated,
-            result.ErrorMessage);
+            result.ErrorMessage,
+            result.ProcessTerminationConfirmed);
     }
 
     private static string Redact(string value)

@@ -1,5 +1,6 @@
 using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.Orchestration;
+using AIUsageMonitor.Application.Providers;
 using AIUsageMonitor.Application.Routing;
 
 namespace AIUsageMonitor.Application.Planning;
@@ -59,10 +60,27 @@ public enum PlannerInvocationStatus
     InvalidResult
 }
 
+/// <summary>Bounded, provider-independent process evidence for a failed planner invocation.</summary>
+public sealed record PlannerInvocationDiagnostic(
+    ProviderProcessOutcome? ProcessOutcome = null,
+    int? ExitCode = null,
+    bool OutputFileExists = false,
+    bool OutputParsingFailed = false,
+    bool StandardOutputTruncated = false,
+    bool StandardErrorTruncated = false,
+    bool ProcessTerminationConfirmed = true,
+    string? StandardOutputSummary = null,
+    string? StandardErrorSummary = null)
+{
+    public bool TimedOut => ProcessOutcome == ProviderProcessOutcome.TimedOut;
+    public bool Cancelled => ProcessOutcome == ProviderProcessOutcome.Cancelled;
+}
+
 public sealed record PlannerInvocationResult(
     PlannerInvocationStatus Status,
     PlannerPlan? Plan = null,
-    string? ErrorMessage = null)
+    string? ErrorMessage = null,
+    PlannerInvocationDiagnostic? Diagnostic = null)
 {
     public bool Succeeded => Status == PlannerInvocationStatus.Succeeded && Plan is not null;
 }

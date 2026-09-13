@@ -2,6 +2,7 @@ using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Planning;
+using AIUsageMonitor.Application.Providers;
 using AIUsageMonitor.Application.Projects;
 using AIUsageMonitor.Application.Routing;
 using AIUsageMonitor.Application.Time;
@@ -62,6 +63,26 @@ public sealed class ExecutionPreparationCoordinatorTests
         Assert.Equal(0, fixture.Handoff.Calls);
         Assert.Equal(0, fixture.WorkspacePlan.Calls);
         Assert.Equal(0, fixture.Recovery.Calls);
+    }
+
+    [Fact]
+    public async Task PrepareAsyncPreservesPlannerProcessDiagnosticWithoutStartingDownstreamAuthorities()
+    {
+        var fixture = new Fixture();
+        fixture.Planner.Result = new PlannerInvocationResult(
+            PlannerInvocationStatus.Failed,
+            ErrorMessage: "planner process failed",
+            Diagnostic: new PlannerInvocationDiagnostic(ProviderProcessOutcome.NonZeroExit, 73, StandardErrorSummary: "bounded failure"));
+
+        var result = await fixture.Coordinator.PrepareAsync(fixture.Request());
+
+        Assert.Equal(ExecutionPreparationStatus.PlannerFailed, result.Status);
+        Assert.Equal(ExecutionPreparationStage.Planning, result.Stage);
+        Assert.Equal(ProviderProcessOutcome.NonZeroExit, result.PlannerDiagnostic!.ProcessOutcome);
+        Assert.Equal(73, result.PlannerDiagnostic.ExitCode);
+        Assert.Equal(0, fixture.Contract.Calls);
+        Assert.Equal(0, fixture.Graph.Calls);
+        Assert.Equal(0, fixture.Routing.Calls);
     }
 
     [Theory]
@@ -200,11 +221,13 @@ public sealed class ExecutionPreparationCoordinatorTests
     {
         internal readonly TaskCompletionSource<bool> Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal PlannerPlan? LastPlan;
+        internal PlannerInvocationResult? Result;
         public PlannerAdapterDescriptor Descriptor { get; } = new("test-planner", [AgentConnectionMode.Cli]);
         public async Task<PlannerInvocationResult> PlanAsync(PlannerInvocationRequest request, CancellationToken cancellationToken = default)
         {
             Started.TrySetResult(true);
             if (fixture.BlockPlanner) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            if (Result is not null) return Result;
             if (fixture.InvalidPlanner) return new(PlannerInvocationStatus.InvalidResult, ErrorMessage: "planner output was invalid");
             LastPlan = new PlannerPlan(request.OwnerRequest.Objective, ["prepared workspace"], request.OwnerRequest.AcceptanceCriteria, request.OwnerRequest.Constraints, [new PlanningValidationRequirement("focused", PlanningValidationKind.Test, "Run focused tests", true)], request.OwnerRequest.Classification, [new PlanningStopCondition("target", PlanningStopConditionKind.ImmutableTargetMoved, "target"), new PlanningStopCondition("scope", PlanningStopConditionKind.ScopeViolation, "scope"), new PlanningStopCondition("budget", PlanningStopConditionKind.BudgetExceeded, "budget")], [new PlanningExecutionBudget(PlanningBudgetKind.Attempts, 1), new PlanningExecutionBudget(PlanningBudgetKind.ElapsedMinutes, 1)]);
             return new(PlannerInvocationStatus.Succeeded, LastPlan);

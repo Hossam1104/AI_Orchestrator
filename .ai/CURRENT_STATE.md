@@ -1,11 +1,42 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 13 September 2026 (APO-70 real local Codex vertical slice)
+**Last Updated:** 13 September 2026 (APO-70 planner diagnostic recovery; partial)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 planner diagnostic recovery (partial)
+
+**Last Updated:** 13 September 2026
+
+On reviewed source head `abcb947b9a8fc89493e429f828c9e1c9c7290982`, the first isolated production-DI
+`PrepareAsync` reproduction reached the real `gpt-5.6-sol` planner and failed at Planning with
+typed `NonZeroExit`, exit code `1`, no output file, no timeout/cancellation, and confirmed process
+termination. The bounded redacted stderr proved that Codex rejected APO's generated output schema:
+the initial byte-order mark made the schema invalid at byte zero. After the no-BOM repair, the one
+permitted post-fix real planner validation again produced `NonZeroExit`/`1` and proved the same
+schema was structurally incomplete at EOF. No routing, workspace preparation, `StartAsync`, Luna
+invocation, or disposable repository mutation occurred in either run.
+
+The planner boundary now preserves a redacted, 1,000-character-bounded diagnostic through
+`PlannerInvocationResult` and `ExecutionPreparationResult`: typed process outcome, exit code,
+timeout/cancellation derivation, termination confirmation, output-file presence, parse state, and
+stdout/stderr truncation/summary evidence. The provider runner also preserves the host's termination
+confirmation. The schema writer is UTF-8 without a BOM and the schema has been repaired to valid
+JSON; focused regressions cover all typed process outcomes, missing/malformed output, redaction,
+no-BOM emission, schema JSON validity, and coordinator mapping.
+
+Focused Provider tests passed 20/20 and Connection tests 16/16. Release build passed with 0 warnings
+and 0 errors; Domain 28/28, Connection 327/327, Provider 216/216, and Desktop 116/116 passed. The
+Infrastructure host stalled at discovery and was stopped after bounded observation, so its 675 tests
+are not claimed as a local pass. Structural self-contained publish validation passed for `win-x86`,
+`win-x64`, and `win-arm64`. No third real planner invocation was made because this execution contract
+authorized exactly one post-fix validation; the structural repair therefore still requires a newly
+authorized isolated read-only `PrepareAsync` validation. No real Luna workspace-write execution,
+merge, main push, release, tag, deployment, tracker closure, credential inspection, owner acceptance,
+or Sol final acceptance occurred.
 
 ---
 

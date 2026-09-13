@@ -70,7 +70,8 @@ public sealed record ProviderProcessResult(
     string StandardError,
     bool StandardOutputTruncated,
     bool StandardErrorTruncated,
-    string? ErrorMessage = null)
+    string? ErrorMessage = null,
+    bool ProcessTerminationConfirmed = true)
 {
     public bool Succeeded => Outcome == ProviderProcessOutcome.ExitedSuccessfully;
 }

@@ -147,7 +147,8 @@ public sealed record ExecutionPreparationResult(
     ExecutionPreparationStatus Status,
     ExecutionPreparationStage Stage = ExecutionPreparationStage.None,
     PreparedExecution? PreparedExecution = null,
-    string? ErrorMessage = null)
+    string? ErrorMessage = null,
+    PlannerInvocationDiagnostic? PlannerDiagnostic = null)
 {
     public bool Succeeded => Status == ExecutionPreparationStatus.Prepared && PreparedExecution is not null;
 }
@@ -372,7 +373,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
                     PlannerInvocationStatus.Failed or PlannerInvocationStatus.TimedOut => ExecutionPreparationStatus.PlannerFailed,
                     _ => ExecutionPreparationStatus.PlannerUnavailable
                 };
-                return await FailAsync(plannerStatus, ExecutionPreparationStage.Planning, plannerResult.ErrorMessage ?? "The configured planner did not produce a valid result.").ConfigureAwait(false);
+                return await FailAsync(plannerStatus, ExecutionPreparationStage.Planning, plannerResult.ErrorMessage ?? "The configured planner did not produce a valid result.", plannerResult.Diagnostic).ConfigureAwait(false);
             }
 
             var plannerValidation = PlannerPlanValidator.Validate(plannerResult.Plan, request, planner);
@@ -671,7 +672,8 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
     private async Task<ExecutionPreparationResult> FailAsync(
         ExecutionPreparationStatus status,
         ExecutionPreparationStage stage,
-        string message)
+        string message,
+        PlannerInvocationDiagnostic? plannerDiagnostic = null)
     {
         await _stateGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         try
@@ -685,7 +687,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
             _stateGate.Release();
         }
 
-        return new(status, stage, ErrorMessage: message);
+        return new(status, stage, ErrorMessage: message, PlannerDiagnostic: plannerDiagnostic);
     }
 
     private static ExecutionCoordinatorState MapState(BoundedExecutionStatus status) =>

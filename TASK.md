@@ -34,6 +34,12 @@ Current recovery note: the shared Codex invocation policy now splits planner `re
 executor `workspace-write` with non-escalating approval. Real execution remains fail-closed until
 the owner configures exact, supported model identifiers; no CLI default is used.
 
+Current diagnostic checkpoint: a real isolated Sol planner run proved that APO generated an invalid
+strict output schema. The bounded repair now preserves typed/redacted process diagnostics and emits
+valid no-BOM JSON, but the one allowed post-fix real validation occurred before the structural schema
+repair. A fresh explicit authorization is required for one new isolated read-only `PrepareAsync`
+planner validation; it must not call `StartAsync` or invoke Luna.
+
 Validation and delivery remain bounded to this branch and Draft PR #112. Do not merge, push `main`,
 create a release/tag/deployment, close Issue #111, or claim owner/Sol acceptance.
 

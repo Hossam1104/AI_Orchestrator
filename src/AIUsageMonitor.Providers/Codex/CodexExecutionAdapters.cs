@@ -81,12 +81,18 @@ public sealed class CodexPlannerAdapter : IPlannerAdapter
                 .ConfigureAwait(false);
             if (invocation.Process.Outcome != ProviderProcessOutcome.ExitedSuccessfully)
             {
-                return new(MapPlannerProcessOutcome(invocation.Process), ErrorMessage: "The local Codex planner process did not complete successfully.");
+                return new(
+                    MapPlannerProcessOutcome(invocation.Process),
+                    ErrorMessage: "The local Codex planner process did not complete successfully.",
+                    Diagnostic: ProcessDiagnostic(invocation));
             }
 
             if (invocation.Output is null || _redaction.ValidateIdentityText(invocation.Output).RequiresRedaction)
             {
-                return new(PlannerInvocationStatus.InvalidResult, ErrorMessage: "The planner output was missing, oversized, or crossed the redaction boundary.");
+                return new(
+                    PlannerInvocationStatus.InvalidResult,
+                    ErrorMessage: "The planner output was missing, oversized, or crossed the redaction boundary.",
+                    Diagnostic: ProcessDiagnostic(invocation));
             }
 
             try
@@ -96,7 +102,10 @@ public sealed class CodexPlannerAdapter : IPlannerAdapter
             }
             catch (Exception exception) when (exception is JsonException or ArgumentException or InvalidOperationException)
             {
-                return new(PlannerInvocationStatus.InvalidResult, ErrorMessage: "The planner output did not match the bounded APO plan schema.");
+                return new(
+                    PlannerInvocationStatus.InvalidResult,
+                    ErrorMessage: "The planner output did not match the bounded APO plan schema.",
+                    Diagnostic: ProcessDiagnostic(invocation, outputParsingFailed: true));
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -122,6 +131,28 @@ public sealed class CodexPlannerAdapter : IPlannerAdapter
             ProviderProcessOutcome.StartFailed or ProviderProcessOutcome.TerminationFailure => PlannerInvocationStatus.AdapterUnavailable,
             _ => PlannerInvocationStatus.Failed
         };
+
+    private PlannerInvocationDiagnostic ProcessDiagnostic(CodexInvocationResult invocation, bool outputParsingFailed = false) => new(
+        invocation.Process.Outcome,
+        invocation.Process.ExitCode,
+        invocation.OutputFileExists,
+        outputParsingFailed,
+        invocation.Process.StandardOutputTruncated,
+        invocation.Process.StandardErrorTruncated,
+        invocation.Process.ProcessTerminationConfirmed,
+        Summary(invocation.Process.StandardOutput),
+        Summary(invocation.Process.StandardError));
+
+    private string? Summary(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var redacted = _redaction.Redact(value).Value.Trim();
+        return redacted.Length <= 1_000 ? redacted : redacted[..1_000];
+    }
 }
 
 public sealed class CodexExecutionAdapter : IExecutionAdapter
@@ -273,7 +304,7 @@ internal enum CodexSessionStatus
 
 internal sealed record CodexSessionResult(CodexSessionStatus Status, string ErrorMessage);
 
-internal sealed record CodexInvocationResult(ProviderProcessResult Process, string? Output);
+internal sealed record CodexInvocationResult(ProviderProcessResult Process, string? Output, bool OutputFileExists);
 
 /// <summary>Typed, fixed Codex policies prevent planner and executor sandbox authority from drifting.</summary>
 internal enum CodexInvocationPolicy
@@ -291,7 +322,7 @@ internal static class CodexLocalInvocation
     public static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
 
     public const string PlannerSchema = """
-        {"type":"object","additionalProperties":false,"required":["normalizedObjective","includedScope","acceptanceCriteria","constraints","validationExpectations","classification","stopConditions","executionBudgets"],"properties":{"normalizedObjective":{"type":"string","minLength":1,"maxLength":4000},"includedScope":{"type":"array","minItems":1,"maxItems":32,"items":{"type":"string","minLength":1,"maxLength":4000}},"acceptanceCriteria":{"type":"array","minItems":1,"maxItems":32,"items":{"type":"string","minLength":1,"maxLength":4000}},"constraints":{"type":"array","maxItems":32,"items":{"type":"string","minLength":1,"maxLength":4000}},"validationExpectations":{"type":"array","minItems":1,"maxItems":32,"items":{"type":"object","additionalProperties":false,"required":["kind","description","required"],"properties":{"kind":{"type":"string","enum":["build","test","staticCheck","securityCheck","manualInspection","custom"]},"description":{"type":"string","minLength":1,"maxLength":4000},"required":{"type":"boolean"},"commandOrReference":{"type":["string","null"],"maxLength":1000}}}},"classification":{"type":"object","additionalProperties":false,"required":["scopeScale","risk","blastRadius","validationCost","requiredRole","requiredCapabilities","policyTags","capacityRequirement","independentReviewRequired","securityReviewRequired","ownerApprovalRequired","requiresSupportedConnection","requiresVerifiedAvailability","requiresAuthenticatedAccess","requiresVerifiedEntitlement"],"properties":{"scopeScale":{"type":"string","enum":["bounded","multiFile","crossCutting","projectWide"]},"risk":{"type":"string","enum":["low","moderate","high","critical"]},"blastRadius":{"type":"string","enum":["local","module","project","crossProject","externalSystem"]},"validationCost":{"type":"string","enum":["low","moderate","high"]},"requiredRole":{"type":"string","enum":["planner","architect","acceptanceAuthority","executor","reviewer","securitySpecialist","auxiliaryExecutor"]},"requiredCapabilities":{"type":"array","maxItems":64,"items":{"type":"string","minLength":1,"maxLength":160}},"policyTags":{"type":"array","maxItems":64,"items":{"type":"string","minLength":1,"maxLength":160}},"capacityRequirement":{"type":"string","enum":["required","optional","notApplicable"]},"independentReviewRequired":{"type":"boolean"},"securityReviewRequired":{"type":"boolean"},"ownerApprovalRequired":{"type":"boolean"},"requiresSupportedConnection":{"type":"boolean"},"requiresVerifiedAvailability":{"type":"boolean"},"requiresAuthenticatedAccess":{"type":"boolean"},"requiresVerifiedEntitlement":{"type":"boolean"}}},"stopConditions":{"type":"array","minItems":3,"maxItems":16,"items":{"type":"object","additionalProperties":false,"required":["conditionId","kind","description"],"properties":{"conditionId":{"type":"string","minLength":1,"maxLength":120},"kind":{"type":"string","enum":["immutableTargetMoved","scopeViolation","validationFailure","budgetExceeded","credentialRequired","ownerApprovalRequired","externalDependencyUnavailable","contextInsufficient","unresolvedAmbiguity","securityBoundaryReached"]},"description":{"type":"string","minLength":1,"maxLength":4000}}}},"executionBudgets":{"type":"array","minItems":2,"maxItems":16,"items":{"type":"object","additionalProperties":false,"required":["kind","limit"],"properties":{"kind":{"type":"string","enum":["attempts","elapsedMinutes","changedFiles","changedLines","toolInvocations","modelTurns"]},"limit":{"type":"integer","minimum":1,"maximum":1000000}}}}}
+        {"type":"object","additionalProperties":false,"required":["normalizedObjective","includedScope","acceptanceCriteria","constraints","validationExpectations","classification","stopConditions","executionBudgets"],"properties":{"normalizedObjective":{"type":"string","minLength":1,"maxLength":4000},"includedScope":{"type":"array","minItems":1,"maxItems":32,"items":{"type":"string","minLength":1,"maxLength":4000}},"acceptanceCriteria":{"type":"array","minItems":1,"maxItems":32,"items":{"type":"string","minLength":1,"maxLength":4000}},"constraints":{"type":"array","maxItems":32,"items":{"type":"string","minLength":1,"maxLength":4000}},"validationExpectations":{"type":"array","minItems":1,"maxItems":32,"items":{"type":"object","additionalProperties":false,"required":["kind","description","required"],"properties":{"kind":{"type":"string","enum":["build","test","staticCheck","securityCheck","manualInspection","custom"]},"description":{"type":"string","minLength":1,"maxLength":4000},"required":{"type":"boolean"},"commandOrReference":{"type":["string","null"],"maxLength":1000}}}},"classification":{"type":"object","additionalProperties":false,"required":["scopeScale","risk","blastRadius","validationCost","requiredRole","requiredCapabilities","policyTags","capacityRequirement","independentReviewRequired","securityReviewRequired","ownerApprovalRequired","requiresSupportedConnection","requiresVerifiedAvailability","requiresAuthenticatedAccess","requiresVerifiedEntitlement"],"properties":{"scopeScale":{"type":"string","enum":["bounded","multiFile","crossCutting","projectWide"]},"risk":{"type":"string","enum":["low","moderate","high","critical"]},"blastRadius":{"type":"string","enum":["local","module","project","crossProject","externalSystem"]},"validationCost":{"type":"string","enum":["low","moderate","high"]},"requiredRole":{"type":"string","enum":["planner","architect","acceptanceAuthority","executor","reviewer","securitySpecialist","auxiliaryExecutor"]},"requiredCapabilities":{"type":"array","maxItems":64,"items":{"type":"string","minLength":1,"maxLength":160}},"policyTags":{"type":"array","maxItems":64,"items":{"type":"string","minLength":1,"maxLength":160}},"capacityRequirement":{"type":"string","enum":["required","optional","notApplicable"]},"independentReviewRequired":{"type":"boolean"},"securityReviewRequired":{"type":"boolean"},"ownerApprovalRequired":{"type":"boolean"},"requiresSupportedConnection":{"type":"boolean"},"requiresVerifiedAvailability":{"type":"boolean"},"requiresAuthenticatedAccess":{"type":"boolean"},"requiresVerifiedEntitlement":{"type":"boolean"}}},"stopConditions":{"type":"array","minItems":3,"maxItems":16,"items":{"type":"object","additionalProperties":false,"required":["conditionId","kind","description"],"properties":{"conditionId":{"type":"string","minLength":1,"maxLength":120},"kind":{"type":"string","enum":["immutableTargetMoved","scopeViolation","validationFailure","budgetExceeded","credentialRequired","ownerApprovalRequired","externalDependencyUnavailable","contextInsufficient","unresolvedAmbiguity","securityBoundaryReached"]},"description":{"type":"string","minLength":1,"maxLength":4000}}}},"executionBudgets":{"type":"array","minItems":2,"maxItems":16,"items":{"type":"object","additionalProperties":false,"required":["kind","limit"],"properties":{"kind":{"type":"string","enum":["attempts","elapsedMinutes","changedFiles","changedLines","toolInvocations","modelTurns"]},"limit":{"type":"integer","minimum":1,"maximum":1000000}}}}}}
         """;
 
     public const string ExecutionSchema = """
@@ -354,7 +385,7 @@ internal static class CodexLocalInvocation
         {
             var schemaPath = Path.Combine(temp.FullName, "output-schema.json");
             var outputPath = Path.Combine(temp.FullName, "last-message.json");
-            await File.WriteAllTextAsync(schemaPath, schema, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+            await File.WriteAllTextAsync(schemaPath, schema, new UTF8Encoding(false), cancellationToken).ConfigureAwait(false);
             var result = await processes.RunAsync(
                     new ProviderProcessRequest(
                         executable,
@@ -363,7 +394,8 @@ internal static class CodexLocalInvocation
                         workspacePath),
                     cancellationToken)
                 .ConfigureAwait(false);
-            return new(result, await ReadBoundedOutputAsync(outputPath, maxOutputBytes, cancellationToken).ConfigureAwait(false));
+            var output = await ReadBoundedOutputAsync(outputPath, maxOutputBytes, cancellationToken).ConfigureAwait(false);
+            return new(result, output.Value, output.Exists);
         }
         finally
         {
@@ -381,23 +413,25 @@ internal static class CodexLocalInvocation
             : null;
     }
 
-    private static async Task<string?> ReadBoundedOutputAsync(string path, int maximumBytes, CancellationToken cancellationToken)
+    private static async Task<CodexOutputReadResult> ReadBoundedOutputAsync(string path, int maximumBytes, CancellationToken cancellationToken)
     {
         try
         {
             var info = new FileInfo(path);
             if (!info.Exists || info.Length > maximumBytes)
             {
-                return null;
+                return new(null, info.Exists);
             }
 
-            return await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            return new(await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false), true);
         }
-        catch (FileNotFoundException) { return null; }
-        catch (DirectoryNotFoundException) { return null; }
-        catch (IOException) { return null; }
-        catch (UnauthorizedAccessException) { return null; }
+        catch (FileNotFoundException) { return new(null, false); }
+        catch (DirectoryNotFoundException) { return new(null, false); }
+        catch (IOException) { return new(null, false); }
+        catch (UnauthorizedAccessException) { return new(null, false); }
     }
+
+    private sealed record CodexOutputReadResult(string? Value, bool Exists);
 
     private static JsonSerializerOptions CreateJsonOptions()
     {

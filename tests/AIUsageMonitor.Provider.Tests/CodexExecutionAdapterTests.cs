@@ -1,4 +1,5 @@
 using AIUsageMonitor.Application.Agents;
+using System.Text.Json;
 using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Planning;
@@ -13,6 +14,9 @@ namespace AIUsageMonitor.Provider.Tests;
 
 public sealed class CodexExecutionAdapterTests
 {
+    [Fact]
+    public void PlannerSchemaIsValidJson() => JsonDocument.Parse(CodexLocalInvocation.PlannerSchema).Dispose();
+
     [Fact]
     public async Task Planner_UsesDirectExecutableExplicitModelAndBoundedReadOnlyInvocation()
     {
@@ -45,6 +49,7 @@ public sealed class CodexExecutionAdapterTests
             Assert.Equal("exec", invocation.Arguments[2]);
             Assert.Equal("never", invocation.Arguments[Array.IndexOf(invocation.Arguments.ToArray(), "-a") + 1]);
             Assert.Contains("--output-schema", invocation.Arguments);
+            Assert.False(runner.OutputSchemaBytes!.Take(3).SequenceEqual(new byte[] { 0xEF, 0xBB, 0xBF }));
         Assert.Contains("-o", invocation.Arguments);
         Assert.DoesNotContain("cmd.exe", invocation.Arguments, StringComparer.OrdinalIgnoreCase);
         }
@@ -89,6 +94,52 @@ public sealed class CodexExecutionAdapterTests
 
         Assert.Equal(AIUsageMonitor.Application.Planning.PlannerInvocationStatus.AdapterUnavailable, result.Status);
         Assert.Empty(runner.Requests);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData(ProviderProcessOutcome.StartFailed, PlannerInvocationStatus.AdapterUnavailable, false)]
+    [InlineData(ProviderProcessOutcome.NonZeroExit, PlannerInvocationStatus.Failed, true)]
+    [InlineData(ProviderProcessOutcome.TimedOut, PlannerInvocationStatus.TimedOut, true)]
+    [InlineData(ProviderProcessOutcome.Cancelled, PlannerInvocationStatus.Cancelled, true)]
+    [InlineData(ProviderProcessOutcome.TerminationFailure, PlannerInvocationStatus.AdapterUnavailable, false)]
+    public async Task Planner_PreservesTypedProcessFailureDiagnostics(ProviderProcessOutcome outcome, PlannerInvocationStatus expected, bool terminationConfirmed)
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-planner-test-");
+        try
+        {
+            var process = new ProviderProcessResult(outcome, 73, string.Empty, "planner failure", false, false, ProcessTerminationConfirmed: terminationConfirmed);
+            var result = await new CodexPlannerAdapter(new FakeLocator("C:\\tools\\codex.exe"), new FakeProcessRunner(PlannerJson(), executionResult: process), new HandoffRedactionService())
+                .PlanAsync(new PlannerInvocationRequest(Agent(AgentRole.Planner), new OrchestrationWorkRequest(Guid.NewGuid(), "owner:test", "Title", "Objective", acceptanceCriteria: ["Criterion"]), workspace.FullName, TimeSpan.FromSeconds(30)));
+
+            Assert.Equal(expected, result.Status);
+            Assert.Equal(outcome, result.Diagnostic!.ProcessOutcome);
+            Assert.Equal(73, result.Diagnostic.ExitCode);
+            Assert.Equal(terminationConfirmed, result.Diagnostic.ProcessTerminationConfirmed);
+            Assert.Equal(outcome == ProviderProcessOutcome.TimedOut, result.Diagnostic.TimedOut);
+            Assert.Equal(outcome == ProviderProcessOutcome.Cancelled, result.Diagnostic.Cancelled);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    [Fact]
+    public async Task Planner_DistinguishesMissingOutputFromMalformedOutputAndRedactsDiagnostics()
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-planner-test-");
+        try
+        {
+            var request = new PlannerInvocationRequest(Agent(AgentRole.Planner), new OrchestrationWorkRequest(Guid.NewGuid(), "owner:test", "Title", "Objective", acceptanceCriteria: ["Criterion"]), workspace.FullName, TimeSpan.FromSeconds(30));
+            var missing = await new CodexPlannerAdapter(new FakeLocator("C:\\tools\\codex.exe"), new FakeProcessRunner(PlannerJson(), writeOutput: false), new HandoffRedactionService()).PlanAsync(request);
+            var malformed = await new CodexPlannerAdapter(new FakeLocator("C:\\tools\\codex.exe"), new FakeProcessRunner("{", executionResult: new ProviderProcessResult(ProviderProcessOutcome.ExitedSuccessfully, 0, string.Empty, "api_key=secret-value", false, false)), new HandoffRedactionService()).PlanAsync(request);
+
+            Assert.False(missing.Diagnostic!.OutputFileExists);
+            Assert.False(missing.Diagnostic.OutputParsingFailed);
+            Assert.True(malformed.Diagnostic!.OutputFileExists);
+            Assert.True(malformed.Diagnostic.OutputParsingFailed);
+            Assert.Contains("[REDACTED]", malformed.Diagnostic.StandardErrorSummary);
+            Assert.DoesNotContain("secret-value", malformed.Diagnostic.StandardErrorSummary, StringComparison.Ordinal);
+            Assert.True(malformed.Diagnostic.StandardErrorSummary!.Length <= 1_000);
         }
         finally { Directory.Delete(workspace.FullName, recursive: true); }
     }
@@ -296,9 +347,11 @@ public sealed class CodexExecutionAdapterTests
     private sealed class FakeProcessRunner(
         string output,
         ProviderProcessResult? sessionResult = null,
-        ProviderProcessResult? executionResult = null) : IProviderProcessRunner
+        ProviderProcessResult? executionResult = null,
+        bool writeOutput = true) : IProviderProcessRunner
     {
         public List<ProviderProcessRequest> Requests { get; } = [];
+        public byte[]? OutputSchemaBytes { get; private set; }
 
         public Task<ProviderProcessResult> RunAsync(ProviderProcessRequest request, CancellationToken cancellationToken = default)
         {
@@ -308,14 +361,14 @@ public sealed class CodexExecutionAdapterTests
                 return Task.FromResult(sessionResult ?? Success("Logged in"));
             }
 
-            if (executionResult is not null)
+            if (writeOutput)
             {
-                return Task.FromResult(executionResult);
+                var schemaPath = request.Arguments[Array.IndexOf(request.Arguments.ToArray(), "--output-schema") + 1];
+                OutputSchemaBytes = File.ReadAllBytes(schemaPath);
+                var outputPath = request.Arguments[Array.IndexOf(request.Arguments.ToArray(), "-o") + 1];
+                File.WriteAllText(outputPath, output);
             }
-
-            var outputPath = request.Arguments[Array.IndexOf(request.Arguments.ToArray(), "-o") + 1];
-            File.WriteAllText(outputPath, output);
-            return Task.FromResult(Success(string.Empty));
+            return Task.FromResult(executionResult ?? Success(string.Empty));
         }
 
     }
