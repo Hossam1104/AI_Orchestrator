@@ -86,6 +86,39 @@ public sealed class CodexExecutionAdapterTests
         finally { Directory.Delete(workspace.FullName, recursive: true); }
     }
 
+    [Fact]
+    public async Task ExecutorPolicy_UsesWorkspaceWriteWithoutEscalationOrHostShell()
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-executor-test-");
+        try
+        {
+            var runner = new FakeProcessRunner("{\"summary\":\"done\"}");
+            await CodexLocalInvocation.RunAsync(
+                new FakeLocator("C:\\tools\\codex.exe"),
+                runner,
+                "gpt-test",
+                workspace.FullName,
+                "{\"type\":\"object\"}",
+                "Return JSON.",
+                TimeSpan.FromSeconds(30),
+                1024,
+                CodexInvocationPolicy.Executor,
+                CancellationToken.None);
+
+            var invocation = Assert.Single(runner.Requests);
+            Assert.Equal("C:\\tools\\codex.exe", invocation.ExecutablePath);
+            Assert.Equal(workspace.FullName, invocation.WorkingDirectory);
+            Assert.Equal("gpt-test", invocation.Arguments[Array.IndexOf(invocation.Arguments.ToArray(), "-m") + 1]);
+            Assert.Contains("workspace-write", invocation.Arguments);
+            Assert.DoesNotContain("read-only", invocation.Arguments);
+            Assert.Equal("never", invocation.Arguments[Array.IndexOf(invocation.Arguments.ToArray(), "-a") + 1]);
+            Assert.Contains("--output-schema", invocation.Arguments);
+            Assert.DoesNotContain("cmd.exe", invocation.Arguments, StringComparer.OrdinalIgnoreCase);
+            Assert.DoesNotContain("powershell", invocation.Arguments, StringComparer.OrdinalIgnoreCase);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
     private static EffectiveAgentDefinition Agent(AgentRole role)
     {
         var now = DateTimeOffset.UtcNow;

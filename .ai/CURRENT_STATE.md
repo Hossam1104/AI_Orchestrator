@@ -9,6 +9,34 @@ inside it says `CURRENT` or `ACTIVE`.
 
 ---
 
+## CURRENT - APO-70 Codex invocation-policy recovery
+
+**Last Updated:** 13 September 2026 (local remediation; full-suite host and exact model gates remain open)
+
+The shared local Codex invocation path now carries a typed planner/executor policy: planner uses
+`read-only` and executor uses the installed CLI's supported `workspace-write` sandbox, with
+non-interactive `-a never` approval and direct `codex.exe` argument invocation in both cases. The
+executor instruction now permits normal sandboxed agent tooling inside the prepared workspace while
+continuing to forbid commits, pushes, merges, deployments, and unrelated deletion. The planner-plan
+validator also rejects a planner result whose required downstream role differs from the owner flow's
+required role, so the default Planner-to-Executor flow cannot route a reviewer-only result into the
+bounded executor boundary.
+
+Focused Provider and Connection tests passed (4 and 3 respectively), Release build passed with 0
+warnings / 0 errors, `git diff --check` passed, and self-contained structural publish validation
+passed for `win-x86`, `win-x64`, and `win-arm64`. A full solution run could not complete locally:
+the unchanged Infrastructure test host remained at test-host discovery with no results after a
+bounded observation, and the started test process tree was stopped. This is not recorded as a
+passing full suite. The installed `codex --help` and `codex exec --help` prove safe sandbox spelling
+but expose no authoritative Sol/Luna model identifier; no identifier was guessed, persisted, or
+live invocation attempted.
+
+No merge, main push, force push, release, tag, deployment, credential inspection, or owner/Sol
+acceptance was performed. The next authority is full-suite host recovery plus explicit verified
+planner/executor model configuration before any disposable real Codex smoke.
+
+---
+
 ## CURRENT - APO-70 execution spine and command center recovery
 
 **Last Updated:** 13 September 2026 (implementation commit cfa07dc; exact-head validation complete; acceptance pending)

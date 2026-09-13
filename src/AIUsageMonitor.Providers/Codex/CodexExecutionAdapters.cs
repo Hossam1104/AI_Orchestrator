@@ -76,6 +76,7 @@ public sealed class CodexPlannerAdapter : IPlannerAdapter
                     prompt,
                     request.Timeout,
                     CodexLocalInvocation.MaxPlannerOutputBytes,
+                    CodexInvocationPolicy.Planner,
                     cancellationToken)
                 .ConfigureAwait(false);
             if (invocation.Process.Outcome != ProviderProcessOutcome.ExitedSuccessfully)
@@ -190,6 +191,7 @@ public sealed class CodexExecutionAdapter : IExecutionAdapter
                     prompt,
                     TimeSpan.FromMinutes(Math.Min(request.Budgets.ElapsedMinutes, 240)),
                     CodexLocalInvocation.MaxExecutionOutputBytes,
+                    CodexInvocationPolicy.Executor,
                     cancellationToken)
                 .ConfigureAwait(false);
             var mayHaveModified = invocation.Process.Outcome != ProviderProcessOutcome.StartFailed;
@@ -273,6 +275,13 @@ internal sealed record CodexSessionResult(CodexSessionStatus Status, string Erro
 
 internal sealed record CodexInvocationResult(ProviderProcessResult Process, string? Output);
 
+/// <summary>Typed, fixed Codex policies prevent planner and executor sandbox authority from drifting.</summary>
+internal enum CodexInvocationPolicy
+{
+    Planner,
+    Executor
+}
+
 internal static class CodexLocalInvocation
 {
     public const int MaxPromptLength = 7_500;
@@ -336,6 +345,7 @@ internal static class CodexLocalInvocation
         string prompt,
         TimeSpan timeout,
         int maxOutputBytes,
+        CodexInvocationPolicy policy,
         CancellationToken cancellationToken)
     {
         var executable = FindDirectExecutable(locator) ?? throw new FileNotFoundException("The direct Codex executable was not detected.");
@@ -348,7 +358,7 @@ internal static class CodexLocalInvocation
             var result = await processes.RunAsync(
                     new ProviderProcessRequest(
                         executable,
-                        ["exec", "--ephemeral", "--color", "never", "-m", model, "-C", workspacePath, "-s", "read-only", "-a", "never", "--output-schema", schemaPath, "-o", outputPath, prompt],
+                        ["exec", "--ephemeral", "--color", "never", "-m", model, "-C", workspacePath, "-s", policy == CodexInvocationPolicy.Planner ? "read-only" : "workspace-write", "-a", "never", "--output-schema", schemaPath, "-o", outputPath, prompt],
                         timeout,
                         workspacePath),
                     cancellationToken)
@@ -438,7 +448,7 @@ internal static class CodexPromptBuilder
             stopConditions = scope.StopConditions.Select(value => new { value.ConditionId, value.Kind, value.Description })
         };
         var json = JsonSerializer.Serialize(payload, CodexLocalInvocation.JsonOptions);
-        var prompt = "Return only JSON matching the supplied output schema. Execute only the exact bounded work in the prepared workspace. Stop on any authority, scope, validation, budget, credential, or security boundary. Do not commit, push, merge, deploy, delete unrelated files, or invoke a shell. Report truthful bounded evidence in summary.\n" + json;
+        var prompt = "Return only JSON matching the supplied output schema. Execute only the exact bounded work in the prepared workspace. Use normal sandboxed tools only within that workspace. Stop on any authority, scope, validation, budget, credential, or security boundary. Do not commit, push, merge, deploy, or delete unrelated files. Report truthful bounded evidence in summary.\n" + json;
         return redaction.Redact(prompt).Value;
     }
 

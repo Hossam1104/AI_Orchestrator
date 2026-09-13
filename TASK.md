@@ -30,6 +30,10 @@ This assigned APO-70 slice also includes the smallest safe owner-facing executio
 - planner output is structured, application-validated, and becomes the durable contract/routing
   authority before workspace preparation or execution.
 
+Current recovery note: the shared Codex invocation policy now splits planner `read-only` from
+executor `workspace-write` with non-escalating approval. Real execution remains fail-closed until
+the owner configures exact, supported model identifiers; no CLI default is used.
+
 Validation and delivery remain bounded to this branch and Draft PR #112. Do not merge, push `main`,
 create a release/tag/deployment, close Issue #111, or claim owner/Sol acceptance.
 

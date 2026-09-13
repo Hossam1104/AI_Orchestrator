@@ -211,6 +211,11 @@ public static class PlannerPlanValidator
             return "The planner is not enabled with Planner capability.";
         }
 
+        if (plan.Classification.RequiredRole != ownerRequest.Classification.RequiredRole)
+        {
+            return "Planner output must preserve the downstream execution role required by this workflow.";
+        }
+
         if (ownerRequest.AcceptanceCriteria.Any(criterion => !plan.AcceptanceCriteria.Contains(criterion, StringComparer.Ordinal)))
         {
             return "Planner output must preserve every owner acceptance criterion exactly.";

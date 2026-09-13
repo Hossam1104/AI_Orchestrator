@@ -39,6 +39,21 @@ public sealed class PlannerContractTests
             [new PlanningExecutionBudget(PlanningBudgetKind.Attempts, 1), new PlanningExecutionBudget(PlanningBudgetKind.ElapsedMinutes, 10)]));
     }
 
+    [Fact]
+    public void ValidatorRejectsPlannerRoleThatCannotReachTheRequestedExecutorBoundary()
+    {
+        var request = new OrchestrationWorkRequest(
+            Guid.NewGuid(), "owner:test", "Bounded work", "Do bounded work", acceptanceCriteria: ["Criterion"]);
+        var reviewerPlan = new PlannerPlan(
+            "Do bounded work", ["Scope"], ["Criterion"], [],
+            [new PlanningValidationRequirement("test", PlanningValidationKind.Test, "Run tests", true)],
+            new RoutingTaskClassification(RoutingScopeScale.Bounded, RoutingTaskRisk.Low, RoutingBlastRadius.Local, RoutingValidationCost.Low, AgentRole.Reviewer),
+            [new PlanningStopCondition("target", PlanningStopConditionKind.ImmutableTargetMoved, "Stop if target changes"), new PlanningStopCondition("scope", PlanningStopConditionKind.ScopeViolation, "Stop if scope grows"), new PlanningStopCondition("budget", PlanningStopConditionKind.BudgetExceeded, "Stop if budget ends")],
+            [new PlanningExecutionBudget(PlanningBudgetKind.Attempts, 1), new PlanningExecutionBudget(PlanningBudgetKind.ElapsedMinutes, 10)]);
+
+        Assert.Contains("role", PlannerPlanValidator.Validate(reviewerPlan, request, Agent()), StringComparison.OrdinalIgnoreCase);
+    }
+
     private static PlannerPlan Plan(IReadOnlyList<string> criteria, IReadOnlyList<string> constraints) => new(
         "Do bounded work",
         ["Scope"],
