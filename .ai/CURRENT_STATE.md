@@ -1,13 +1,13 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 13 September 2026 (APO-70 strict schema compatibility repair; delivery pending)
+**Last Updated:** 13 September 2026 (APO-70 strict schema compatibility repair; exact-head CI passed)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
 
-## CURRENT - APO-70 strict schema compatibility repair (partial)
+## CURRENT - APO-70 strict schema compatibility repair (partial; runtime acceptance pending)
 
 **Last Updated:** 13 September 2026
 
@@ -17,8 +17,9 @@ typed `NonZeroExit`, exit code `1`, no output file, no timeout/cancellation, and
 termination. The bounded redacted diagnostic did not prove that strict-schema defect as the sole
 runtime cause. Sol source review independently found that `PlannerSchema` omitted nullable
 `commandOrReference` from its nested required set and that `ExecutionSchema` required only
-`summary`; both are now repaired in the current source worktree. No routing, workspace
-preparation, `StartAsync`, Luna invocation, or disposable repository mutation occurred.
+`summary`; both are now repaired on delivered source head
+`0745f9f5720d8c7277859e6a87340d87eb27e178`. No routing, workspace preparation, `StartAsync`, Luna
+invocation, or disposable repository mutation occurred.
 
 The planner boundary now preserves a redacted, 1,000-character-bounded diagnostic through
 `PlannerInvocationResult` and `ExecutionPreparationResult`: typed process outcome, exit code,
@@ -32,13 +33,18 @@ outcomes, missing/malformed output, redaction, no-BOM emission, and JSON validit
 structural regression covers both schemas.
 
 Focused Provider tests passed 22/22. Release build passed with 0 warnings and 0 errors; Domain
-28/28, Connection 327/327, Provider 218/218, and Desktop 116/116 passed. The Infrastructure host
-stalled at discovery and was stopped after bounded observation, so its 675 tests are not claimed as
-a local pass. Structural self-contained publish validation passed for `win-x86`, `win-x64`, and
-`win-arm64`. No real planner invocation was made after the latest review; no real Luna
-workspace-write execution, merge, main push, release, tag, deployment, tracker closure, credential
-inspection, owner acceptance, or Sol final acceptance occurred. Exact-head CI for this repair is
-pending delivery.
+28/28, Connection 327/327, Provider 218/218, and Desktop 116/116 passed locally. The local
+Infrastructure host stalled at discovery and was stopped after bounded observation, so its 675
+tests are not claimed as a local pass. Structural self-contained publish validation passed for
+`win-x86`, `win-x64`, and `win-arm64`.
+
+Exact-head GitHub Actions run `34762145928` passed on `0745f9f` with 1,364/1,364 tests passed,
+0 failed, 0 skipped, Release build 0 warnings and 0 errors, and `win-x86`, `win-x64`, and
+`win-arm64` publish jobs passed. No real planner invocation was made after this remediation; no
+real Luna workspace-write execution, merge, main push, release, tag, deployment, tracker closure,
+credential inspection, owner acceptance, or Sol final acceptance occurred. The next planner
+boundary is exact-head Sol review, then one isolated read-only real `PrepareAsync` validation using
+`gpt-5.6-sol`; do not authorize `StartAsync` or Luna until that reaches Ready.
 
 ---
 
