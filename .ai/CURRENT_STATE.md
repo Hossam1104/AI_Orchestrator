@@ -47,15 +47,16 @@ planner boundary is Sol exact-head review of the pushed Draft PR.
 
 ## CURRENT - APO-70 execution spine and command center recovery
 
-**Last Updated:** 13 September 2026 (implementation commit cfa07dc; exact-head validation complete; acceptance pending)
+**Last Updated:** 13 September 2026 (evidence commit 6070399 pushed; acceptance pending)
 
 ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
 BRANCH = `feature/APO-70-v1-desktop-product-recovery`
 PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
-CURRENT IMPLEMENTATION HEAD = `cfa07dc22d37a6948771bf9f651ae263dca2a14d`
-LOCAL DELIVERY HEAD = `720778c432a408f1c631d67c3ad2e6f9c8c8ba23`
-REMOTE FEATURE HEAD = `2227c2e8a7bd88cbc4c784b3e168c81e2179c0ec` (last verified; push blocked by GitHub connection)
+CURRENT IMPLEMENTATION HEAD = `6070399ecbc141784161a14c506d13c78593e3f1`
+LOCAL DELIVERY HEAD = `6070399ecbc141784161a14c506d13c78593e3f1`
+REMOTE FEATURE HEAD = `6070399ecbc141784161a14c506d13c78593e3f1`
 PR STATE = OPEN / DRAFT / NOT MERGED
+PR CHECK STATE = IN PROGRESS; mergeability currently BLOCKED by the running check
 V1 RELEASE = FROZEN / NOT AUTHORIZED
 OWNER VISUAL ACCEPTANCE = PENDING / NOT CLAIMED
 OWNER FUNCTIONAL ACCEPTANCE = PENDING / NOT CLAIMED
@@ -86,32 +87,31 @@ to `Views/ExecutionView.xaml`; the shell continues to reuse the existing RMS-der
 logo treatment, sidebar, light/dark resources, and focusable controls. No raw prompt, arbitrary command,
 credential, transcript, or fake progress path is exposed.
 
-Validation on implementation commit `cfa07dc22d37a6948771bf9f651ae263dca2a14d`: Release solution
-build PASS with 0 warnings / 0 errors; canonical solution tests 1,326 passed / 0 failed / 0 skipped
-(28 Domain, 312 Connection, 199 Provider, 112 Desktop, 675 Infrastructure); focused new planner,
-routing, adapter, and composition coverage PASS; `git diff --check` PASS; and self-contained
-single-file publish validation PASS for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and
-`win-arm64` (PE `0xAA64`). The installed direct Codex probe found
+Validation on evidence commit `6070399ecbc141784161a14c506d13c78593e3f1`: Release solution build
+PASS with 0 warnings / 0 errors; Domain 28/28, Connection 326/326, Provider 209/209, and Desktop
+116/116 passed; the solution-wide run stalled in Infrastructure test-host discovery and is not
+counted as a full-suite pass; focused APO-70 lifecycle coverage PASS; `git diff --check` PASS; and
+self-contained single-file publish validation PASS for `win-x86` (PE `0x014C`), `win-x64` (PE
+`0x8664`), and `win-arm64` (PE `0xAA64`). The installed direct Codex probe found
 `C:\Users\Win11\.vscode\extensions\openai.chatgpt-26.908.40401-win32-x64\bin\windows-x86_64\codex.exe`,
-version `codex-cli 0.154.0-alpha.6.2`, and login-status exit `0`; account/session output was not read
-or stored.
+version `codex-cli 0.154.0-alpha.6.2`; both exact model IDs were verified in separate ephemeral
+read-only structured sessions with approval `never`, and no write-enabled smoke was run.
 
-Fresh current-run evidence on the clean implementation commit: `scripts/Run-FreshDesktop.ps1 -SmokeTest`
+Fresh current-run evidence on an earlier clean implementation commit: `scripts/Run-FreshDesktop.ps1 -SmokeTest`
 published and launched `artifacts/local-run/win-x64/AIUsageMonitor.Desktop.exe` with
 SHA-256 `441EE78F1535E8882CBD4BB22630CB1590C43F94E7F370FDAC519879672CC431`; PID `60216`, title
 `AI Orchestrator`, responding, smoke test PASS, and stopped by the script. Computer Use still exposes
 no targetable native apps (`apps: []`), so owner visual/functional acceptance is not claimed. A live
-planner/executor invocation was not attempted because the product registry has no persisted explicit
-model configuration; this is a truthful configuration boundary, not a provider success claim.
+write-enabled planner/executor invocation was not attempted; only the explicitly authorized
+read-only model verification sessions were run.
 
 No merge, main push, force push, release, tag, deployment, tracker closure, credential access, or
 owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review, followed by
-owner visual/functional acceptance and, only after explicit model configuration, a separately authorized
-real bounded Codex execution attempt.
+owner visual/functional acceptance and any separately authorized real bounded Codex execution attempt.
 
-Local delivery contains the implementation and evidence commits, but two push attempts failed before
-remote mutation with `Failed to connect to github.com:443`. PR #112 and Issue #111 were not updated after
-the failed push; rerun the bounded push/evidence handoff when GitHub connectivity is available.
+The evidence commit is pushed to the PR feature branch. PR #112 remains Draft/Open/Unmerged and
+Issue #111 remains Open with its current-gate/in-progress labels; no tracker closure or merge was
+performed.
 
 ---
 
