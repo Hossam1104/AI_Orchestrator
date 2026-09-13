@@ -11,7 +11,7 @@ inside it says `CURRENT` or `ACTIVE`.
 
 ## CURRENT - APO-70 Codex invocation-policy recovery
 
-**Last Updated:** 13 September 2026 (local remediation; full-suite host and exact model gates remain open)
+**Last Updated:** 13 September 2026 (APO-70 safety-net implementation and exact local model verification)
 
 The shared local Codex invocation path now carries a typed planner/executor policy: planner uses
 `read-only` and executor uses the installed CLI's supported `workspace-write` sandbox, with
@@ -22,18 +22,26 @@ validator also rejects a planner result whose required downstream role differs f
 required role, so the default Planner-to-Executor flow cannot route a reviewer-only result into the
 bounded executor boundary.
 
-Focused Provider and Connection tests passed (4 and 3 respectively), Release build passed with 0
-warnings / 0 errors, `git diff --check` passed, and self-contained structural publish validation
-passed for `win-x86`, `win-x64`, and `win-arm64`. A full solution run could not complete locally:
-the unchanged Infrastructure test host remained at test-host discovery with no results after a
-bounded observation, and the started test process tree was stopped. This is not recorded as a
-passing full suite. The installed `codex --help` and `codex exec --help` prove safe sandbox spelling
-but expose no authoritative Sol/Luna model identifier; no identifier was guessed, persisted, or
-live invocation attempted.
+Focused Provider, Connection, and Desktop tests passed (13, 326, and 6 respectively), followed by
+full project suites of 209 Provider, 326 Connection, and 116 Desktop tests. Release solution build
+passed with 0 warnings / 0 errors, `git diff --check` passed, and self-contained structural publish
+validation passed for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64` (PE
+`0xAA64`). A solution-wide test run passed Domain 28, Connection 326, Provider 209, and Desktop
+116 before the Infrastructure test host stalled at discovery; the isolated Infrastructure run also
+produced no result within the bounded observation and was stopped. This is not recorded as a passing
+full suite.
+
+The installed direct executable
+`C:\Users\Win11\.vscode\extensions\openai.chatgpt-26.908.40401-win32-x64\bin\windows-x86_64\codex.exe`
+(version `codex-cli 0.154.0-alpha.6.2`) verified both exact model identifiers, `gpt-5.6-sol` and
+`gpt-5.6-luna`, using separate ephemeral, explicit-model, read-only, `approval=never`, structured
+output sessions in a disposable temporary workspace. No write-enabled real model smoke was run.
+The verified identifiers are now persisted only in the existing `DefaultAgentCatalog` authority;
+other default agents remain unverified and fail closed.
 
 No merge, main push, force push, release, tag, deployment, credential inspection, or owner/Sol
-acceptance was performed. The next authority is full-suite host recovery plus explicit verified
-planner/executor model configuration before any disposable real Codex smoke.
+acceptance was performed. The remaining blocker is Infrastructure test-host recovery; the next
+planner boundary is Sol exact-head review of the pushed Draft PR.
 
 ---
 
@@ -68,8 +76,9 @@ Production composition now registers one exact local Codex planner and one exact
 Both require a direct `.exe`, explicit OpenAI/Cli model identity, authenticated `codex login status`,
 bounded typed arguments, strict output schemas, redaction checks, cancellation/timeouts, and the
 prepared workspace. Planning uses `read-only`; execution uses `workspace-write`; APO does not invoke a
-shell or authorize commit, push, merge, deployment, or unrelated deletion. The default catalog still
-has Unknown connection/model metadata, so it fails closed until an eligible configured local Codex
+shell or authorize commit, push, merge, deployment, or unrelated deletion. The default catalog now
+contains the two verified exact Codex model identifiers while connection, authentication, and
+entitlement state remain Unknown, so it still fails closed until an eligible configured local Codex
 planner/executor pair exists. No fake Claude path or silent model fallback was added.
 
 The Desktop Execution workspace remains bounded and truthful. Its touched presentation is extracted

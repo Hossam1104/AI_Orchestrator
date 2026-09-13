@@ -358,7 +358,7 @@ internal static class CodexLocalInvocation
             var result = await processes.RunAsync(
                     new ProviderProcessRequest(
                         executable,
-                        ["exec", "--ephemeral", "--color", "never", "-m", model, "-C", workspacePath, "-s", policy == CodexInvocationPolicy.Planner ? "read-only" : "workspace-write", "-a", "never", "--output-schema", schemaPath, "-o", outputPath, prompt],
+                        ["-a", "never", "exec", "--ephemeral", "--color", "never", "-m", model, "-C", workspacePath, "-s", policy == CodexInvocationPolicy.Planner ? "read-only" : "workspace-write", "--output-schema", schemaPath, "-o", outputPath, prompt],
                         timeout,
                         workspacePath),
                     cancellationToken)

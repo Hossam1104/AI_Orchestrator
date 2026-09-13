@@ -14,14 +14,16 @@ public sealed class DefaultAgentCatalog : IDefaultAgentCatalog
                 new(AgentRole.Planner, "planning/architecture/acceptance authority", "Default"),
                 new(AgentRole.Architect, "planning/architecture/acceptance authority", "Default"),
                 new(AgentRole.AcceptanceAuthority, "planning/architecture/acceptance authority", "Default")
-            ]),
+            ],
+            "gpt-5.6-sol"),
         new(
             Guid.Parse("b4c0b0d1-7f2c-4d4d-9f4d-000000000039"),
             "GPT-5.6 Luna xHigh",
             "OpenAI",
             "executor",
             [AgentRole.Executor],
-            [new(AgentRole.Executor, "primary implementation/remediation executor", "Primary")]),
+            [new(AgentRole.Executor, "primary implementation/remediation executor", "Primary")],
+            "gpt-5.6-luna"),
         new(
             Guid.Parse("b4c0b0d1-7f2c-4d4d-9f4d-000000000040"),
             "Claude Sonnet 5",
@@ -65,7 +67,8 @@ public sealed class DefaultAgentCatalog : IDefaultAgentCatalog
             string provider,
             string legacyRole,
             IReadOnlyList<AgentRole> roles,
-            IReadOnlyList<AgentRolePolicyMetadata> rolePolicyMetadata)
+            IReadOnlyList<AgentRolePolicyMetadata> rolePolicyMetadata,
+            string? modelIdentifier = null)
         {
             Id = id;
             DisplayName = displayName;
@@ -73,6 +76,7 @@ public sealed class DefaultAgentCatalog : IDefaultAgentCatalog
             LegacyRole = legacyRole;
             Roles = roles;
             RolePolicyMetadata = rolePolicyMetadata;
+            ModelIdentifier = modelIdentifier;
         }
 
         private Guid Id { get; }
@@ -86,6 +90,8 @@ public sealed class DefaultAgentCatalog : IDefaultAgentCatalog
         private IReadOnlyList<AgentRole> Roles { get; }
 
         private IReadOnlyList<AgentRolePolicyMetadata> RolePolicyMetadata { get; }
+
+        private string? ModelIdentifier { get; }
 
         public AgentDefinition ToDefinition() => new(
             Id,
@@ -104,6 +110,7 @@ public sealed class DefaultAgentCatalog : IDefaultAgentCatalog
             supportedConnectionModes: [],
             authenticationState: AgentAuthenticationState.Unknown,
             entitlementState: AgentEntitlementState.Unknown,
-            rolePolicyMetadata: RolePolicyMetadata);
+            rolePolicyMetadata: RolePolicyMetadata,
+            modelIdentifier: ModelIdentifier);
     }
 }

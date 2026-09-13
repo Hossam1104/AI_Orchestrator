@@ -1,6 +1,11 @@
 using AIUsageMonitor.Application.Agents;
+using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Orchestration;
+using AIUsageMonitor.Application.Planning;
 using AIUsageMonitor.Application.Providers;
+using AIUsageMonitor.Application.Projects;
+using AIUsageMonitor.Application.Routing;
+using AIUsageMonitor.Application.Workspaces;
 using AIUsageMonitor.Providers.Common;
 using AIUsageMonitor.Providers.Codex;
 
@@ -36,8 +41,10 @@ public sealed class CodexExecutionAdapterTests
         Assert.Equal("C:\\tools\\codex.exe", invocation.ExecutablePath);
         Assert.Equal(workspace.FullName, invocation.WorkingDirectory);
         Assert.Equal("gpt-test", invocation.Arguments[Array.IndexOf(invocation.Arguments.ToArray(), "-m") + 1]);
-        Assert.Contains("read-only", invocation.Arguments);
-        Assert.Contains("--output-schema", invocation.Arguments);
+            Assert.Contains("read-only", invocation.Arguments);
+            Assert.Equal("exec", invocation.Arguments[2]);
+            Assert.Equal("never", invocation.Arguments[Array.IndexOf(invocation.Arguments.ToArray(), "-a") + 1]);
+            Assert.Contains("--output-schema", invocation.Arguments);
         Assert.Contains("-o", invocation.Arguments);
         Assert.DoesNotContain("cmd.exe", invocation.Arguments, StringComparer.OrdinalIgnoreCase);
         }
@@ -119,6 +126,136 @@ public sealed class CodexExecutionAdapterTests
         finally { Directory.Delete(workspace.FullName, recursive: true); }
     }
 
+    [Fact]
+    public async Task Executor_MapsStructuredResultUsageAndEvidence()
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-executor-test-");
+        try
+        {
+            var runner = new FakeProcessRunner("{\"summary\":\"done\",\"stopReason\":\"completed\",\"toolInvocations\":3,\"modelTurns\":2,\"changedFiles\":1,\"changedLines\":8}");
+            var result = await new CodexExecutionAdapter(new FakeLocator("C:\\tools\\codex.exe"), runner, new HandoffRedactionService())
+                .ExecuteAsync(CreateExecutionRequest(workspace.FullName));
+
+            Assert.Equal(ExecutionAdapterOutcome.Succeeded, result.Outcome);
+            Assert.Equal("done", result.Summary);
+            Assert.Equal(3, result.Usage?.ToolInvocations);
+            Assert.Equal(2, result.Usage?.ModelTurns);
+            Assert.True(result.MayHaveModifiedWorkspace);
+            Assert.Contains("codex-execution:gpt-test", result.EvidenceReferences);
+            Assert.Contains("workspace-receipt:", result.EvidenceReferences[1]);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    [Fact]
+    public async Task Executor_MapsAuthenticationRequiredWithoutClaimingWorkspaceMutation()
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-executor-test-");
+        try
+        {
+            var runner = new FakeProcessRunner("{\"summary\":\"done\"}", Success("Not logged in"));
+            var result = await new CodexExecutionAdapter(new FakeLocator("C:\\tools\\codex.exe"), runner, new HandoffRedactionService())
+                .ExecuteAsync(CreateExecutionRequest(workspace.FullName));
+
+            Assert.Equal(ExecutionAdapterOutcome.AuthenticationRequired, result.Outcome);
+            Assert.False(result.MayHaveModifiedWorkspace);
+            Assert.Single(runner.Requests);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData(ProviderProcessOutcome.StartFailed, ExecutionAdapterOutcome.AdapterUnavailable, false)]
+    [InlineData(ProviderProcessOutcome.NonZeroExit, ExecutionAdapterOutcome.Failed, true)]
+    [InlineData(ProviderProcessOutcome.TimedOut, ExecutionAdapterOutcome.TimedOut, true)]
+    [InlineData(ProviderProcessOutcome.Cancelled, ExecutionAdapterOutcome.Cancelled, true)]
+    [InlineData(ProviderProcessOutcome.TerminationFailure, ExecutionAdapterOutcome.TerminationUnconfirmed, true)]
+    public async Task Executor_ClassifiesProcessOutcomesAndModificationRisk(ProviderProcessOutcome outcome, ExecutionAdapterOutcome expected, bool mayHaveModified)
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-executor-test-");
+        try
+        {
+            var runner = new FakeProcessRunner("{\"summary\":\"done\"}", executionResult: new ProviderProcessResult(outcome, 1, string.Empty, string.Empty, false, false));
+            var result = await new CodexExecutionAdapter(new FakeLocator("C:\\tools\\codex.exe"), runner, new HandoffRedactionService())
+                .ExecuteAsync(CreateExecutionRequest(workspace.FullName));
+
+            Assert.Equal(expected, result.Outcome);
+            Assert.Equal(mayHaveModified, result.MayHaveModifiedWorkspace);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"summary\":\"api_key=abc123456789\"}")]
+    public async Task Executor_RejectsMissingOrSecretShapedOutput(string output)
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-executor-test-");
+        try
+        {
+            var runner = new FakeProcessRunner(output);
+            var result = await new CodexExecutionAdapter(new FakeLocator("C:\\tools\\codex.exe"), runner, new HandoffRedactionService())
+                .ExecuteAsync(CreateExecutionRequest(workspace.FullName));
+
+            Assert.Equal(ExecutionAdapterOutcome.InvalidResult, result.Outcome);
+            Assert.True(result.MayHaveModifiedWorkspace);
+            Assert.Empty(result.EvidenceReferences);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    private static ExecutionAdapterRequest CreateExecutionRequest(string workspacePath)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var projectId = Guid.NewGuid();
+        var contextId = Guid.NewGuid();
+        var agent = Agent(AgentRole.Executor, projectId);
+        var contract = CreateContract(projectId, contextId, agent.Id, workspacePath, now);
+        var node = new WorkGraphNode(Guid.NewGuid(), contract.Reference);
+        var graph = new WorkGraph(projectId, Guid.NewGuid(), WorkGraphSchema.CurrentVersion, now, [node], []);
+        var routing = CreateRouting(projectId, contextId, contract, agent, now);
+        var handoff = CreateHandoff(projectId, contextId, contract, graph, node, now);
+        var plan = new WorkspacePreparationPlan(projectId, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), now,
+            new WorkspaceContextIdentity(projectId, contextId, ProjectContextContract.CurrentVersion, now), contract.Reference, graph.Reference, node.NodeId, routing.Reference,
+            new WorkspaceRepositoryDiscovery(WorkspaceRepositoryDiscoveryStatus.Available, workspacePath, workspacePath, workspacePath, headCommitSha: new string('a', 40), branchName: "main", isClean: true),
+            new string('a', 40), "apo-test", workspacePath, WorkspacePreparationPolicy.RequireCleanSource, true, "prepared");
+        var receipt = new WorkspacePreparationReceipt(projectId, plan.WorkspaceId, plan.CorrelationId, now, plan.Reference, workspacePath, plan.WorkspaceBranch, new string('a', 40), new string('a', 40), workspacePath, "owner:test");
+        var checkpoint = new RecoveryCheckpoint(projectId, Guid.NewGuid(), RecoveryCheckpointSchema.CurrentVersion, now, RecoveryCheckpointLifecycleState.Ready,
+            new RecoveryContextReference(contextId, ProjectContextContract.CurrentVersion, now), contract.Reference, graph.Reference, node.NodeId, handoff.Reference,
+            selectedAgentRoleReferences: [new RecoveryAgentRoleReference(agent.Id, AgentRole.Executor)]);
+        var authority = new ExecutionRunAuthority(projectId, Guid.NewGuid(), now, contract.Reference, graph.Reference, node.NodeId, handoff.Reference, routing.Reference, plan.Reference, plan.WorkspaceId, workspacePath, receipt.ContentHash, checkpoint.Reference, agent.Id, "OpenAI", "gpt-test", AgentConnectionMode.Cli, "codex-local-executor", new ExecutionBudgetEnvelope(1, 1, toolInvocations: 10, modelTurns: 2));
+        return new ExecutionAdapterRequest(authority, agent, contract, handoff, receipt, CancellationToken.None);
+    }
+
+    private static EffectiveAgentDefinition Agent(AgentRole role, Guid projectId)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var definition = new AgentDefinition(Guid.NewGuid(), "Configured Codex", role.ToString(), AgentConnectionMode.Cli, AgentAvailability.Available, true, now, now, provider: "OpenAI", roleCapabilities: [role], supportedConnectionModes: [AgentConnectionMode.Cli], authenticationState: AgentAuthenticationState.Authenticated, entitlementState: AgentEntitlementState.VerifiedAvailable, modelIdentifier: "gpt-test");
+        return new EffectiveAgentDefinition(projectId, definition, null);
+    }
+
+    private static PlanningExecutionContract CreateContract(Guid projectId, Guid contextId, Guid agentId, string workspacePath, DateTimeOffset now) => new(
+        projectId, Guid.NewGuid(), PlanningExecutionContractSchema.CurrentVersion, 1, now, "owner:test", agentId,
+        new PlanningContextBinding(contextId, ProjectContextContract.CurrentVersion), new PlanningWorkItem(PlanningWorkItemSource.Manual, "desktop:test", "Bounded execution"),
+        new PlanningRepositoryTarget(PlanningRepositoryMode.LocalGit, workspacePath, "main", new string('a', 40)), [new PlanningScopeClause("include", "one bounded step")], [], [new PlanningScopeClause("forbid", "unrelated work")], [new PlanningDeliverable("result", "bounded result", true)], [new PlanningValidationRequirement("test", PlanningValidationKind.Test, "focused test", true)], [new PlanningAcceptanceCriterion("criterion", "done", true)], [new PlanningExecutionBudget(PlanningBudgetKind.Attempts, 1), new PlanningExecutionBudget(PlanningBudgetKind.ElapsedMinutes, 1), new PlanningExecutionBudget(PlanningBudgetKind.ToolInvocations, 10), new PlanningExecutionBudget(PlanningBudgetKind.ModelTurns, 2)], [new PlanningStopCondition("target", PlanningStopConditionKind.ImmutableTargetMoved, "target"), new PlanningStopCondition("scope", PlanningStopConditionKind.ScopeViolation, "scope"), new PlanningStopCondition("budget", PlanningStopConditionKind.BudgetExceeded, "budget")], [], null, null);
+
+    private static RoutingDecision CreateRouting(Guid projectId, Guid contextId, PlanningExecutionContract contract, EffectiveAgentDefinition agent, DateTimeOffset now)
+    {
+        var classification = new RoutingTaskClassification(RoutingScopeScale.Bounded, RoutingTaskRisk.Low, RoutingBlastRadius.Local, RoutingValidationCost.Low, AgentRole.Executor, capacityRequirement: RoutingCapacityRequirement.NotApplicable, requiresAuthenticatedAccess: true, requiresVerifiedAvailability: true, requiresVerifiedEntitlement: true);
+        var policy = new RoutingPolicySnapshot("test-policy", AgentRole.Executor, [agent.Id], capacityRequirement: RoutingCapacityRequirement.NotApplicable, requireAuthenticatedAccess: true, requireVerifiedAvailability: true, requireVerifiedEntitlement: true);
+        var input = new RoutingInputSnapshot(projectId, contract.Reference, new RoutingContextReference(contextId, 1, now), classification, policy, [RoutingAgentSnapshot.FromEffective(agent)], [], null, now);
+        return new RoutingDecision(projectId, Guid.NewGuid(), RoutingDecisionSchema.CurrentVersion, now, new RoutingDecisionEngine().Evaluate(input));
+    }
+
+    private static HandoffPackage CreateHandoff(Guid projectId, Guid contextId, PlanningExecutionContract contract, WorkGraph graph, WorkGraphNode node, DateTimeOffset now)
+    {
+        var budgets = new[] { new PlanningExecutionBudget(PlanningBudgetKind.Attempts, 1), new PlanningExecutionBudget(PlanningBudgetKind.ElapsedMinutes, 1), new PlanningExecutionBudget(PlanningBudgetKind.ToolInvocations, 10), new PlanningExecutionBudget(PlanningBudgetKind.ModelTurns, 2) };
+        var scope = new HandoffExecutionScope([new PlanningScopeClause("include", "one bounded step")], [], [new PlanningScopeClause("forbid", "unrelated work")], [new PlanningDeliverable("result", "bounded result", true)], [new PlanningValidationRequirement("test", PlanningValidationKind.Test, "focused test", true)], budgets, [new PlanningStopCondition("target", PlanningStopConditionKind.ImmutableTargetMoved, "target"), new PlanningStopCondition("scope", PlanningStopConditionKind.ScopeViolation, "scope"), new PlanningStopCondition("budget", PlanningStopConditionKind.BudgetExceeded, "budget")], [], null, null);
+        return new HandoffPackage(projectId, Guid.NewGuid(), HandoffPackageSchema.CurrentVersion, now, HandoffTransition.PlannerToExecutor, HandoffRole.Planner, HandoffRole.Executor, contract.Reference, contract.WorkItem, new HandoffContextReference(contextId, 1, now, now), new PlanningRepositoryTarget(PlanningRepositoryMode.None), graph.Reference, node.NodeId, null, scope, null, null, null, [], [], [], null, [], "Execute bounded work", new HandoffRedactionMetadata(false, 0, []), new HandoffPackageSizeMetadata(HandoffPackageLimits.MaxCanonicalPayloadBytes, 0, 0, 0, 0, 0, 11));
+    }
+
+    private static ProviderProcessResult Success(string standardOutput) => new(ProviderProcessOutcome.ExitedSuccessfully, 0, standardOutput, string.Empty, false, false);
+
     private static EffectiveAgentDefinition Agent(AgentRole role)
     {
         var now = DateTimeOffset.UtcNow;
@@ -156,7 +293,10 @@ public sealed class CodexExecutionAdapterTests
         public string? Find(string commandName) => path;
     }
 
-    private sealed class FakeProcessRunner(string output) : IProviderProcessRunner
+    private sealed class FakeProcessRunner(
+        string output,
+        ProviderProcessResult? sessionResult = null,
+        ProviderProcessResult? executionResult = null) : IProviderProcessRunner
     {
         public List<ProviderProcessRequest> Requests { get; } = [];
 
@@ -165,7 +305,12 @@ public sealed class CodexExecutionAdapterTests
             Requests.Add(request);
             if (request.Arguments.SequenceEqual(["login", "status"]))
             {
-                return Task.FromResult(Success("Logged in"));
+                return Task.FromResult(sessionResult ?? Success("Logged in"));
+            }
+
+            if (executionResult is not null)
+            {
+                return Task.FromResult(executionResult);
             }
 
             var outputPath = request.Arguments[Array.IndexOf(request.Arguments.ToArray(), "-o") + 1];
@@ -173,12 +318,5 @@ public sealed class CodexExecutionAdapterTests
             return Task.FromResult(Success(string.Empty));
         }
 
-        private static ProviderProcessResult Success(string standardOutput) => new(
-            ProviderProcessOutcome.ExitedSuccessfully,
-            0,
-            standardOutput,
-            string.Empty,
-            false,
-            false);
     }
 }
