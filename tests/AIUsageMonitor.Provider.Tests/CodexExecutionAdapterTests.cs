@@ -18,6 +18,32 @@ public sealed class CodexExecutionAdapterTests
     public void PlannerSchemaIsValidJson() => JsonDocument.Parse(CodexLocalInvocation.PlannerSchema).Dispose();
 
     [Fact]
+    public void PlannerAndExecutionSchemasAreStrictStructuredOutputCompatible()
+    {
+        AssertStrictSchema(CodexLocalInvocation.PlannerSchema, "PlannerSchema");
+        AssertStrictSchema(CodexLocalInvocation.ExecutionSchema, "ExecutionSchema");
+    }
+
+    [Fact]
+    public void StrictSchemasPreserveNullableOptionalSemantics()
+    {
+        using var planner = JsonDocument.Parse(CodexLocalInvocation.PlannerSchema);
+        var validationProperties = planner.RootElement
+            .GetProperty("properties")
+            .GetProperty("validationExpectations")
+            .GetProperty("items")
+            .GetProperty("properties");
+        AssertNullableType(validationProperties, "commandOrReference");
+
+        using var execution = JsonDocument.Parse(CodexLocalInvocation.ExecutionSchema);
+        var executionProperties = execution.RootElement.GetProperty("properties");
+        foreach (var name in new[] { "stopReason", "toolInvocations", "modelTurns", "changedFiles", "changedLines" })
+        {
+            AssertNullableType(executionProperties, name);
+        }
+    }
+
+    [Fact]
     public async Task Planner_UsesDirectExecutableExplicitModelAndBoundedReadOnlyInvocation()
     {
         var workspace = Directory.CreateTempSubdirectory("apo-planner-test-");
@@ -332,12 +358,70 @@ public sealed class CodexExecutionAdapterTests
         "{" +
         "\"normalizedObjective\":\"Inspect the bounded workspace\",\"includedScope\":[\"the prepared workspace\"]," +
         "\"acceptanceCriteria\":[\"Preserve the exact criterion\"],\"constraints\":[\"Do not leave the workspace\"]," +
-        "\"validationExpectations\":[{\"kind\":\"test\",\"description\":\"Run focused tests\",\"required\":true}]," +
+        "\"validationExpectations\":[{\"kind\":\"test\",\"description\":\"Run focused tests\",\"required\":true,\"commandOrReference\":null}]," +
         "\"classification\":{" +
         "\"scopeScale\":\"bounded\",\"risk\":\"moderate\",\"blastRadius\":\"module\",\"validationCost\":\"moderate\",\"requiredRole\":\"executor\",\"requiredCapabilities\":[],\"policyTags\":[],\"capacityRequirement\":\"optional\",\"independentReviewRequired\":false,\"securityReviewRequired\":false,\"ownerApprovalRequired\":false,\"requiresSupportedConnection\":true,\"requiresVerifiedAvailability\":false,\"requiresAuthenticatedAccess\":true,\"requiresVerifiedEntitlement\":false}," +
         "\"stopConditions\":[{\"conditionId\":\"target\",\"kind\":\"immutableTargetMoved\",\"description\":\"Stop if target moves\"},{\"conditionId\":\"scope\",\"kind\":\"scopeViolation\",\"description\":\"Stop if scope grows\"},{\"conditionId\":\"budget\",\"kind\":\"budgetExceeded\",\"description\":\"Stop if budget ends\"}]," +
         "\"executionBudgets\":[{\"kind\":\"attempts\",\"limit\":1},{\"kind\":\"elapsedMinutes\",\"limit\":10}]" +
         (withExtra ? ",\"extra\":true" : "") + "}";
+
+    private static void AssertStrictSchema(string schema, string schemaName)
+    {
+        using var document = JsonDocument.Parse(schema);
+        AssertStrictSchemaNode(document.RootElement, schemaName);
+    }
+
+    private static void AssertStrictSchemaNode(JsonElement node, string path)
+    {
+        if (node.ValueKind == JsonValueKind.Object && node.TryGetProperty("properties", out var properties))
+        {
+            Assert.True(properties.ValueKind == JsonValueKind.Object, $"{path}.properties must be an object.");
+            Assert.True(
+                node.TryGetProperty("additionalProperties", out var additionalProperties) && additionalProperties.ValueKind == JsonValueKind.False,
+                $"{path}.additionalProperties must be explicitly false.");
+            Assert.True(
+                node.TryGetProperty("required", out var required) && required.ValueKind == JsonValueKind.Array,
+                $"{path}.required must be an array.");
+
+            var propertyNames = properties.EnumerateObject()
+                .Select(property => property.Name)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray();
+            var requiredNames = required.EnumerateArray()
+                .Select(value =>
+                {
+                    Assert.Equal(JsonValueKind.String, value.ValueKind);
+                    return value.GetString()!;
+                })
+                .ToArray();
+
+            Assert.Equal(requiredNames.Length, requiredNames.Distinct(StringComparer.Ordinal).Count());
+            Assert.Equal(propertyNames, requiredNames.OrderBy(name => name, StringComparer.Ordinal).ToArray());
+        }
+
+        if (node.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in node.EnumerateObject())
+            {
+                AssertStrictSchemaNode(property.Value, $"{path}.{property.Name}");
+            }
+        }
+        else if (node.ValueKind == JsonValueKind.Array)
+        {
+            var index = 0;
+            foreach (var item in node.EnumerateArray())
+            {
+                AssertStrictSchemaNode(item, $"{path}[{index++}]");
+            }
+        }
+    }
+
+    private static void AssertNullableType(JsonElement properties, string propertyName)
+    {
+        var types = properties.GetProperty(propertyName).GetProperty("type");
+        Assert.Equal(JsonValueKind.Array, types.ValueKind);
+        Assert.Contains(types.EnumerateArray(), value => value.ValueKind == JsonValueKind.String && value.GetString() == "null");
+    }
 
     private sealed class FakeLocator(string path) : IExecutableLocator
     {
