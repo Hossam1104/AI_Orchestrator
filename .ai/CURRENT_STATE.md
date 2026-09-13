@@ -47,14 +47,14 @@ planner boundary is Sol exact-head review of the pushed Draft PR.
 
 ## CURRENT - APO-70 execution spine and command center recovery
 
-**Last Updated:** 13 September 2026 (evidence commit 6070399 pushed; acceptance pending)
+**Last Updated:** 13 September 2026 (evidence sync bff0e37 pushed; acceptance pending)
 
 ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
 BRANCH = `feature/APO-70-v1-desktop-product-recovery`
 PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
-CURRENT IMPLEMENTATION HEAD = `6070399ecbc141784161a14c506d13c78593e3f1`
-LOCAL DELIVERY HEAD = `6070399ecbc141784161a14c506d13c78593e3f1`
-REMOTE FEATURE HEAD = `6070399ecbc141784161a14c506d13c78593e3f1`
+CURRENT IMPLEMENTATION HEAD = `bff0e37` (metadata sync; code/evidence commit `6070399ecbc141784161a14c506d13c78593e3f1`)
+LOCAL DELIVERY HEAD = `bff0e37`
+REMOTE FEATURE HEAD = `bff0e37`
 PR STATE = OPEN / DRAFT / NOT MERGED
 PR CHECK STATE = IN PROGRESS; mergeability currently BLOCKED by the running check
 V1 RELEASE = FROZEN / NOT AUTHORIZED
