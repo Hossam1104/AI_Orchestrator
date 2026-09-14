@@ -1,11 +1,65 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 14 September 2026 (APO-70 planner/routing authority-boundary remediation; local and exact-head CI validation)
+**Last Updated:** 14 September 2026 (APO-70 planner classification wire-format remediation; local validation)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 planner classification wire-format remediation
+
+**Last Updated:** 14 September 2026
+
+On reviewed source head `9dc51e2` (caller/planner routing classification authority repair), a
+subsequent Sol exact-head review found one remaining runtime-readiness defect: the authoritative
+classification payload that `CodexPromptBuilder.BuildPlannerPrompt` embeds in the planner prompt was
+serialized with enum `.ToString()` values (`Bounded`, `Moderate`, `Module`, `Executor`, `Optional`,
+etc.), while the strict `PlannerSchema` accepts only camel/lower-case wire values (`bounded`,
+`moderate`, `module`, `executor`, `optional`). The prompt simultaneously instructs the planner to
+"return this exact routing classification in your output unchanged," so the mismatch put the
+prompt's literal instruction and the strict output schema in direct conflict.
+
+The remediation removes the ad hoc `.ToString()` mapping and reuses the single existing provider
+serialization authority instead: `AppendClassification` now passes the raw
+`RoutingScopeScale`/`RoutingTaskRisk`/`RoutingBlastRadius`/`RoutingValidationCost`/`AgentRole`/
+`RoutingCapacityRequirement` enum values into the anonymous classification payload and serializes it
+with `CodexLocalInvocation.JsonOptions` — the same `JsonStringEnumConverter(JsonNamingPolicy.CamelCase)`
+options already used for all Codex structured-output serialization/deserialization. No second,
+hand-maintained enum-to-wire-value mapping was introduced. "Return it unchanged" is now internally
+consistent: the wire representation shown to the planner is the same one the strict schema accepts.
+
+All fourteen classification fields remain in the prompt payload unchanged in shape; normalized
+`RequiredCapabilities`/`PolicyTags` collections and all boolean trust-gate fields are untouched. No
+routing engine, coordinator, agent catalog, capacity-evidence, or schema-vocabulary change was made;
+the schema was not loosened and no PascalCase/camelCase aliases were added to it.
+
+New regression coverage in `CodexExecutionAdapterTests`: a parsed (not substring-only) extraction of
+the embedded classification JSON asserting exact wire values for a non-default classification
+(`scopeScale`, `risk`, `blastRadius`, `validationCost`, `requiredRole`, `capacityRequirement`, the
+normalized collections, and every boolean trust-gate field); and a schema-compatibility regression
+that, for every defined value of all six classification enums, serializes that value through the
+real `CodexPromptBuilder.BuildPlannerPrompt` code path and asserts the emitted wire value is present
+in the parsed `PlannerSchema`'s `classification` enum list for that field — so the prompt's wire
+vocabulary cannot drift from the strict schema unnoticed. The pre-existing planner-prompt authority
+test was corrected to assert the schema-compatible camelCase wire values (it previously pinned the
+`.ToString()` PascalCase bug). All prior authority-boundary and strict-schema regressions from
+`9dc51e2` continue to pass unchanged.
+
+Full local validation: Release build 0 warnings / 0 errors; `git diff --check` clean (only benign
+LF/CRLF notices); Domain 28/28, Connection 345/345, Provider 221/221 (219 baseline + 2 new), Desktop
+116/116, Infrastructure 675/675 — total 1,385 passed / 0 failed / 0 skipped. Self-contained
+structural publish validation passed for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and
+`win-arm64` (PE `0xAA64`), each with self-contained runtime evidence present.
+
+No real Sol/Luna/Codex model was invoked and no real `PrepareAsync`/`StartAsync` was run during this
+remediation; the Desktop app was not launched. No merge, main push, force push, release, tag,
+deployment, or owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review
+of this wire-format repair; if accepted, one fresh isolated real production `PrepareAsync` validation
+using truthful Sol/Luna configuration is authorized, stopping at Ready — `StartAsync` and real Luna
+workspace-write remain unauthorized until Ready is proven.
+
+---
 
 ## CURRENT - APO-70 planner/routing authority-boundary remediation
 

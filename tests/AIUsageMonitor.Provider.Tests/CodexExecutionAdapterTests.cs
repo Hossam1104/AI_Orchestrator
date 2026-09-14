@@ -56,13 +56,114 @@ public sealed class CodexExecutionAdapterTests
 
         var prompt = CodexPromptBuilder.BuildPlannerPrompt(request, @"C:\apo-test", new HandoffRedactionService());
 
-        Assert.Contains("\"requiredRole\":\"Executor\"", prompt);
+        Assert.Contains("\"requiredRole\":\"executor\"", prompt);
         Assert.Contains("\"repository-read\"", prompt);
-        Assert.Contains("\"capacityRequirement\":\"Optional\"", prompt);
+        Assert.Contains("\"capacityRequirement\":\"optional\"", prompt);
         Assert.Contains("\"requiresAuthenticatedAccess\":true", prompt);
         Assert.Contains("\"requiresVerifiedEntitlement\":true", prompt);
         Assert.Contains("unchanged", prompt, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("caller/control-plane authority", prompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PlannerPrompt_ClassificationPayload_UsesSchemaCompatibleWireValues()
+    {
+        var classification = new RoutingTaskClassification(
+            RoutingScopeScale.Bounded, RoutingTaskRisk.Moderate, RoutingBlastRadius.Module, RoutingValidationCost.Moderate,
+            AgentRole.Executor, requiredCapabilities: ["repository-read"], policyTags: ["policy-a"],
+            capacityRequirement: RoutingCapacityRequirement.Optional,
+            independentReviewRequired: true, securityReviewRequired: false, ownerApprovalRequired: true,
+            requiresSupportedConnection: true, requiresVerifiedAvailability: false,
+            requiresAuthenticatedAccess: true, requiresVerifiedEntitlement: true);
+        var request = new OrchestrationWorkRequest(
+            Guid.NewGuid(), "owner:test", "Bounded work", "Do bounded work",
+            acceptanceCriteria: ["Criterion"], classification: classification);
+
+        var prompt = CodexPromptBuilder.BuildPlannerPrompt(request, @"C:\apo-test", new HandoffRedactionService());
+        var json = ExtractClassificationJson(prompt);
+
+        Assert.Equal("bounded", json.GetProperty("scopeScale").GetString());
+        Assert.Equal("moderate", json.GetProperty("risk").GetString());
+        Assert.Equal("module", json.GetProperty("blastRadius").GetString());
+        Assert.Equal("moderate", json.GetProperty("validationCost").GetString());
+        Assert.Equal("executor", json.GetProperty("requiredRole").GetString());
+        Assert.Equal("optional", json.GetProperty("capacityRequirement").GetString());
+        Assert.Equal(["repository-read"], json.GetProperty("requiredCapabilities").EnumerateArray().Select(e => e.GetString()!).ToArray());
+        Assert.Equal(["policy-a"], json.GetProperty("policyTags").EnumerateArray().Select(e => e.GetString()!).ToArray());
+        Assert.True(json.GetProperty("independentReviewRequired").GetBoolean());
+        Assert.False(json.GetProperty("securityReviewRequired").GetBoolean());
+        Assert.True(json.GetProperty("ownerApprovalRequired").GetBoolean());
+        Assert.True(json.GetProperty("requiresSupportedConnection").GetBoolean());
+        Assert.False(json.GetProperty("requiresVerifiedAvailability").GetBoolean());
+        Assert.True(json.GetProperty("requiresAuthenticatedAccess").GetBoolean());
+        Assert.True(json.GetProperty("requiresVerifiedEntitlement").GetBoolean());
+    }
+
+    [Fact]
+    public void PlannerPrompt_ClassificationPayload_MatchesSchemaEnumVocabularyForEveryVariant()
+    {
+        using var schema = JsonDocument.Parse(CodexLocalInvocation.PlannerSchema);
+        var classificationProperties = schema.RootElement.GetProperty("properties").GetProperty("classification").GetProperty("properties");
+
+        AssertAllEnumValuesMatchSchema<RoutingScopeScale>(classificationProperties, "scopeScale",
+            value => BuildClassification(scopeScale: value));
+        AssertAllEnumValuesMatchSchema<RoutingTaskRisk>(classificationProperties, "risk",
+            value => BuildClassification(risk: value));
+        AssertAllEnumValuesMatchSchema<RoutingBlastRadius>(classificationProperties, "blastRadius",
+            value => BuildClassification(blastRadius: value));
+        AssertAllEnumValuesMatchSchema<RoutingValidationCost>(classificationProperties, "validationCost",
+            value => BuildClassification(validationCost: value));
+        AssertAllEnumValuesMatchSchema<AgentRole>(classificationProperties, "requiredRole",
+            value => BuildClassification(requiredRole: value));
+        AssertAllEnumValuesMatchSchema<RoutingCapacityRequirement>(classificationProperties, "capacityRequirement",
+            value => BuildClassification(capacityRequirement: value));
+    }
+
+    private static RoutingTaskClassification BuildClassification(
+        RoutingScopeScale scopeScale = RoutingScopeScale.Bounded,
+        RoutingTaskRisk risk = RoutingTaskRisk.Moderate,
+        RoutingBlastRadius blastRadius = RoutingBlastRadius.Module,
+        RoutingValidationCost validationCost = RoutingValidationCost.Moderate,
+        AgentRole requiredRole = AgentRole.Executor,
+        RoutingCapacityRequirement capacityRequirement = RoutingCapacityRequirement.Optional) =>
+        new(scopeScale, risk, blastRadius, validationCost, requiredRole, capacityRequirement: capacityRequirement);
+
+    private static void AssertAllEnumValuesMatchSchema<TEnum>(
+        JsonElement classificationProperties,
+        string fieldName,
+        Func<TEnum, RoutingTaskClassification> classificationFactory)
+        where TEnum : struct, Enum
+    {
+        var schemaEnumValues = classificationProperties.GetProperty(fieldName).GetProperty("enum")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (var enumValue in Enum.GetValues<TEnum>())
+        {
+            var classification = classificationFactory(enumValue);
+            var request = new OrchestrationWorkRequest(
+                Guid.NewGuid(), "owner:test", "Bounded work", "Do bounded work",
+                acceptanceCriteria: ["Criterion"], classification: classification);
+            var prompt = CodexPromptBuilder.BuildPlannerPrompt(request, @"C:\apo-test", new HandoffRedactionService());
+            var json = ExtractClassificationJson(prompt);
+            var wireValue = json.GetProperty(fieldName).GetString();
+
+            Assert.True(
+                schemaEnumValues.Contains(wireValue),
+                $"{typeof(TEnum).Name}.{enumValue} serialized to '{wireValue}' which is not in the PlannerSchema enum for '{fieldName}'.");
+        }
+    }
+
+    private static JsonElement ExtractClassificationJson(string prompt)
+    {
+        const string marker = "Routing classification (caller/control-plane authority):";
+        var markerIndex = prompt.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(markerIndex >= 0, "Prompt must contain the classification authority marker.");
+        var jsonStart = prompt.IndexOf('\n', markerIndex) + 1;
+        var jsonEnd = prompt.IndexOf('\n', jsonStart);
+        var json = prompt[jsonStart..jsonEnd].Trim();
+        return JsonDocument.Parse(json).RootElement;
     }
 
     [Fact]

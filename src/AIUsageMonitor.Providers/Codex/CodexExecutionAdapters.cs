@@ -491,14 +491,14 @@ internal static class CodexPromptBuilder
     {
         var payload = new
         {
-            scopeScale = classification.ScopeScale.ToString(),
-            risk = classification.Risk.ToString(),
-            blastRadius = classification.BlastRadius.ToString(),
-            validationCost = classification.ValidationCost.ToString(),
-            requiredRole = classification.RequiredRole.ToString(),
+            scopeScale = classification.ScopeScale,
+            risk = classification.Risk,
+            blastRadius = classification.BlastRadius,
+            validationCost = classification.ValidationCost,
+            requiredRole = classification.RequiredRole,
             requiredCapabilities = classification.RequiredCapabilities,
             policyTags = classification.PolicyTags,
-            capacityRequirement = classification.CapacityRequirement.ToString(),
+            capacityRequirement = classification.CapacityRequirement,
             independentReviewRequired = classification.IndependentReviewRequired,
             securityReviewRequired = classification.SecurityReviewRequired,
             ownerApprovalRequired = classification.OwnerApprovalRequired,
@@ -508,7 +508,7 @@ internal static class CodexPromptBuilder
             requiresVerifiedEntitlement = classification.RequiresVerifiedEntitlement
         };
         builder.AppendLine("Routing classification (caller/control-plane authority):");
-        builder.AppendLine(JsonSerializer.Serialize(payload));
+        builder.AppendLine(JsonSerializer.Serialize(payload, CodexLocalInvocation.JsonOptions));
         builder.AppendLine("Return this exact routing classification in your output unchanged. It is caller/control-plane authority, not yours to infer, strengthen, weaken, or replace.");
     }
 
