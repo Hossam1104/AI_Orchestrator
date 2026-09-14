@@ -66,6 +66,34 @@ public sealed class ExecutionPreparationCoordinatorTests
     }
 
     [Fact]
+    public async Task PrepareAsyncRoutesUsingCallerClassificationNotThePlannerEchoedInstance()
+    {
+        var fixture = new Fixture();
+        var request = fixture.Request();
+
+        var result = await fixture.Coordinator.PrepareAsync(request);
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        Assert.NotSame(request.Classification, fixture.Planner.LastPlan!.Classification);
+        Assert.Same(request.Classification, fixture.Policy.LastClassification);
+        Assert.Same(request.Classification, fixture.Routing.LastClassification);
+    }
+
+    [Fact]
+    public async Task PrepareAsyncRejectsPlannerClassificationDriftBeforeRouting()
+    {
+        var fixture = new Fixture { DriftPlannerClassification = true };
+
+        var result = await fixture.Coordinator.PrepareAsync(fixture.Request());
+
+        Assert.Equal(ExecutionPreparationStatus.PlannerInvalid, result.Status);
+        Assert.Equal(ExecutionPreparationStage.Planning, result.Stage);
+        Assert.Contains("preserve the caller-authoritative routing classification", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, fixture.Contract.Calls);
+        Assert.Equal(0, fixture.Routing.Calls);
+    }
+
+    [Fact]
     public async Task PrepareAsyncPreservesPlannerProcessDiagnosticWithoutStartingDownstreamAuthorities()
     {
         var fixture = new Fixture();
@@ -176,6 +204,7 @@ public sealed class ExecutionPreparationCoordinatorTests
         internal readonly ExecutionCoordinator Coordinator;
         internal bool InvalidPlanner;
         internal bool BlockPlanner;
+        internal bool DriftPlannerClassification;
         internal FailurePoint Failure;
 
         internal Fixture()
@@ -229,9 +258,26 @@ public sealed class ExecutionPreparationCoordinatorTests
             if (fixture.BlockPlanner) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             if (Result is not null) return Result;
             if (fixture.InvalidPlanner) return new(PlannerInvocationStatus.InvalidResult, ErrorMessage: "planner output was invalid");
-            LastPlan = new PlannerPlan(request.OwnerRequest.Objective, ["prepared workspace"], request.OwnerRequest.AcceptanceCriteria, request.OwnerRequest.Constraints, [new PlanningValidationRequirement("focused", PlanningValidationKind.Test, "Run focused tests", true)], request.OwnerRequest.Classification, [new PlanningStopCondition("target", PlanningStopConditionKind.ImmutableTargetMoved, "target"), new PlanningStopCondition("scope", PlanningStopConditionKind.ScopeViolation, "scope"), new PlanningStopCondition("budget", PlanningStopConditionKind.BudgetExceeded, "budget")], [new PlanningExecutionBudget(PlanningBudgetKind.Attempts, 1), new PlanningExecutionBudget(PlanningBudgetKind.ElapsedMinutes, 1)]);
+            LastPlan = new PlannerPlan(request.OwnerRequest.Objective, ["prepared workspace"], request.OwnerRequest.AcceptanceCriteria, request.OwnerRequest.Constraints, [new PlanningValidationRequirement("focused", PlanningValidationKind.Test, "Run focused tests", true)], EchoedClassification(request.OwnerRequest.Classification), [new PlanningStopCondition("target", PlanningStopConditionKind.ImmutableTargetMoved, "target"), new PlanningStopCondition("scope", PlanningStopConditionKind.ScopeViolation, "scope"), new PlanningStopCondition("budget", PlanningStopConditionKind.BudgetExceeded, "budget")], [new PlanningExecutionBudget(PlanningBudgetKind.Attempts, 1), new PlanningExecutionBudget(PlanningBudgetKind.ElapsedMinutes, 1)]);
             return new(PlannerInvocationStatus.Succeeded, LastPlan);
         }
+
+        /// <summary>
+        /// Builds a distinct instance with the same values (unless drift is requested) to prove the
+        /// coordinator routes using the caller's classification object, not the planner's echoed one.
+        /// </summary>
+        private RoutingTaskClassification EchoedClassification(RoutingTaskClassification owner) => new(
+            owner.ScopeScale, owner.Risk, owner.BlastRadius, owner.ValidationCost, owner.RequiredRole,
+            requiredCapabilities: fixture.DriftPlannerClassification ? ["bounded workspace file editing"] : owner.RequiredCapabilities,
+            policyTags: owner.PolicyTags,
+            capacityRequirement: owner.CapacityRequirement,
+            independentReviewRequired: owner.IndependentReviewRequired,
+            securityReviewRequired: owner.SecurityReviewRequired,
+            ownerApprovalRequired: owner.OwnerApprovalRequired,
+            requiresSupportedConnection: owner.RequiresSupportedConnection,
+            requiresVerifiedAvailability: owner.RequiresVerifiedAvailability,
+            requiresAuthenticatedAccess: owner.RequiresAuthenticatedAccess,
+            requiresVerifiedEntitlement: owner.RequiresVerifiedEntitlement);
     }
 
     private sealed class FakeContract(Fixture fixture, Project project) : IPlanningExecutionContractService
@@ -262,17 +308,24 @@ public sealed class ExecutionPreparationCoordinatorTests
     }
     private sealed class FakeRoutingPolicy(Fixture fixture, Guid executorId) : IExecutableRoutingPolicyResolver
     {
-        public Task<ExecutableRoutingPolicyResolution> ResolveAsync(Guid projectId, RoutingTaskClassification classification, string? contextPolicyReference = null, CancellationToken cancellationToken = default) => fixture.Failure == FailurePoint.Policy
-            ? Task.FromResult(new ExecutableRoutingPolicyResolution(ExecutableRoutingPolicyResolutionStatus.PersistenceUnavailable, ErrorMessage: "policy failure"))
-            : Task.FromResult(new ExecutableRoutingPolicyResolution(ExecutableRoutingPolicyResolutionStatus.Resolved, new RoutingPolicySnapshot("test-policy", AgentRole.Executor, [executorId], capacityRequirement: RoutingCapacityRequirement.NotApplicable, requireAuthenticatedAccess: true, requireVerifiedAvailability: true, requireVerifiedEntitlement: true)));
+        internal RoutingTaskClassification? LastClassification;
+        public Task<ExecutableRoutingPolicyResolution> ResolveAsync(Guid projectId, RoutingTaskClassification classification, string? contextPolicyReference = null, CancellationToken cancellationToken = default)
+        {
+            LastClassification = classification;
+            return fixture.Failure == FailurePoint.Policy
+                ? Task.FromResult(new ExecutableRoutingPolicyResolution(ExecutableRoutingPolicyResolutionStatus.PersistenceUnavailable, ErrorMessage: "policy failure"))
+                : Task.FromResult(new ExecutableRoutingPolicyResolution(ExecutableRoutingPolicyResolutionStatus.Resolved, new RoutingPolicySnapshot("test-policy", AgentRole.Executor, [executorId], capacityRequirement: RoutingCapacityRequirement.NotApplicable, requireAuthenticatedAccess: true, requireVerifiedAvailability: true, requireVerifiedEntitlement: true)));
+        }
     }
     private sealed class FakeRouting(Fixture fixture) : IRoutingDecisionService
     {
         internal int Calls;
         internal RoutingDecision? Value;
+        internal RoutingTaskClassification? LastClassification;
         public Task<RoutingDecisionCreationResult> CreateAsync(RoutingDecisionRequest request, CancellationToken cancellationToken = default)
         {
             Calls++;
+            LastClassification = request.Classification;
             if (fixture.Failure == FailurePoint.Routing) return Task.FromResult(new RoutingDecisionCreationResult(RoutingDecisionCreationStatus.DecisionConflict, ErrorMessage: "routing failure"));
             var input = new RoutingInputSnapshot(request.ProjectId, request.PlanningContractReference, new RoutingContextReference(Guid.NewGuid(), 1, fixture.Now), request.Classification, request.Policy, [RoutingAgentSnapshot.FromEffective(fixture.Executor)], [], null, fixture.Now);
             Value = new RoutingDecision(request.ProjectId, Guid.NewGuid(), RoutingDecisionSchema.CurrentVersion, fixture.Now, new RoutingDecisionEngine().Evaluate(input));

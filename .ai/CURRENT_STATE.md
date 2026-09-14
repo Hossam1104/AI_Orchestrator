@@ -1,11 +1,64 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 13 September 2026 (APO-70 strict schema compatibility repair; exact-head CI passed)
+**Last Updated:** 14 September 2026 (APO-70 planner/routing authority-boundary remediation; local and exact-head CI validation)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 planner/routing authority-boundary remediation
+
+**Last Updated:** 14 September 2026
+
+On reviewed source head `d225772`, real GPT-5.6 Sol structured planning was runtime-proven and
+routing was reached with a truthfully configured Luna candidate; routing then rejected every
+candidate because the coordinator passed the planner-generated `PlannerPlan.Classification` into
+routing-policy resolution and the routing decision instead of the caller/control-plane
+`OrchestrationWorkRequest.Classification`. `RoutingTaskClassification` is documented owner/control-
+plane authority — scope/risk/blast-radius/validation-cost, required role/capabilities, policy tags,
+capacity requirement, review/security/owner-approval gates, and connection/authentication/
+entitlement trust gates — and the planner is only permitted to echo it, never redefine it. Source
+review confirmed this caller/planner routing-authority mismatch as the sole proven authority defect;
+`RoutingDecisionEngine`/`RoutingInputAssembler` fail-closed behavior and the strict Codex
+planner/execution output schemas were independently confirmed correct and were not touched.
+
+The remediation now preserves caller/control-plane classification authority end to end:
+`ExecutionPreparationCoordinator` passes `request.Classification` (not `plan.Classification`) into
+both `IExecutableRoutingPolicyResolver.ResolveAsync` and the `RoutingDecisionRequest` sent to
+routing. `PlannerPlanValidator.Validate` now performs an exact field-by-field comparison of the
+planner-echoed classification against the owner's classification (all fourteen fields, including
+`SequenceEqual` with `StringComparer.Ordinal` for the normalized `RequiredCapabilities`/
+`PolicyTags` collections) and rejects the plan before routing is ever reached if any field drifts.
+`CodexPromptBuilder.BuildPlannerPrompt` now presents the caller classification to the planner as an
+explicit JSON payload with an instruction to return it unchanged, and no longer asks the planner to
+"classify" the task. No planner-generated capability string was added to the Luna/agent catalog, no
+capacity or trust-gate evidence was fabricated or defaulted positive, and no routing engine
+strictness was weakened.
+
+New regression coverage: exact-preservation of a complete caller classification; capability drift;
+capacity drift; connection/authentication/availability/entitlement (trust gate) drift; scope/risk/
+blast-radius/validation-cost drift; policy-tag drift; review/security/owner-approval gate drift; a
+coordinator-level regression proving (via `Assert.Same`/`Assert.NotSame`) that routing receives the
+caller's own classification instance rather than the planner's echoed instance, and a companion
+regression proving the coordinator rejects planner classification drift before routing is invoked;
+and a planner-prompt regression proving the caller classification is presented as authoritative and
+unchangeable. All pre-existing strict-schema and planner-validator tests continue to pass unchanged.
+
+Focused Connection and Provider tests covering this change passed. Full local validation: Release
+build 0 warnings / 0 errors; `git diff --check` clean (only benign LF/CRLF notices); Domain 28/28,
+Connection 345/345 (327 baseline + 18 new), Provider 219/219 (218 baseline + 1 new), Desktop 116/116,
+Infrastructure 675/675 — total 1,383 passed / 0 failed / 0 skipped. Self-contained structural publish
+validation passed for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64` (PE
+`0xAA64`), each with self-contained runtime evidence present.
+
+No real Sol/Luna/Codex model was invoked and no real `PrepareAsync`/`StartAsync` was run after this
+remediation; the Desktop app was not launched. No merge, main push, force push, release, tag,
+deployment, or owner/Sol acceptance was performed. The next planner boundary is Sol exact-head
+review of this remediation, followed by one fresh isolated real `PrepareAsync`-to-Ready runtime
+validation; do not authorize `StartAsync` or Luna execution until that reaches Ready.
+
+---
 
 ## CURRENT - APO-70 strict schema compatibility repair (partial; runtime acceptance pending)
 

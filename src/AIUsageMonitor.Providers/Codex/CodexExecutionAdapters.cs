@@ -454,7 +454,7 @@ internal static class CodexPromptBuilder
     {
         var builder = new StringBuilder();
         builder.AppendLine("Return only JSON matching the supplied output schema. You are the planner for one bounded APO request.");
-        builder.AppendLine("Classify the task, preserve every owner acceptance criterion and constraint exactly, and include explicit stop conditions and budgets.");
+        builder.AppendLine("Preserve every owner acceptance criterion and constraint exactly, and include explicit stop conditions and budgets.");
         builder.AppendLine("Do not propose shell commands, credentials, transcripts, source files, commits, pushes, merges, deployments, or work outside this workspace.");
         builder.AppendLine($"Workspace: {workspacePath}");
         Append(builder, "Title", request.Title, redaction);
@@ -462,6 +462,7 @@ internal static class CodexPromptBuilder
         AppendList(builder, "Acceptance criteria", request.AcceptanceCriteria, redaction);
         AppendList(builder, "Constraints", request.Constraints, redaction);
         AppendList(builder, "Validation expectations", request.ValidationExpectations, redaction);
+        AppendClassification(builder, request.Classification);
         return builder.ToString().Trim();
     }
 
@@ -484,6 +485,31 @@ internal static class CodexPromptBuilder
         var json = JsonSerializer.Serialize(payload, CodexLocalInvocation.JsonOptions);
         var prompt = "Return only JSON matching the supplied output schema. Execute only the exact bounded work in the prepared workspace. Use normal sandboxed tools only within that workspace. Stop on any authority, scope, validation, budget, credential, or security boundary. Do not commit, push, merge, deploy, or delete unrelated files. Report truthful bounded evidence in summary.\n" + json;
         return redaction.Redact(prompt).Value;
+    }
+
+    private static void AppendClassification(StringBuilder builder, RoutingTaskClassification classification)
+    {
+        var payload = new
+        {
+            scopeScale = classification.ScopeScale.ToString(),
+            risk = classification.Risk.ToString(),
+            blastRadius = classification.BlastRadius.ToString(),
+            validationCost = classification.ValidationCost.ToString(),
+            requiredRole = classification.RequiredRole.ToString(),
+            requiredCapabilities = classification.RequiredCapabilities,
+            policyTags = classification.PolicyTags,
+            capacityRequirement = classification.CapacityRequirement.ToString(),
+            independentReviewRequired = classification.IndependentReviewRequired,
+            securityReviewRequired = classification.SecurityReviewRequired,
+            ownerApprovalRequired = classification.OwnerApprovalRequired,
+            requiresSupportedConnection = classification.RequiresSupportedConnection,
+            requiresVerifiedAvailability = classification.RequiresVerifiedAvailability,
+            requiresAuthenticatedAccess = classification.RequiresAuthenticatedAccess,
+            requiresVerifiedEntitlement = classification.RequiresVerifiedEntitlement
+        };
+        builder.AppendLine("Routing classification (caller/control-plane authority):");
+        builder.AppendLine(JsonSerializer.Serialize(payload));
+        builder.AppendLine("Return this exact routing classification in your output unchanged. It is caller/control-plane authority, not yours to infer, strengthen, weaken, or replace.");
     }
 
     private static void Append(StringBuilder builder, string label, string value, IHandoffRedactionService redaction) =>

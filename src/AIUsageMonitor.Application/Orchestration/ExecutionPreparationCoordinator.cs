@@ -426,7 +426,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
 
             var policyResult = await _routingPolicy.ResolveAsync(
                     request.ProjectId,
-                    plan.Classification,
+                    request.Classification,
                     view.Context.RoutingPolicyReference,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -438,7 +438,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
             var routingResult = await _routing.CreateAsync(new RoutingDecisionRequest(
                 request.ProjectId,
                 contract.Reference,
-                plan.Classification,
+                request.Classification,
                 policyResult.Policy), cancellationToken).ConfigureAwait(false);
             if (!routingResult.Succeeded || routingResult.Decision is null || routingResult.Decision.SelectedAgentId is null)
             {

@@ -44,6 +44,28 @@ public sealed class CodexExecutionAdapterTests
     }
 
     [Fact]
+    public void PlannerPrompt_RepresentsTheAuthoritativeCallerClassificationAndInstructsPreservation()
+    {
+        var classification = new RoutingTaskClassification(
+            RoutingScopeScale.Bounded, RoutingTaskRisk.Moderate, RoutingBlastRadius.Module, RoutingValidationCost.Moderate,
+            AgentRole.Executor, requiredCapabilities: ["repository-read"], capacityRequirement: RoutingCapacityRequirement.Optional,
+            requiresAuthenticatedAccess: true, requiresVerifiedEntitlement: true);
+        var request = new OrchestrationWorkRequest(
+            Guid.NewGuid(), "owner:test", "Bounded work", "Do bounded work",
+            acceptanceCriteria: ["Criterion"], classification: classification);
+
+        var prompt = CodexPromptBuilder.BuildPlannerPrompt(request, @"C:\apo-test", new HandoffRedactionService());
+
+        Assert.Contains("\"requiredRole\":\"Executor\"", prompt);
+        Assert.Contains("\"repository-read\"", prompt);
+        Assert.Contains("\"capacityRequirement\":\"Optional\"", prompt);
+        Assert.Contains("\"requiresAuthenticatedAccess\":true", prompt);
+        Assert.Contains("\"requiresVerifiedEntitlement\":true", prompt);
+        Assert.Contains("unchanged", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("caller/control-plane authority", prompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Planner_UsesDirectExecutableExplicitModelAndBoundedReadOnlyInvocation()
     {
         var workspace = Directory.CreateTempSubdirectory("apo-planner-test-");

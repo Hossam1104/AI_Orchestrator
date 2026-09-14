@@ -234,6 +234,11 @@ public static class PlannerPlanValidator
             return "Planner output must preserve the downstream execution role required by this workflow.";
         }
 
+        if (!ClassificationMatches(ownerRequest.Classification, plan.Classification))
+        {
+            return "Planner output must preserve the caller-authoritative routing classification.";
+        }
+
         if (ownerRequest.AcceptanceCriteria.Any(criterion => !plan.AcceptanceCriteria.Contains(criterion, StringComparer.Ordinal)))
         {
             return "Planner output must preserve every owner acceptance criterion exactly.";
@@ -246,6 +251,27 @@ public static class PlannerPlanValidator
 
         return null;
     }
+
+    /// <summary>
+    /// The caller/control-plane classification is routing authority; the planner may only echo it.
+    /// Every field is compared so the planner cannot strengthen, weaken, or replace any part of it.
+    /// </summary>
+    private static bool ClassificationMatches(RoutingTaskClassification ownerClassification, RoutingTaskClassification plannerClassification) =>
+        ownerClassification.ScopeScale == plannerClassification.ScopeScale &&
+        ownerClassification.Risk == plannerClassification.Risk &&
+        ownerClassification.BlastRadius == plannerClassification.BlastRadius &&
+        ownerClassification.ValidationCost == plannerClassification.ValidationCost &&
+        ownerClassification.RequiredRole == plannerClassification.RequiredRole &&
+        ownerClassification.RequiredCapabilities.SequenceEqual(plannerClassification.RequiredCapabilities, StringComparer.Ordinal) &&
+        ownerClassification.PolicyTags.SequenceEqual(plannerClassification.PolicyTags, StringComparer.Ordinal) &&
+        ownerClassification.CapacityRequirement == plannerClassification.CapacityRequirement &&
+        ownerClassification.IndependentReviewRequired == plannerClassification.IndependentReviewRequired &&
+        ownerClassification.SecurityReviewRequired == plannerClassification.SecurityReviewRequired &&
+        ownerClassification.OwnerApprovalRequired == plannerClassification.OwnerApprovalRequired &&
+        ownerClassification.RequiresSupportedConnection == plannerClassification.RequiresSupportedConnection &&
+        ownerClassification.RequiresVerifiedAvailability == plannerClassification.RequiresVerifiedAvailability &&
+        ownerClassification.RequiresAuthenticatedAccess == plannerClassification.RequiresAuthenticatedAccess &&
+        ownerClassification.RequiresVerifiedEntitlement == plannerClassification.RequiresVerifiedEntitlement;
 }
 
 public sealed class PlannerAdapterDescriptor
