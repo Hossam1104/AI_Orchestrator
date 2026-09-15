@@ -217,6 +217,8 @@ public interface IExecutionCoordinator
 
     Task<ExecutionStartResult> StartAsync(CancellationToken cancellationToken = default);
 
+    Task<ExecutionRehydrationResult> RestoreAsync(Guid projectId, CancellationToken cancellationToken = default);
+
     Task<ExecutionCancellationResult> CancelAsync(CancellationToken cancellationToken = default);
 
     Task<ExecutionRunSnapshot> GetCurrentRunAsync(CancellationToken cancellationToken = default);
@@ -241,6 +243,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
     private readonly IRecoveryCheckpointService _recovery;
     private readonly IBoundedExecutionService _execution;
     private readonly IHandoffRedactionService _redaction;
+    private readonly IReadyExecutionRehydrator _rehydrator;
     private readonly IClock _clock;
     private readonly SemaphoreSlim _stateGate = new(1, 1);
     private PreparedExecution? _prepared;
@@ -263,6 +266,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
         IRecoveryCheckpointService recovery,
         IBoundedExecutionService execution,
         IHandoffRedactionService redaction,
+        IReadyExecutionRehydrator rehydrator,
         IClock clock)
     {
         _contexts = contexts ?? throw new ArgumentNullException(nameof(contexts));
@@ -278,6 +282,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
         _recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
         _execution = execution ?? throw new ArgumentNullException(nameof(execution));
         _redaction = redaction ?? throw new ArgumentNullException(nameof(redaction));
+        _rehydrator = rehydrator ?? throw new ArgumentNullException(nameof(rehydrator));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     }
 
@@ -520,7 +525,9 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
                 selectedAgentRoleReferences: [
                     new RecoveryAgentRoleReference(planner.Id, AgentRole.Planner, "configured planner"),
                     new RecoveryAgentRoleReference(executor.Id, AgentRole.Executor, "routing decision")
-                ]), cancellationToken).ConfigureAwait(false);
+                ],
+                routingDecisionReference: routingResult.Decision.Reference,
+                workspacePreparationPlanReference: planResult.Plan.Reference), cancellationToken).ConfigureAwait(false);
             if (!checkpointResult.Succeeded || checkpointResult.Checkpoint is null)
             {
                 return await FailAsync(ExecutionPreparationStatus.RecoveryCheckpointFailed, ExecutionPreparationStage.RecoveryCheckpoint, checkpointResult.ErrorMessage ?? checkpointResult.Status.ToString()).ConfigureAwait(false);
@@ -630,6 +637,56 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
         }
 
         return new(state, result, result.ErrorMessage);
+    }
+
+    public async Task<ExecutionRehydrationResult> RestoreAsync(Guid projectId, CancellationToken cancellationToken = default)
+    {
+        await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_prepared is not null && _state == ExecutionCoordinatorState.Ready)
+            {
+                return new(ExecutionRehydrationStatus.Restored, _prepared);
+            }
+
+            if (_state is ExecutionCoordinatorState.Preparing or ExecutionCoordinatorState.Running or ExecutionCoordinatorState.Cancelling or ExecutionCoordinatorState.Waiting)
+            {
+                return new(ExecutionRehydrationStatus.NotResumable, ErrorMessage: "The coordinator is busy with another operation.");
+            }
+
+            _state = ExecutionCoordinatorState.Preparing;
+            _message = "Restoring the last persisted Ready execution before starting.";
+        }
+        finally
+        {
+            _stateGate.Release();
+        }
+
+        var result = await _rehydrator.TryRehydrateAsync(projectId, cancellationToken).ConfigureAwait(false);
+
+        await _stateGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        try
+        {
+            if (result.Succeeded)
+            {
+                _prepared = result.PreparedExecution;
+                _lastResult = null;
+                _state = ExecutionCoordinatorState.Ready;
+                _message = "Restored a persisted Ready execution; ready to start through the bounded execution service.";
+            }
+            else
+            {
+                _prepared = null;
+                _state = ExecutionCoordinatorState.Draft;
+                _message = result.ErrorMessage;
+            }
+        }
+        finally
+        {
+            _stateGate.Release();
+        }
+
+        return result;
     }
 
     public async Task<ExecutionCancellationResult> CancelAsync(CancellationToken cancellationToken = default)

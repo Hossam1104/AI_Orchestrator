@@ -1057,8 +1057,8 @@ public sealed class BoundedExecutionService : IBoundedExecutionService
                     request.WorkGraphReference,
                     request.WorkGraphNodeId,
                     request.HandoffPackageReference,
-                    source.Reference,
-                    roles),
+                    previousCheckpointReference: source.Reference,
+                    selectedAgentRoleReferences: roles),
                 cancellationToken)
             .ConfigureAwait(false);
     }

@@ -228,7 +228,7 @@ public sealed class ExecutionPreparationCoordinatorTests
             Workspace = new FakeWorkspace(this);
             Recovery = new FakeRecovery(this);
             Execution = new FakeExecution();
-            Coordinator = new ExecutionCoordinator(new FakeContext(new ProjectContextView(project, context, [plannerAgent, Executor])), new FakeRepository(), Contract, Graph, Routing, Policy, new FakePlannerResolver(Planner), Handoff, WorkspacePlan, Workspace, Recovery, Execution, new HandoffRedactionService(), new FixedClock(Now));
+            Coordinator = new ExecutionCoordinator(new FakeContext(new ProjectContextView(project, context, [plannerAgent, Executor])), new FakeRepository(), Contract, Graph, Routing, Policy, new FakePlannerResolver(Planner), Handoff, WorkspacePlan, Workspace, Recovery, Execution, new HandoffRedactionService(), new FakeRehydrator(), new FixedClock(Now));
         }
 
         internal OrchestrationWorkRequest Request() => new(ProjectId, "owner:apo", "Bounded execution", "Execute the bounded request.", "APO-70", ["Preserve the owner criterion"], ["Stay in the prepared workspace"], classification: Classification());
@@ -380,12 +380,18 @@ public sealed class ExecutionPreparationCoordinatorTests
         {
             Calls++;
             if (fixture.Failure == FailurePoint.Recovery) return Task.FromResult(new RecoveryCheckpointCreationResult(RecoveryCheckpointCreationStatus.PersistenceUnavailable, ErrorMessage: "recovery failure"));
-            var checkpoint = new RecoveryCheckpoint(request.ProjectId, request.CheckpointId, RecoveryCheckpointSchema.CurrentVersion, fixture.Now, request.LifecycleState, new RecoveryContextReference(Guid.NewGuid(), 1, fixture.Now), request.PlanningContractReference, request.WorkGraphReference!, request.WorkGraphNodeId!.Value, request.HandoffPackageReference!, selectedAgentRoleReferences: [new RecoveryAgentRoleReference(Guid.NewGuid(), AgentRole.Executor)]);
+            var checkpoint = new RecoveryCheckpoint(request.ProjectId, request.CheckpointId, RecoveryCheckpointSchema.CurrentVersion, fixture.Now, request.LifecycleState, new RecoveryContextReference(Guid.NewGuid(), 1, fixture.Now), request.PlanningContractReference, request.WorkGraphReference!, request.WorkGraphNodeId!.Value, request.HandoffPackageReference!, request.RoutingDecisionReference, request.WorkspacePreparationPlanReference, selectedAgentRoleReferences: [new RecoveryAgentRoleReference(Guid.NewGuid(), AgentRole.Executor)]);
             var head = new ContinuationHead(request.ProjectId, ContinuationHeadSchema.CurrentVersion, 1, checkpoint.Reference, checkpoint.Reference, fixture.Now);
             Value = new RecoveryCheckpointCreationResult(RecoveryCheckpointCreationStatus.Created, checkpoint, head);
             return Task.FromResult(Value);
         }
     }
+    private sealed class FakeRehydrator : IReadyExecutionRehydrator
+    {
+        public Task<ExecutionRehydrationResult> TryRehydrateAsync(Guid projectId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ExecutionRehydrationResult(ExecutionRehydrationStatus.NotResumable, ErrorMessage: "No durable Ready checkpoint is safely resumable for this project."));
+    }
+
     private sealed class FakeExecution : IBoundedExecutionService
     {
         internal readonly TaskCompletionSource<CancellationToken> Started = new(TaskCreationOptions.RunContinuationsAsynchronously);

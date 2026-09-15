@@ -168,6 +168,9 @@ public sealed class ExecutionViewModelTests
             return StartResult;
         }
 
+        public Task<ExecutionRehydrationResult> RestoreAsync(Guid projectId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ExecutionRehydrationResult(ExecutionRehydrationStatus.NotResumable, ErrorMessage: "No durable Ready checkpoint is safely resumable for this project."));
+
         public Task<ExecutionCancellationResult> CancelAsync(CancellationToken cancellationToken = default)
         {
             CancelRequested.TrySetResult(true);

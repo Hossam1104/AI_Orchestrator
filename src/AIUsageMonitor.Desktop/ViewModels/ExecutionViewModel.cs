@@ -63,6 +63,7 @@ public sealed class ExecutionViewModel : ObservableObject
             ResetPreparation();
             OnPropertyChanged(nameof(SelectedProjectText));
             NotifyCommands();
+            _ = TryRestoreAsync(value);
         }
     }
 
@@ -287,6 +288,38 @@ public sealed class ExecutionViewModel : ObservableObject
         {
             State = ExecutionCoordinatorState.Failed;
             _errorMessage = "The bounded execution service failed safely.";
+        }
+
+        PublishPreparedState();
+    }
+
+    private async Task TryRestoreAsync(MissionControlProjectOption? project)
+    {
+        if (project is null || _coordinator is null || !IsPersistenceAvailable || IsBusy)
+        {
+            return;
+        }
+
+        State = ExecutionCoordinatorState.Preparing;
+        try
+        {
+            var result = await _coordinator.RestoreAsync(project.Id).ConfigureAwait(true);
+            if (!ReferenceEquals(project, SelectedProject))
+            {
+                return;
+            }
+
+            _prepared = result.PreparedExecution;
+            State = result.Succeeded ? ExecutionCoordinatorState.Ready : ExecutionCoordinatorState.Draft;
+            _errorMessage = result.Succeeded || result.Status == ExecutionRehydrationStatus.NotResumable ? null : result.ErrorMessage;
+        }
+        catch (Exception)
+        {
+            if (ReferenceEquals(project, SelectedProject))
+            {
+                _prepared = null;
+                State = ExecutionCoordinatorState.Draft;
+            }
         }
 
         PublishPreparedState();

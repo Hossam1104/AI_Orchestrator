@@ -112,6 +112,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IExecutionAdapterResolver, ExecutionAdapterResolver>();
         services.AddSingleton<IExecutionBudgetTimeoutProvider, ExecutionBudgetTimeoutProvider>();
         services.AddSingleton<IBoundedExecutionService, BoundedExecutionService>();
+        services.AddSingleton<IReadyExecutionRehydrator, ReadyExecutionRehydrator>();
         services.AddSingleton<IExecutionCoordinator, ExecutionCoordinator>();
         services.AddSingleton<IBoundedProcessHost, BoundedProcessHost>();
         services.AddSingleton<IProviderProcessRunner, BoundedProviderProcessRunner>();

@@ -1619,6 +1619,8 @@ public sealed class BoundedExecutionServiceTests
                 request.WorkGraphReference,
                 request.WorkGraphNodeId,
                 request.HandoffPackageReference,
+                request.RoutingDecisionReference,
+                request.WorkspacePreparationPlanReference,
                 request.PreviousCheckpointReference,
                 request.SelectedAgentRoleReferences,
                 request.EvidenceReferences,
