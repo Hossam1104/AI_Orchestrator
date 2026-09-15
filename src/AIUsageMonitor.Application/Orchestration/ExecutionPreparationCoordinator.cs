@@ -172,7 +172,7 @@ public sealed class PreparedExecution
 {
     public PreparedExecution(
         Guid runId,
-        EffectiveAgentDefinition planner,
+        EffectiveAgentDefinition? planner,
         EffectiveAgentDefinition executor,
         PlanningExecutionContract contract,
         WorkGraph graph,
@@ -184,7 +184,7 @@ public sealed class PreparedExecution
         BoundedExecutionRequest request)
     {
         RunId = runId;
-        Planner = planner ?? throw new ArgumentNullException(nameof(planner));
+        Planner = planner;
         Executor = executor ?? throw new ArgumentNullException(nameof(executor));
         Contract = contract ?? throw new ArgumentNullException(nameof(contract));
         Graph = graph ?? throw new ArgumentNullException(nameof(graph));
@@ -197,7 +197,8 @@ public sealed class PreparedExecution
     }
 
     public Guid RunId { get; }
-    public EffectiveAgentDefinition Planner { get; }
+    /// <summary>Planner identity is lineage only after a Ready authority is restored.</summary>
+    public EffectiveAgentDefinition? Planner { get; }
     public EffectiveAgentDefinition Executor { get; }
     public PlanningExecutionContract Contract { get; }
     public WorkGraph Graph { get; }

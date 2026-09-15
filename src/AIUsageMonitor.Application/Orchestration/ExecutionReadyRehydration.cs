@@ -236,23 +236,15 @@ public sealed class ReadyExecutionRehydrator : IReadyExecutionRehydrator
                 return new(ExecutionRehydrationStatus.ExecutorMismatch, ErrorMessage: "The checkpoint's selected executor does not match the persisted routing decision; execution will not be silently re-routed.");
             }
 
-            var plannerResolution = await _agents.ResolveAsync(projectId, plannerRoleId.Value, cancellationToken).ConfigureAwait(false);
-            if (!plannerResolution.Found || plannerResolution.Agent is null ||
-                !plannerResolution.Agent.Enabled || !plannerResolution.Agent.RoleCapabilities.Contains(AgentRole.Planner))
-            {
-                return new(ExecutionRehydrationStatus.ExecutorUnavailable, ErrorMessage: "The configured planner is no longer an eligible enabled agent; a new Prepare is required.");
-            }
-
             var executorResolution = await _agents.ResolveAsync(projectId, executorRoleId.Value, cancellationToken).ConfigureAwait(false);
             if (!executorResolution.Found || executorResolution.Agent is null || executorResolution.Agent.Id != routing.SelectedAgentId.Value)
             {
                 return new(ExecutionRehydrationStatus.ExecutorMismatch, ErrorMessage: "The routed executor is no longer present in the effective project registry; execution will not be silently re-routed.");
             }
 
-            var eligibility = ValidateExecutorEligibility(executorResolution.Agent);
-            if (eligibility is not null)
+            if (BoundedExecutionAgentEligibility.Validate(executorResolution.Agent, out var eligibilityMessage) is not null)
             {
-                return new(ExecutionRehydrationStatus.ExecutorUnavailable, ErrorMessage: eligibility);
+                return new(ExecutionRehydrationStatus.ExecutorUnavailable, ErrorMessage: eligibilityMessage);
             }
 
             var runId = Guid.NewGuid();
@@ -269,7 +261,7 @@ public sealed class ReadyExecutionRehydrator : IReadyExecutionRehydrator
 
             var prepared = new PreparedExecution(
                 runId,
-                plannerResolution.Agent,
+                null,
                 executorResolution.Agent,
                 contract,
                 graph,
@@ -290,36 +282,6 @@ public sealed class ReadyExecutionRehydrator : IReadyExecutionRehydrator
         {
             return new(ExecutionRehydrationStatus.Failed, ErrorMessage: "The persisted Ready execution could not be safely rehydrated.");
         }
-    }
-
-    private static string? ValidateExecutorEligibility(EffectiveAgentDefinition agent)
-    {
-        if (!agent.Enabled || agent.Availability == AgentAvailability.Disabled)
-        {
-            return "The routed executor is disabled.";
-        }
-
-        if (agent.Availability != AgentAvailability.Available ||
-            agent.AuthenticationState == AgentAuthenticationState.AuthenticationRequired ||
-            agent.EntitlementState == AgentEntitlementState.VerifiedUnavailable)
-        {
-            return "The routed executor is unavailable or requires authentication.";
-        }
-
-        if (agent.ConnectionMode is AgentConnectionMode.InteractiveOnly or AgentConnectionMode.Manual or AgentConnectionMode.Unsupported or AgentConnectionMode.Unknown)
-        {
-            return "The routed executor does not expose a supported bounded execution connection mode.";
-        }
-
-        if (!agent.RoleCapabilities.Contains(AgentRole.Executor) ||
-            !agent.SupportedConnectionModes.Contains(agent.ConnectionMode) ||
-            string.IsNullOrWhiteSpace(agent.Provider) ||
-            string.IsNullOrWhiteSpace(agent.ModelIdentifier))
-        {
-            return "The routed executor is not an exact executable Executor identity.";
-        }
-
-        return null;
     }
 
     private static bool SameCheckpoint(RecoveryCheckpointReference a, RecoveryCheckpointReference b) =>

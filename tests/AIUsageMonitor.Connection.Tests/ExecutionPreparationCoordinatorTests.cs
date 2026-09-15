@@ -183,6 +183,27 @@ public sealed class ExecutionPreparationCoordinatorTests
         await first;
     }
 
+    [Fact]
+    public async Task RestoreAsyncUsesRehydratedAuthorityWithoutPlanningRoutingOrWorkspacePreparation()
+    {
+        var origin = new Fixture();
+        var prepared = (await origin.Coordinator.PrepareAsync(origin.Request())).PreparedExecution!;
+        var restored = new Fixture();
+        restored.Rehydrator.Result = new(ExecutionRehydrationStatus.Restored, prepared);
+
+        var result = await restored.Coordinator.RestoreAsync(restored.ProjectId);
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        Assert.Equal(1, restored.Rehydrator.Calls);
+        Assert.Equal(0, restored.Planner.Calls);
+        Assert.Equal(0, restored.Contract.Calls);
+        Assert.Equal(0, restored.Graph.Calls);
+        Assert.Equal(0, restored.Routing.Calls);
+        Assert.Equal(0, restored.WorkspacePlan.Calls);
+        Assert.Equal(0, restored.Workspace.Calls);
+        Assert.Equal(ExecutionCoordinatorState.Ready, (await restored.Coordinator.GetCurrentRunAsync()).State);
+    }
+
     public enum FailurePoint { None, Contract, Graph, Policy, Routing, Handoff, WorkspacePlan, Workspace, Recovery }
 
     private sealed class Fixture
@@ -201,6 +222,7 @@ public sealed class ExecutionPreparationCoordinatorTests
         internal readonly FakeWorkspace Workspace;
         internal readonly FakeRecovery Recovery;
         internal readonly FakeExecution Execution;
+        internal readonly FakeRehydrator Rehydrator;
         internal readonly ExecutionCoordinator Coordinator;
         internal bool InvalidPlanner;
         internal bool BlockPlanner;
@@ -228,7 +250,8 @@ public sealed class ExecutionPreparationCoordinatorTests
             Workspace = new FakeWorkspace(this);
             Recovery = new FakeRecovery(this);
             Execution = new FakeExecution();
-            Coordinator = new ExecutionCoordinator(new FakeContext(new ProjectContextView(project, context, [plannerAgent, Executor])), new FakeRepository(), Contract, Graph, Routing, Policy, new FakePlannerResolver(Planner), Handoff, WorkspacePlan, Workspace, Recovery, Execution, new HandoffRedactionService(), new FakeRehydrator(), new FixedClock(Now));
+            Rehydrator = new FakeRehydrator();
+            Coordinator = new ExecutionCoordinator(new FakeContext(new ProjectContextView(project, context, [plannerAgent, Executor])), new FakeRepository(), Contract, Graph, Routing, Policy, new FakePlannerResolver(Planner), Handoff, WorkspacePlan, Workspace, Recovery, Execution, new HandoffRedactionService(), Rehydrator, new FixedClock(Now));
         }
 
         internal OrchestrationWorkRequest Request() => new(ProjectId, "owner:apo", "Bounded execution", "Execute the bounded request.", "APO-70", ["Preserve the owner criterion"], ["Stay in the prepared workspace"], classification: Classification());
@@ -248,12 +271,14 @@ public sealed class ExecutionPreparationCoordinatorTests
 
     private sealed class FakePlanner(Fixture fixture) : IPlannerAdapter
     {
+        internal int Calls;
         internal readonly TaskCompletionSource<bool> Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal PlannerPlan? LastPlan;
         internal PlannerInvocationResult? Result;
         public PlannerAdapterDescriptor Descriptor { get; } = new("test-planner", [AgentConnectionMode.Cli]);
         public async Task<PlannerInvocationResult> PlanAsync(PlannerInvocationRequest request, CancellationToken cancellationToken = default)
         {
+            Calls++;
             Started.TrySetResult(true);
             if (fixture.BlockPlanner) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             if (Result is not null) return Result;
@@ -388,8 +413,13 @@ public sealed class ExecutionPreparationCoordinatorTests
     }
     private sealed class FakeRehydrator : IReadyExecutionRehydrator
     {
-        public Task<ExecutionRehydrationResult> TryRehydrateAsync(Guid projectId, CancellationToken cancellationToken = default) =>
-            Task.FromResult(new ExecutionRehydrationResult(ExecutionRehydrationStatus.NotResumable, ErrorMessage: "No durable Ready checkpoint is safely resumable for this project."));
+        internal int Calls;
+        internal ExecutionRehydrationResult Result = new(ExecutionRehydrationStatus.NotResumable, ErrorMessage: "No durable Ready checkpoint is safely resumable for this project.");
+        public Task<ExecutionRehydrationResult> TryRehydrateAsync(Guid projectId, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            return Task.FromResult(Result);
+        }
     }
 
     private sealed class FakeExecution : IBoundedExecutionService

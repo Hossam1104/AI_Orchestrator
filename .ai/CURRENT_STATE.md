@@ -7,6 +7,50 @@ repository. Everything below that divider is retained evidence from a boundary t
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
 
+## CURRENT - APO-70 persisted-Ready rehydration completion safeguards
+
+**Last Updated:** 15 September 2026
+
+Claude's existing partial rehydration implementation at `de827fe3b3bf0d0a10cf8ba7696a8fc85e6a5d5a`
+was retained and audited. A persisted `Ready` checkpoint carries the immutable planning contract,
+graph/node, handoff, routing decision, workspace-plan, workspace receipt, source Git identity, and
+selected executor lineage. `RestoreAsync` consumes those durable authorities only: it does not plan,
+route, prepare a workspace, invoke a model, or silently repair missing state. The rehydrator accepts
+only the resolver's latest, current `Ready` continuation; source HEAD/branch/clean-state and the
+recorded workspace receipt must still match exactly. Content/artifact integrity remains hash-bound,
+while source identity continues to use authoritative Git state rather than working-tree byte equality.
+
+Run identity is intentionally created at `StartAsync`, not persisted with the pre-execution `Ready`
+authority. The durable `ExecutionRunAuthority` is created before adapter invocation and binds that
+fresh run ID to the immutable input checkpoint; it is the cross-process anti-replay boundary. After
+the first start publishes its non-Ready continuation, the resolver refuses the old `Ready` checkpoint;
+an identical run ID is additionally rejected as `AlreadyStarted`. The existing bounded-service
+replay/concurrency coverage remains the authority for that durable consumption behavior.
+
+The completion audit removed a duplicate executor-eligibility implementation from the rehydrator;
+both new and restored execution now use the single Application eligibility rule. Planner availability
+is no longer revalidated during restore: planner identity remains in checkpoint lineage, but an
+already completed planning authority does not need a currently available planner to execute. The
+Desktop view model serializes restore attempts and generation-checks project selection, so an old
+asynchronous restore cannot overwrite a newer selected project; restored planner display is truthfully
+shown as persisted lineage when no live planner resolution is needed.
+
+New deterministic coverage exercises exact Ready rehydration, source moved/dirty rejection, missing
+workspace rejection, disabled executor rejection, routing-reference mismatch rejection, superseded
+checkpoint rejection, coordinator restore-without-planning/routing/workspace preparation, persisted
+planner lineage, and the Desktop stale-selection race. No real Sol, Luna, Codex, `PrepareAsync`, or
+`StartAsync` invocation was performed; no Desktop app was launched.
+
+Local validation: Release build passed with 0 warnings / 0 errors; Domain 28/28, Connection 353/353,
+Provider 228/228, Desktop 118/118, and focused Infrastructure recovery/persistence coverage 174/174
+passed. The unfiltered Infrastructure host again stalled before reporting a result and was stopped;
+it is not claimed as a local full-suite pass. Self-contained single-file publish and structural
+validation passed for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64` (PE `0xAA64`).
+The next required gate is the exact-head PR CI run, followed by Sol's exact-head review. PR #112 remains
+Draft/Open/Unmerged and Issue #111 remains Open/current-gate.
+
+---
+
 ## CURRENT - APO-70 planner output diagnostic and semantic-contract remediation
 
 **Last Updated:** 15 September 2026

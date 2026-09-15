@@ -114,6 +114,43 @@ public sealed class ExecutionViewModelTests
         Assert.Equal("Not resolved", viewModel.PlannerText);
     }
 
+    [Fact]
+    public async Task RestoredReadyAuthorityShowsPersistedPlannerLineageAndEnablesStart()
+    {
+        var coordinator = new FakeExecutionCoordinator
+        {
+            RestoreResult = new ExecutionRehydrationResult(ExecutionRehydrationStatus.Restored, CreatePreparedExecution(plannerAsLineageOnly: true))
+        };
+        var viewModel = NewViewModel(coordinator);
+        viewModel.SetPersistenceAvailability(true);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project()));
+
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await WaitUntil(() => viewModel.IsReady);
+
+        Assert.Equal("Persisted lineage", viewModel.PlannerText);
+        Assert.True(viewModel.StartCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task StaleRestoreCannotOverwriteNewProjectSelection()
+    {
+        var coordinator = new FakeExecutionCoordinator { BlockFirstRestore = true };
+        var viewModel = NewViewModel(coordinator);
+        viewModel.SetPersistenceAvailability(true);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project("First")));
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project("Second")));
+
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await coordinator.RestoreStarted.Task;
+        viewModel.SelectedProject = viewModel.ProjectOptions[1];
+        coordinator.ReleaseRestore.TrySetResult(true);
+        await WaitUntil(() => coordinator.RestoreCalls == 2 && viewModel.State == ExecutionCoordinatorState.Draft);
+
+        Assert.Equal("Second", viewModel.SelectedProjectText);
+        Assert.False(viewModel.IsReady);
+    }
+
     private static ExecutionViewModel NewViewModel(FakeExecutionCoordinator coordinator) => new(null, coordinator);
 
     private static ExecutionViewModel ReadyInput(FakeExecutionCoordinator coordinator)
@@ -150,10 +187,15 @@ public sealed class ExecutionViewModelTests
         internal ExecutionPreparationResult Preparation { get; init; } = new(ExecutionPreparationStatus.Failed);
         internal ExecutionStartResult StartResult { get; init; } = new(ExecutionCoordinatorState.Completed);
         internal bool BlockStart { get; init; }
+        internal bool BlockFirstRestore { get; init; }
+        internal ExecutionRehydrationResult RestoreResult { get; init; } = new(ExecutionRehydrationStatus.NotResumable);
         internal readonly TaskCompletionSource<bool> PrepareRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<bool> StartRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<bool> CancelRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<bool> ReleaseStart = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal readonly TaskCompletionSource<bool> RestoreStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal readonly TaskCompletionSource<bool> ReleaseRestore = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal int RestoreCalls;
 
         public Task<ExecutionPreparationResult> PrepareAsync(OrchestrationWorkRequest request, CancellationToken cancellationToken = default)
         {
@@ -168,8 +210,17 @@ public sealed class ExecutionViewModelTests
             return StartResult;
         }
 
-        public Task<ExecutionRehydrationResult> RestoreAsync(Guid projectId, CancellationToken cancellationToken = default) =>
-            Task.FromResult(new ExecutionRehydrationResult(ExecutionRehydrationStatus.NotResumable, ErrorMessage: "No durable Ready checkpoint is safely resumable for this project."));
+        public async Task<ExecutionRehydrationResult> RestoreAsync(Guid projectId, CancellationToken cancellationToken = default)
+        {
+            RestoreCalls++;
+            RestoreStarted.TrySetResult(true);
+            if (BlockFirstRestore && RestoreCalls == 1)
+            {
+                await ReleaseRestore.Task;
+            }
+
+            return RestoreResult;
+        }
 
         public Task<ExecutionCancellationResult> CancelAsync(CancellationToken cancellationToken = default)
         {
@@ -180,7 +231,7 @@ public sealed class ExecutionViewModelTests
         public Task<ExecutionRunSnapshot> GetCurrentRunAsync(CancellationToken cancellationToken = default) => Task.FromResult(new ExecutionRunSnapshot(null, ExecutionCoordinatorState.Draft, null, null));
     }
 
-    private static PreparedExecution CreatePreparedExecution()
+    private static PreparedExecution CreatePreparedExecution(bool plannerAsLineageOnly = false)
     {
         var now = DateTimeOffset.UtcNow;
         var projectId = Guid.NewGuid();
@@ -201,7 +252,7 @@ public sealed class ExecutionViewModelTests
         var checkpoint = new RecoveryCheckpoint(projectId, Guid.NewGuid(), RecoveryCheckpointSchema.CurrentVersion, now, RecoveryCheckpointLifecycleState.Ready, new RecoveryContextReference(contextId, ProjectContextContract.CurrentVersion, now), contract.Reference, graph.Reference, node.NodeId, handoff.Reference, selectedAgentRoleReferences: [new RecoveryAgentRoleReference(planner.Id, AgentRole.Planner), new RecoveryAgentRoleReference(executor.Id, AgentRole.Executor)]);
         var runId = Guid.NewGuid();
         var request = new BoundedExecutionRequest(projectId, runId, contract.Reference, graph.Reference, node.NodeId, handoff.Reference, routing.Reference, plan.Reference, checkpoint.Reference);
-        return new PreparedExecution(runId, planner, executor, contract, graph, handoff, plan, receipt, checkpoint, routing, request);
+        return new PreparedExecution(runId, plannerAsLineageOnly ? null : planner, executor, contract, graph, handoff, plan, receipt, checkpoint, routing, request);
     }
 
     private static EffectiveAgentDefinition Agent(AgentRole role, Guid projectId, string name) => new(projectId, new AgentDefinition(Guid.NewGuid(), name, role.ToString(), AgentConnectionMode.Cli, AgentAvailability.Available, true, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, provider: "OpenAI", roleCapabilities: [role], supportedConnectionModes: [AgentConnectionMode.Cli], authenticationState: AgentAuthenticationState.Authenticated, entitlementState: AgentEntitlementState.VerifiedAvailable, modelIdentifier: "gpt-test"), null);

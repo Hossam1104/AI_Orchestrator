@@ -24,6 +24,8 @@ public sealed class ExecutionViewModel : ObservableObject
     private string _acceptanceCriteria = string.Empty;
     private string _constraints = string.Empty;
     private string _validationExpectations = string.Empty;
+    private readonly SemaphoreSlim _restoreGate = new(1, 1);
+    private long _restoreGeneration;
 
     public ExecutionViewModel()
         : this(null, null)
@@ -60,10 +62,10 @@ public sealed class ExecutionViewModel : ObservableObject
                 return;
             }
 
-            ResetPreparation();
+            ResetPreparationForSelection();
             OnPropertyChanged(nameof(SelectedProjectText));
             NotifyCommands();
-            _ = TryRestoreAsync(value);
+            _ = TryRestoreAsync(value, ++_restoreGeneration);
         }
     }
 
@@ -155,7 +157,7 @@ public sealed class ExecutionViewModel : ObservableObject
 
     public string SelectedProjectText => SelectedProject?.Name ?? "Select a registered project";
 
-    public string PlannerText => _prepared?.Planner.Name ?? "Not resolved";
+    public string PlannerText => _prepared is null ? "Not resolved" : _prepared.Planner?.Name ?? "Persisted lineage";
 
     public string ExecutorText => _prepared?.Executor.Name ?? "Not resolved";
 
@@ -293,18 +295,24 @@ public sealed class ExecutionViewModel : ObservableObject
         PublishPreparedState();
     }
 
-    private async Task TryRestoreAsync(MissionControlProjectOption? project)
+    private async Task TryRestoreAsync(MissionControlProjectOption? project, long generation)
     {
-        if (project is null || _coordinator is null || !IsPersistenceAvailable || IsBusy)
+        if (project is null || _coordinator is null || !IsPersistenceAvailable)
         {
             return;
         }
 
-        State = ExecutionCoordinatorState.Preparing;
+        await _restoreGate.WaitAsync().ConfigureAwait(true);
         try
         {
+            if (generation != _restoreGeneration || !ReferenceEquals(project, SelectedProject) || State is ExecutionCoordinatorState.Running or ExecutionCoordinatorState.Cancelling)
+            {
+                return;
+            }
+
+            State = ExecutionCoordinatorState.Preparing;
             var result = await _coordinator.RestoreAsync(project.Id).ConfigureAwait(true);
-            if (!ReferenceEquals(project, SelectedProject))
+            if (generation != _restoreGeneration || !ReferenceEquals(project, SelectedProject))
             {
                 return;
             }
@@ -315,14 +323,20 @@ public sealed class ExecutionViewModel : ObservableObject
         }
         catch (Exception)
         {
-            if (ReferenceEquals(project, SelectedProject))
+            if (generation == _restoreGeneration && ReferenceEquals(project, SelectedProject))
             {
                 _prepared = null;
                 State = ExecutionCoordinatorState.Draft;
             }
         }
-
-        PublishPreparedState();
+        finally
+        {
+            _restoreGate.Release();
+            if (generation == _restoreGeneration && ReferenceEquals(project, SelectedProject))
+            {
+                PublishPreparedState();
+            }
+        }
     }
 
     private async Task CancelAsync()
@@ -349,6 +363,20 @@ public sealed class ExecutionViewModel : ObservableObject
     private void ResetPreparation()
     {
         if (IsBusy)
+        {
+            return;
+        }
+
+        _prepared = null;
+        _lastResult = null;
+        _errorMessage = null;
+        State = ExecutionCoordinatorState.Draft;
+        PublishPreparedState();
+    }
+
+    private void ResetPreparationForSelection()
+    {
+        if (State is ExecutionCoordinatorState.Running or ExecutionCoordinatorState.Cancelling)
         {
             return;
         }

@@ -457,7 +457,7 @@ public sealed class BoundedExecutionService : IBoundedExecutionService
             return Failure(BoundedExecutionStatus.AgentMismatch, "The effective selected agent does not match the recorded routing identity.");
         }
 
-        var connectionStatus = ValidateAgentForBoundedExecution(selectedAgent, out var connectionMessage);
+        var connectionStatus = BoundedExecutionAgentEligibility.Validate(selectedAgent, out var connectionMessage);
         if (connectionStatus is not null)
         {
             return Failure(connectionStatus.Value, connectionMessage);
@@ -1218,43 +1218,6 @@ public sealed class BoundedExecutionService : IBoundedExecutionService
         _ => BoundedExecutionStatus.AdapterFailed
     };
 
-    private static BoundedExecutionStatus? ValidateAgentForBoundedExecution(
-        EffectiveAgentDefinition agent,
-        out string message)
-    {
-        if (!agent.Enabled || agent.Availability == AgentAvailability.Disabled)
-        {
-            message = "The selected agent is disabled.";
-            return BoundedExecutionStatus.AgentUnavailable;
-        }
-
-        if (agent.Availability != AgentAvailability.Available ||
-            agent.AuthenticationState == AgentAuthenticationState.AuthenticationRequired ||
-            agent.EntitlementState == AgentEntitlementState.VerifiedUnavailable)
-        {
-            message = "The selected agent is unavailable or requires authentication.";
-            return BoundedExecutionStatus.AgentUnavailable;
-        }
-
-        if (agent.ConnectionMode is AgentConnectionMode.InteractiveOnly or AgentConnectionMode.Manual or AgentConnectionMode.Unsupported or AgentConnectionMode.Unknown)
-        {
-            message = "The selected agent does not expose a supported bounded execution connection mode.";
-            return BoundedExecutionStatus.ConnectionUnsupported;
-        }
-
-        if (!agent.RoleCapabilities.Contains(AgentRole.Executor) ||
-            !agent.SupportedConnectionModes.Contains(agent.ConnectionMode) ||
-            string.IsNullOrWhiteSpace(agent.Provider) ||
-            string.IsNullOrWhiteSpace(agent.ModelIdentifier))
-        {
-            message = "The selected agent is not an exact executable Executor identity.";
-            return BoundedExecutionStatus.AgentMismatch;
-        }
-
-        message = string.Empty;
-        return null;
-    }
-
     private static bool ValidateRequest(BoundedExecutionRequest request, out string message)
     {
         if (request.ProjectId == Guid.Empty || request.RunId == Guid.Empty || request.WorkGraphNodeId == Guid.Empty ||
@@ -1427,5 +1390,44 @@ public sealed class BoundedExecutionService : IBoundedExecutionService
         public void BeforeAdapterInvocation()
         {
         }
+    }
+}
+
+/// <summary>One canonical executor eligibility rule for both new and restored bounded runs.</summary>
+internal static class BoundedExecutionAgentEligibility
+{
+    internal static BoundedExecutionStatus? Validate(EffectiveAgentDefinition agent, out string message)
+    {
+        if (!agent.Enabled || agent.Availability == AgentAvailability.Disabled)
+        {
+            message = "The selected agent is disabled.";
+            return BoundedExecutionStatus.AgentUnavailable;
+        }
+
+        if (agent.Availability != AgentAvailability.Available ||
+            agent.AuthenticationState == AgentAuthenticationState.AuthenticationRequired ||
+            agent.EntitlementState == AgentEntitlementState.VerifiedUnavailable)
+        {
+            message = "The selected agent is unavailable or requires authentication.";
+            return BoundedExecutionStatus.AgentUnavailable;
+        }
+
+        if (agent.ConnectionMode is AgentConnectionMode.InteractiveOnly or AgentConnectionMode.Manual or AgentConnectionMode.Unsupported or AgentConnectionMode.Unknown)
+        {
+            message = "The selected agent does not expose a supported bounded execution connection mode.";
+            return BoundedExecutionStatus.ConnectionUnsupported;
+        }
+
+        if (!agent.RoleCapabilities.Contains(AgentRole.Executor) ||
+            !agent.SupportedConnectionModes.Contains(agent.ConnectionMode) ||
+            string.IsNullOrWhiteSpace(agent.Provider) ||
+            string.IsNullOrWhiteSpace(agent.ModelIdentifier))
+        {
+            message = "The selected agent is not an exact executable Executor identity.";
+            return BoundedExecutionStatus.AgentMismatch;
+        }
+
+        message = string.Empty;
+        return null;
     }
 }
