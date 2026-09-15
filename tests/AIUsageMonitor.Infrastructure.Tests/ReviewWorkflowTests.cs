@@ -682,5 +682,9 @@ public sealed class ReviewWorkflowTests
             Task.FromResult(Values.TryGetValue((projectId, runId), out var authority)
                 ? new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Valid, authority)
                 : new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Missing));
+
+        public Task<ExecutionRunAuthorityReadResult> GetByInputCheckpointAsync(
+            Guid projectId, RecoveryCheckpointReference inputCheckpointReference, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Missing));
     }
 }

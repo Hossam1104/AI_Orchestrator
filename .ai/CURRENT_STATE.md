@@ -7,6 +7,34 @@ repository. Everything below that divider is retained evidence from a boundary t
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
 
+## CURRENT - APO-70 persisted-Ready replay closure
+
+**Last Updated:** 15 September 2026
+
+Sol's exact-head review of `fc1783c` identified two P0 recovery gaps: a `Ready` coordinator cache
+could be returned for a different project, and a crash after durable run-authority persistence but
+before Ready supersession could re-use the same persisted Ready input through a new transient RunId.
+The coordinator now reuses cached Ready authority only for its exact project and clears stale cache
+before restoring another project.
+
+`ExecutionRunAuthority` remains the storage owner and RunId remains generated at Start. The
+repository now atomically creates a full immutable authority claim indexed by the exact input Ready
+checkpoint (project, checkpoint ID, schema version, and content hash) before its RunId index. A
+claim conflict returns AlreadyStarted/recovery-required with no adapter invocation; a crash before
+the RunId index is written still leaves the durable input claim. Restore reads that claim before
+workspace or executor rehydration, without planning, routing, or workspace preparation.
+
+Deterministic coverage proves project-cache isolation, failed cross-project restore clears Ready,
+durable same-Ready/different-RunId conflict, crash-window replay rejection, and consumed-Ready
+rehydration rejection. No real Sol, Luna, Codex, `PrepareAsync`, or `StartAsync` invocation was
+performed. Focused Connection tests passed 28/28; the two new Infrastructure regressions passed
+2/2. Release build compilation completed with no reported errors, but local child test hosts did
+not exit after the bounded wait; this is recorded as a local host stall, not a full validation pass.
+
+The next gate is Sol exact-head review after complete CI. The real cross-process
+Sol-to-Ready-to-restart-to-Restore-to-Luna proof remains pending. PR #112 remains Draft/Open/
+Unmerged and Issue #111 remains Open/current-gate.
+
 ## CURRENT - APO-70 persisted-Ready rehydration completion safeguards
 
 **Last Updated:** 15 September 2026

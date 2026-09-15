@@ -19,6 +19,8 @@ public enum ExecutionRehydrationStatus
     WorkspaceUnavailable,
     ExecutorUnavailable,
     ExecutorMismatch,
+    AlreadyStarted,
+    PersistenceUnavailable,
     Failed
 }
 
@@ -54,6 +56,7 @@ public sealed class ReadyExecutionRehydrator : IReadyExecutionRehydrator
     private readonly IRecoveryCheckpointRepository _checkpoints;
     private readonly IWorkspaceRecoveryInspectionService _workspaceInspection;
     private readonly IAgentRegistryService _agents;
+    private readonly IExecutionRunAuthorityRepository _authorities;
 
     public ReadyExecutionRehydrator(
         ISmartContinueResolver resolver,
@@ -66,7 +69,8 @@ public sealed class ReadyExecutionRehydrator : IReadyExecutionRehydrator
         IWorkspacePreparationPlanRepository workspacePlans,
         IRecoveryCheckpointRepository checkpoints,
         IWorkspaceRecoveryInspectionService workspaceInspection,
-        IAgentRegistryService agents)
+        IAgentRegistryService agents,
+        IExecutionRunAuthorityRepository authorities)
     {
         _resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
         _projects = projects ?? throw new ArgumentNullException(nameof(projects));
@@ -79,6 +83,7 @@ public sealed class ReadyExecutionRehydrator : IReadyExecutionRehydrator
         _checkpoints = checkpoints ?? throw new ArgumentNullException(nameof(checkpoints));
         _workspaceInspection = workspaceInspection ?? throw new ArgumentNullException(nameof(workspaceInspection));
         _agents = agents ?? throw new ArgumentNullException(nameof(agents));
+        _authorities = authorities ?? throw new ArgumentNullException(nameof(authorities));
     }
 
     public async Task<ExecutionRehydrationResult> TryRehydrateAsync(Guid projectId, CancellationToken cancellationToken = default)
@@ -118,6 +123,20 @@ public sealed class ReadyExecutionRehydrator : IReadyExecutionRehydrator
             }
 
             var checkpoint = checkpointRead.Checkpoint;
+            var inputClaim = await _authorities.GetByInputCheckpointAsync(projectId, checkpoint.Reference, cancellationToken).ConfigureAwait(false);
+            if (inputClaim.IsValid)
+            {
+                return new(ExecutionRehydrationStatus.AlreadyStarted, ErrorMessage: "This immutable Ready checkpoint already has a durable execution claim; recovery inspection is required.");
+            }
+
+            if (inputClaim.State != ExecutionRunAuthorityReadState.Missing)
+            {
+                return new(inputClaim.State == ExecutionRunAuthorityReadState.Unavailable
+                    ? ExecutionRehydrationStatus.PersistenceUnavailable
+                    : ExecutionRehydrationStatus.AuthorityMismatch,
+                    ErrorMessage: inputClaim.ErrorMessage ?? "The Ready checkpoint execution claim could not be read safely.");
+            }
+
             if (checkpoint.WorkGraphReference is null || checkpoint.WorkGraphNodeId is null ||
                 checkpoint.HandoffPackageReference is null || checkpoint.RoutingDecisionReference is null ||
                 checkpoint.WorkspacePreparationPlanReference is null)

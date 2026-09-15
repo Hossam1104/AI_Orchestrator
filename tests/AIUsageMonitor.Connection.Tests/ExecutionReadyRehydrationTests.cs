@@ -48,6 +48,20 @@ public sealed class ExecutionReadyRehydrationTests
         Assert.Null(result.PreparedExecution);
     }
 
+    [Fact]
+    public async Task ConsumedReadyCheckpoint_FailsClosedBeforeWorkspaceOrExecutorRestore()
+    {
+        var fixture = new Fixture();
+        fixture.Claims.Authority = fixture.CreateClaim();
+
+        var result = await fixture.Rehydrator.TryRehydrateAsync(fixture.Project.Id);
+
+        Assert.Equal(ExecutionRehydrationStatus.AlreadyStarted, result.Status);
+        Assert.Null(result.PreparedExecution);
+        Assert.Equal(1, fixture.Resolver.Calls);
+        Assert.Equal(0, fixture.WorkspaceInspection.Calls);
+    }
+
     public enum Failure { None, SourceMoved, SourceDirty, WorkspaceMissing, ExecutorDisabled, RoutingMismatch, Superseded }
 
     private sealed class Fixture
@@ -68,6 +82,7 @@ public sealed class ExecutionReadyRehydrationTests
         internal readonly EffectiveAgentDefinition Executor;
         internal readonly FakeResolver Resolver;
         internal readonly FakeWorkspaceInspection WorkspaceInspection;
+        internal readonly ClaimRepository Claims = new();
         internal readonly ReadyExecutionRehydrator Rehydrator;
 
         internal Fixture(Failure failure = Failure.None)
@@ -111,8 +126,12 @@ public sealed class ExecutionReadyRehydrationTests
             var persistedRouting = failure == Failure.RoutingMismatch
                 ? new RoutingDecision(projectId, Routing.DecisionId, RoutingDecisionSchema.CurrentVersion, Now.AddMinutes(1), new RoutingEvaluation(Routing.Input, Routing.Outcome, Routing.CandidateAssessments, Routing.OriginalRecommendation, Routing.Recommendation, Routing.OwnerOverrideDisposition, Routing.Confidence, Routing.Limitations, Routing.ReasonCodes))
                 : Routing;
-            Rehydrator = new ReadyExecutionRehydrator(Resolver, new ProjectRepository(Project), new RepositoryState(source), new ContractRepository(Contract), new GraphRepository(Graph), new HandoffRepository(Handoff), new RoutingRepository(persistedRouting, failure == Failure.RoutingMismatch), new WorkspacePlanRepository(Plan), new CheckpointRepository(Checkpoint), WorkspaceInspection, new AgentRegistry(Executor, failure == Failure.ExecutorDisabled));
+            Rehydrator = new ReadyExecutionRehydrator(Resolver, new ProjectRepository(Project), new RepositoryState(source), new ContractRepository(Contract), new GraphRepository(Graph), new HandoffRepository(Handoff), new RoutingRepository(persistedRouting, failure == Failure.RoutingMismatch), new WorkspacePlanRepository(Plan), new CheckpointRepository(Checkpoint), WorkspaceInspection, new AgentRegistry(Executor, failure == Failure.ExecutorDisabled), Claims);
         }
+
+        internal ExecutionRunAuthority CreateClaim() => new(Project.Id, Guid.NewGuid(), Now, Contract.Reference, Graph.Reference, Node.NodeId,
+            Handoff.Reference, Routing.Reference, Plan.Reference, Plan.WorkspaceId, WorkspacePath, new string('f', 64), Checkpoint.Reference,
+            Executor.Id, "OpenAI", "gpt-test", AgentConnectionMode.Cli, "test", new ExecutionBudgetEnvelope(1, 1));
 
         private static EffectiveAgentDefinition Agent(Guid projectId, string name) => new(projectId,
             new AgentDefinition(Guid.NewGuid(), name, "Executor", AgentConnectionMode.Cli, AgentAvailability.Available, true, Now, Now,
@@ -131,6 +150,17 @@ public sealed class ExecutionReadyRehydrationTests
             var scope = new HandoffExecutionScope([new PlanningScopeClause("include", "prepared workspace")], [], [new PlanningScopeClause("forbid", "replay")], [new PlanningDeliverable("result", "bounded result", true)], [new PlanningValidationRequirement("test", PlanningValidationKind.Test, "focused", true)], contract.ExecutionBudgets, contract.StopConditions, [], null, null);
             return new HandoffPackage(projectId, Guid.NewGuid(), HandoffPackageSchema.CurrentVersion, Now, HandoffTransition.PlannerToExecutor, HandoffRole.Planner, HandoffRole.Executor, contract.Reference, contract.WorkItem, new HandoffContextReference(contract.Context.ProjectContextId, 1, Now, Now), new PlanningRepositoryTarget(PlanningRepositoryMode.None), graph.Reference, node.NodeId, null, scope, null, null, null, [], [], [], null, [], "execute", new HandoffRedactionMetadata(false, 0, []), new HandoffPackageSizeMetadata(HandoffPackageLimits.MaxCanonicalPayloadBytes, 0, 0, 0, 0, 0, 9));
         }
+    }
+
+    private sealed class ClaimRepository : IExecutionRunAuthorityRepository
+    {
+        public ExecutionRunAuthority? Authority { get; set; }
+        public Task<ExecutionRunAuthorityRepositoryWriteResult> CreateAsync(ExecutionRunAuthority authority, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<ExecutionRunAuthorityReadResult> GetAsync(Guid projectId, Guid runId, CancellationToken cancellationToken = default) => Task.FromResult(new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Missing));
+        public Task<ExecutionRunAuthorityReadResult> GetByInputCheckpointAsync(Guid projectId, RecoveryCheckpointReference inputCheckpointReference, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Authority is { } authority && authority.ProjectId == projectId && authority.InputRecoveryCheckpointReference.CheckpointId == inputCheckpointReference.CheckpointId && authority.InputRecoveryCheckpointReference.SchemaVersion == inputCheckpointReference.SchemaVersion && authority.InputRecoveryCheckpointReference.ContentHash == inputCheckpointReference.ContentHash
+                ? new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Valid, authority)
+                : new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Missing));
     }
 
     private sealed class FakeResolver(SmartContinueResult value) : ISmartContinueResolver

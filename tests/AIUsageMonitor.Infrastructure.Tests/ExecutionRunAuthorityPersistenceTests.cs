@@ -45,7 +45,7 @@ public sealed class ExecutionRunAuthorityPersistenceTests
         var duplicate = await repository.CreateAsync(authority);
         var after = await File.ReadAllBytesAsync(path);
 
-        Assert.Equal(ExecutionRunAuthorityRepositoryWriteStatus.RunConflict, duplicate.Status);
+        Assert.Equal(ExecutionRunAuthorityRepositoryWriteStatus.InputCheckpointConflict, duplicate.Status);
         Assert.Equal(original, after);
     }
 
@@ -162,8 +162,23 @@ public sealed class ExecutionRunAuthorityPersistenceTests
         var results = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ => repository.CreateAsync(authority)));
 
         Assert.Equal(1, results.Count(value => value.Status == ExecutionRunAuthorityRepositoryWriteStatus.Created));
-        Assert.Equal(11, results.Count(value => value.Status == ExecutionRunAuthorityRepositoryWriteStatus.RunConflict));
+        Assert.Equal(11, results.Count(value => value.Status == ExecutionRunAuthorityRepositoryWriteStatus.InputCheckpointConflict));
         Assert.All(results, value => Assert.NotEqual(ExecutionRunAuthorityRepositoryWriteStatus.Unavailable, value.Status));
+    }
+
+    [Fact]
+    public async Task SameReadyCheckpoint_DifferentRunId_IsDurablyClaimedOnce()
+    {
+        using var store = new TemporaryStore();
+        var repository = CreateRepository(store);
+        var first = CreateAuthority();
+        var second = CreateAuthority(first.ProjectId, Guid.NewGuid(), inputCheckpoint: first.InputRecoveryCheckpointReference);
+
+        Assert.Equal(ExecutionRunAuthorityRepositoryWriteStatus.Created, (await repository.CreateAsync(first)).Status);
+        Assert.Equal(ExecutionRunAuthorityRepositoryWriteStatus.InputCheckpointConflict, (await repository.CreateAsync(second)).Status);
+        var claim = await repository.GetByInputCheckpointAsync(first.ProjectId, first.InputRecoveryCheckpointReference);
+        Assert.True(claim.IsValid);
+        Assert.Equal(first.RunId, claim.Authority!.RunId);
     }
 
     [Fact]
@@ -184,7 +199,8 @@ public sealed class ExecutionRunAuthorityPersistenceTests
     internal static ExecutionRunAuthority CreateAuthority(
         Guid? projectId = null,
         Guid? runId = null,
-        string adapterIdentifier = "test-adapter")
+        string adapterIdentifier = "test-adapter",
+        RecoveryCheckpointReference? inputCheckpoint = null)
     {
         var project = projectId ?? Guid.NewGuid();
         var contract = new PlanningExecutionContractReference(Guid.NewGuid(), 1, 1, new string('1', 64));
@@ -205,7 +221,7 @@ public sealed class ExecutionRunAuthorityPersistenceTests
             Guid.NewGuid(),
             @"C:\APO-managed\workspace",
             new string('6', 64),
-            new RecoveryCheckpointReference(Guid.NewGuid(), 1, new string('7', 64)),
+            inputCheckpoint ?? new RecoveryCheckpointReference(Guid.NewGuid(), 1, new string('7', 64)),
             Guid.NewGuid(),
             "TestProvider",
             "TestModel",

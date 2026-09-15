@@ -204,6 +204,21 @@ public sealed class ExecutionPreparationCoordinatorTests
         Assert.Equal(ExecutionCoordinatorState.Ready, (await restored.Coordinator.GetCurrentRunAsync()).State);
     }
 
+    [Fact]
+    public async Task RestoreAsyncForAnotherProject_DoesNotReturnCachedReadyAuthority()
+    {
+        var fixture = new Fixture();
+        await fixture.Coordinator.PrepareAsync(fixture.Request());
+        var otherProject = Guid.NewGuid();
+        fixture.Rehydrator.Result = new(ExecutionRehydrationStatus.NotResumable, ErrorMessage: "Project B has no resumable checkpoint.");
+
+        var result = await fixture.Coordinator.RestoreAsync(otherProject);
+
+        Assert.Equal(ExecutionRehydrationStatus.NotResumable, result.Status);
+        Assert.Equal(1, fixture.Rehydrator.Calls);
+        Assert.Equal(ExecutionCoordinatorState.Draft, (await fixture.Coordinator.GetCurrentRunAsync()).State);
+    }
+
     public enum FailurePoint { None, Contract, Graph, Policy, Routing, Handoff, WorkspacePlan, Workspace, Recovery }
 
     private sealed class Fixture

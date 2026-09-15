@@ -1,3 +1,5 @@
+using AIUsageMonitor.Application.Orchestration;
+
 namespace AIUsageMonitor.Infrastructure.Persistence;
 
 /// <summary>
@@ -280,6 +282,13 @@ public sealed class ApplicationDataPaths
 
     public string GetExecutionRunAuthorityFile(Guid projectId, Guid runId) =>
         Path.Combine(GetExecutionRunAuthorityDirectory(projectId, runId), "authority.json");
+
+    public string GetExecutionRunAuthorityInputCheckpointFile(Guid projectId, RecoveryCheckpointReference checkpoint)
+    {
+        ArgumentNullException.ThrowIfNull(checkpoint);
+        return Path.Combine(GetProjectExecutionRunAuthoritiesDirectory(projectId), "inputs",
+            checkpoint.CheckpointId.ToString("D"), $"schema-{checkpoint.SchemaVersion:D6}-{checkpoint.ContentHash.ToLowerInvariant()}", "authority.json");
+    }
 
     public string GetProjectEvidenceDirectory(Guid projectId) => GetProjectPaths(projectId).EvidenceDirectory;
 

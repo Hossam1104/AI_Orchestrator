@@ -592,6 +592,20 @@ public sealed class BoundedExecutionService : IBoundedExecutionService
             return Failure(BoundedExecutionStatus.CheckpointNotCurrent, "The current recovery checkpoint does not permit a bounded execution step.");
         }
 
+        var inputClaim = await _authorities.GetByInputCheckpointAsync(request.ProjectId, request.CurrentRecoveryCheckpointReference, cancellationToken).ConfigureAwait(false);
+        if (inputClaim.IsValid)
+        {
+            return new(BoundedExecutionStatus.AlreadyStarted, inputClaim.Authority, ErrorMessage: "This immutable Ready checkpoint already has a durable execution claim; recovery inspection is required.");
+        }
+
+        if (inputClaim.State != ExecutionRunAuthorityReadState.Missing)
+        {
+            return Failure(inputClaim.State == ExecutionRunAuthorityReadState.Unavailable
+                ? BoundedExecutionStatus.PersistenceUnavailable
+                : BoundedExecutionStatus.AuthorityConflict,
+                inputClaim.ErrorMessage ?? "The Ready checkpoint execution claim could not be read safely.");
+        }
+
         if (!ExecutionBudgetEnvelope.TryCreate(resolvedContract.ExecutionBudgets, out var budgets, out var budgetError))
         {
             return Failure(BoundedExecutionStatus.BudgetInvalid, budgetError);
@@ -662,6 +676,15 @@ public sealed class BoundedExecutionService : IBoundedExecutionService
         var authorityWrite = await _authorities.CreateAsync(authority, cancellationToken).ConfigureAwait(false);
         if (!authorityWrite.Succeeded)
         {
+            if (authorityWrite.Status == ExecutionRunAuthorityRepositoryWriteStatus.InputCheckpointConflict)
+            {
+                var existingInput = await _authorities.GetByInputCheckpointAsync(request.ProjectId, request.CurrentRecoveryCheckpointReference, cancellationToken).ConfigureAwait(false);
+                return existingInput.IsValid
+                    ? new(BoundedExecutionStatus.AlreadyStarted, existingInput.Authority, ErrorMessage: "This immutable Ready checkpoint already has a durable execution claim; recovery inspection is required.")
+                    : Failure(existingInput.State == ExecutionRunAuthorityReadState.Unavailable ? BoundedExecutionStatus.PersistenceUnavailable : BoundedExecutionStatus.AuthorityConflict,
+                        existingInput.ErrorMessage ?? "The Ready checkpoint execution claim could not be read safely.");
+            }
+
             if (authorityWrite.Status == ExecutionRunAuthorityRepositoryWriteStatus.RunConflict)
             {
                 var existing = await _authorities.GetAsync(request.ProjectId, request.RunId, cancellationToken).ConfigureAwait(false);

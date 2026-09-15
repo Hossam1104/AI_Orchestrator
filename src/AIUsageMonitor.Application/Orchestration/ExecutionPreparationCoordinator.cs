@@ -645,7 +645,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
         await _stateGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_prepared is not null && _state == ExecutionCoordinatorState.Ready)
+            if (_prepared is not null && _state == ExecutionCoordinatorState.Ready && _prepared.Request.ProjectId == projectId)
             {
                 return new(ExecutionRehydrationStatus.Restored, _prepared);
             }
@@ -655,6 +655,8 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
                 return new(ExecutionRehydrationStatus.NotResumable, ErrorMessage: "The coordinator is busy with another operation.");
             }
 
+            _prepared = null;
+            _lastResult = null;
             _state = ExecutionCoordinatorState.Preparing;
             _message = "Restoring the last persisted Ready execution before starting.";
         }
