@@ -60,6 +60,17 @@ public enum PlannerInvocationStatus
     InvalidResult
 }
 
+/// <summary>
+/// The bounded stage at which a planner's structured output failed to become a valid <see cref="PlannerPlan"/>.
+/// Distinguishes a JSON/deserialization failure from a structurally valid response that failed the
+/// domain/semantic contract enforced by <see cref="PlannerPlan"/>'s constructor.
+/// </summary>
+public enum PlannerOutputFailureKind
+{
+    JsonDeserialization,
+    DomainMapping
+}
+
 /// <summary>Bounded, provider-independent process evidence for a failed planner invocation.</summary>
 public sealed record PlannerInvocationDiagnostic(
     ProviderProcessOutcome? ProcessOutcome = null,
@@ -70,7 +81,8 @@ public sealed record PlannerInvocationDiagnostic(
     bool StandardErrorTruncated = false,
     bool ProcessTerminationConfirmed = true,
     string? StandardOutputSummary = null,
-    string? StandardErrorSummary = null)
+    string? StandardErrorSummary = null,
+    PlannerOutputFailureKind? OutputFailureKind = null)
 {
     public bool TimedOut => ProcessOutcome == ProviderProcessOutcome.TimedOut;
     public bool Cancelled => ProcessOutcome == ProviderProcessOutcome.Cancelled;

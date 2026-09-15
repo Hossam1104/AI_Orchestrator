@@ -284,13 +284,95 @@ public sealed class CodexExecutionAdapterTests
 
             Assert.False(missing.Diagnostic!.OutputFileExists);
             Assert.False(missing.Diagnostic.OutputParsingFailed);
+            Assert.Null(missing.Diagnostic.OutputFailureKind);
             Assert.True(malformed.Diagnostic!.OutputFileExists);
             Assert.True(malformed.Diagnostic.OutputParsingFailed);
+            Assert.Equal(PlannerOutputFailureKind.JsonDeserialization, malformed.Diagnostic.OutputFailureKind);
             Assert.Contains("[REDACTED]", malformed.Diagnostic.StandardErrorSummary);
             Assert.DoesNotContain("secret-value", malformed.Diagnostic.StandardErrorSummary, StringComparison.Ordinal);
             Assert.True(malformed.Diagnostic.StandardErrorSummary!.Length <= 1_000);
         }
         finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    [Fact]
+    public async Task Planner_ClassifiesMissingMandatoryStopConditionAsDomainMappingNotParsingFailure()
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-planner-test-");
+        try
+        {
+            var json = PlannerJsonWithStopConditions(
+                "[{\"conditionId\":\"target\",\"kind\":\"immutableTargetMoved\",\"description\":\"Stop if target moves\"}," +
+                "{\"conditionId\":\"scope\",\"kind\":\"scopeViolation\",\"description\":\"Stop if scope grows\"}]");
+            var request = new PlannerInvocationRequest(Agent(AgentRole.Planner), new OrchestrationWorkRequest(Guid.NewGuid(), "owner:test", "Title", "Objective", acceptanceCriteria: ["Criterion"]), workspace.FullName, TimeSpan.FromSeconds(30));
+
+            var result = await new CodexPlannerAdapter(new FakeLocator("C:\\tools\\codex.exe"), new FakeProcessRunner(json), new HandoffRedactionService()).PlanAsync(request);
+
+            Assert.Equal(PlannerInvocationStatus.InvalidResult, result.Status);
+            Assert.Null(result.Plan);
+            Assert.True(result.Diagnostic!.OutputFileExists);
+            Assert.False(result.Diagnostic.OutputParsingFailed);
+            Assert.Equal(PlannerOutputFailureKind.DomainMapping, result.Diagnostic.OutputFailureKind);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData("[{\"kind\":\"elapsedMinutes\",\"limit\":10}]")]
+    [InlineData("[{\"kind\":\"attempts\",\"limit\":1}]")]
+    [InlineData("[{\"kind\":\"attempts\",\"limit\":1},{\"kind\":\"attempts\",\"limit\":2}]")]
+    [InlineData("[{\"kind\":\"attempts\",\"limit\":1},{\"kind\":\"elapsedMinutes\",\"limit\":300}]")]
+    public async Task Planner_ClassifiesDomainInvalidBudgetsAsDomainMappingNotParsingFailure(string budgetsJson)
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-planner-test-");
+        try
+        {
+            var json = PlannerJsonWithBudgets(budgetsJson);
+            var request = new PlannerInvocationRequest(Agent(AgentRole.Planner), new OrchestrationWorkRequest(Guid.NewGuid(), "owner:test", "Title", "Objective", acceptanceCriteria: ["Criterion"]), workspace.FullName, TimeSpan.FromSeconds(30));
+
+            var result = await new CodexPlannerAdapter(new FakeLocator("C:\\tools\\codex.exe"), new FakeProcessRunner(json), new HandoffRedactionService()).PlanAsync(request);
+
+            Assert.Equal(PlannerInvocationStatus.InvalidResult, result.Status);
+            Assert.Null(result.Plan);
+            Assert.False(result.Diagnostic!.OutputParsingFailed);
+            Assert.Equal(PlannerOutputFailureKind.DomainMapping, result.Diagnostic.OutputFailureKind);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    [Fact]
+    public async Task Planner_ValidStructuredResponseSucceedsWithNoOutputFailureKind()
+    {
+        var workspace = Directory.CreateTempSubdirectory("apo-planner-test-");
+        try
+        {
+            var request = new PlannerInvocationRequest(Agent(AgentRole.Planner), new OrchestrationWorkRequest(Guid.NewGuid(), "owner:test", "Title", "Objective", acceptanceCriteria: ["Criterion"]), workspace.FullName, TimeSpan.FromSeconds(30));
+
+            var result = await new CodexPlannerAdapter(new FakeLocator("C:\\tools\\codex.exe"), new FakeProcessRunner(PlannerJson()), new HandoffRedactionService()).PlanAsync(request);
+
+            Assert.Equal(PlannerInvocationStatus.Succeeded, result.Status);
+            Assert.NotNull(result.Plan);
+            Assert.Null(result.Diagnostic);
+        }
+        finally { Directory.Delete(workspace.FullName, recursive: true); }
+    }
+
+    [Fact]
+    public void PlannerPrompt_StatesMandatoryStopConditionAndBudgetSemanticContract()
+    {
+        var request = new OrchestrationWorkRequest(
+            Guid.NewGuid(), "owner:test", "Bounded work", "Do bounded work",
+            acceptanceCriteria: ["Criterion"]);
+
+        var prompt = CodexPromptBuilder.BuildPlannerPrompt(request, @"C:\apo-test", new HandoffRedactionService());
+
+        Assert.Contains("immutableTargetMoved", prompt);
+        Assert.Contains("scopeViolation", prompt);
+        Assert.Contains("budgetExceeded", prompt);
+        Assert.Contains("\"attempts\"", prompt);
+        Assert.Contains("\"elapsedMinutes\"", prompt);
+        Assert.Contains("unique", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("240", prompt);
     }
 
     [Fact]
@@ -487,6 +569,28 @@ public sealed class CodexExecutionAdapterTests
         "\"stopConditions\":[{\"conditionId\":\"target\",\"kind\":\"immutableTargetMoved\",\"description\":\"Stop if target moves\"},{\"conditionId\":\"scope\",\"kind\":\"scopeViolation\",\"description\":\"Stop if scope grows\"},{\"conditionId\":\"budget\",\"kind\":\"budgetExceeded\",\"description\":\"Stop if budget ends\"}]," +
         "\"executionBudgets\":[{\"kind\":\"attempts\",\"limit\":1},{\"kind\":\"elapsedMinutes\",\"limit\":10}]" +
         (withExtra ? ",\"extra\":true" : "") + "}";
+
+    private static string PlannerJsonWithStopConditions(string stopConditionsJson) =>
+        "{" +
+        "\"normalizedObjective\":\"Inspect the bounded workspace\",\"includedScope\":[\"the prepared workspace\"]," +
+        "\"acceptanceCriteria\":[\"Preserve the exact criterion\"],\"constraints\":[\"Do not leave the workspace\"]," +
+        "\"validationExpectations\":[{\"kind\":\"test\",\"description\":\"Run focused tests\",\"required\":true,\"commandOrReference\":null}]," +
+        "\"classification\":{" +
+        "\"scopeScale\":\"bounded\",\"risk\":\"moderate\",\"blastRadius\":\"module\",\"validationCost\":\"moderate\",\"requiredRole\":\"executor\",\"requiredCapabilities\":[],\"policyTags\":[],\"capacityRequirement\":\"optional\",\"independentReviewRequired\":false,\"securityReviewRequired\":false,\"ownerApprovalRequired\":false,\"requiresSupportedConnection\":true,\"requiresVerifiedAvailability\":false,\"requiresAuthenticatedAccess\":true,\"requiresVerifiedEntitlement\":false}," +
+        "\"stopConditions\":" + stopConditionsJson + "," +
+        "\"executionBudgets\":[{\"kind\":\"attempts\",\"limit\":1},{\"kind\":\"elapsedMinutes\",\"limit\":10}]" +
+        "}";
+
+    private static string PlannerJsonWithBudgets(string budgetsJson) =>
+        "{" +
+        "\"normalizedObjective\":\"Inspect the bounded workspace\",\"includedScope\":[\"the prepared workspace\"]," +
+        "\"acceptanceCriteria\":[\"Preserve the exact criterion\"],\"constraints\":[\"Do not leave the workspace\"]," +
+        "\"validationExpectations\":[{\"kind\":\"test\",\"description\":\"Run focused tests\",\"required\":true,\"commandOrReference\":null}]," +
+        "\"classification\":{" +
+        "\"scopeScale\":\"bounded\",\"risk\":\"moderate\",\"blastRadius\":\"module\",\"validationCost\":\"moderate\",\"requiredRole\":\"executor\",\"requiredCapabilities\":[],\"policyTags\":[],\"capacityRequirement\":\"optional\",\"independentReviewRequired\":false,\"securityReviewRequired\":false,\"ownerApprovalRequired\":false,\"requiresSupportedConnection\":true,\"requiresVerifiedAvailability\":false,\"requiresAuthenticatedAccess\":true,\"requiresVerifiedEntitlement\":false}," +
+        "\"stopConditions\":[{\"conditionId\":\"target\",\"kind\":\"immutableTargetMoved\",\"description\":\"Stop if target moves\"},{\"conditionId\":\"scope\",\"kind\":\"scopeViolation\",\"description\":\"Stop if scope grows\"},{\"conditionId\":\"budget\",\"kind\":\"budgetExceeded\",\"description\":\"Stop if budget ends\"}]," +
+        "\"executionBudgets\":" + budgetsJson +
+        "}";
 
     private static void AssertStrictSchema(string schema, string schemaName)
     {

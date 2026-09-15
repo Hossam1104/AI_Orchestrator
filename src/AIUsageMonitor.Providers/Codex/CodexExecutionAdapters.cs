@@ -95,17 +95,29 @@ public sealed class CodexPlannerAdapter : IPlannerAdapter
                     Diagnostic: ProcessDiagnostic(invocation));
             }
 
+            CodexPlannerResponse? response;
             try
             {
-                var response = JsonSerializer.Deserialize<CodexPlannerResponse>(invocation.Output, CodexLocalInvocation.JsonOptions);
-                return new(PlannerInvocationStatus.Succeeded, CodexPlanMapper.Map(response));
+                response = JsonSerializer.Deserialize<CodexPlannerResponse>(invocation.Output, CodexLocalInvocation.JsonOptions);
             }
-            catch (Exception exception) when (exception is JsonException or ArgumentException or InvalidOperationException)
+            catch (JsonException)
             {
                 return new(
                     PlannerInvocationStatus.InvalidResult,
-                    ErrorMessage: "The planner output did not match the bounded APO plan schema.",
-                    Diagnostic: ProcessDiagnostic(invocation, outputParsingFailed: true));
+                    ErrorMessage: "The planner output could not be deserialized as the bounded APO planner response.",
+                    Diagnostic: ProcessDiagnostic(invocation, PlannerOutputFailureKind.JsonDeserialization));
+            }
+
+            try
+            {
+                return new(PlannerInvocationStatus.Succeeded, CodexPlanMapper.Map(response));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                return new(
+                    PlannerInvocationStatus.InvalidResult,
+                    ErrorMessage: "The planner output was structurally readable but did not satisfy the bounded APO planner domain contract.",
+                    Diagnostic: ProcessDiagnostic(invocation, PlannerOutputFailureKind.DomainMapping));
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -132,16 +144,17 @@ public sealed class CodexPlannerAdapter : IPlannerAdapter
             _ => PlannerInvocationStatus.Failed
         };
 
-    private PlannerInvocationDiagnostic ProcessDiagnostic(CodexInvocationResult invocation, bool outputParsingFailed = false) => new(
+    private PlannerInvocationDiagnostic ProcessDiagnostic(CodexInvocationResult invocation, PlannerOutputFailureKind? outputFailureKind = null) => new(
         invocation.Process.Outcome,
         invocation.Process.ExitCode,
         invocation.OutputFileExists,
-        outputParsingFailed,
+        OutputParsingFailed: outputFailureKind == PlannerOutputFailureKind.JsonDeserialization,
         invocation.Process.StandardOutputTruncated,
         invocation.Process.StandardErrorTruncated,
         invocation.Process.ProcessTerminationConfirmed,
         Summary(invocation.Process.StandardOutput),
-        Summary(invocation.Process.StandardError));
+        Summary(invocation.Process.StandardError),
+        outputFailureKind);
 
     private string? Summary(string value)
     {
@@ -455,6 +468,8 @@ internal static class CodexPromptBuilder
         var builder = new StringBuilder();
         builder.AppendLine("Return only JSON matching the supplied output schema. You are the planner for one bounded APO request.");
         builder.AppendLine("Preserve every owner acceptance criterion and constraint exactly, and include explicit stop conditions and budgets.");
+        builder.AppendLine("stopConditions must include at least one entry each of kind \"immutableTargetMoved\", \"scopeViolation\", and \"budgetExceeded\"; additional valid kinds may be included where justified.");
+        builder.AppendLine("executionBudgets must include at least one entry of kind \"attempts\" and one of kind \"elapsedMinutes\"; budget kinds must be unique, limits must be positive, and the elapsedMinutes limit must not exceed 240.");
         builder.AppendLine("Do not propose shell commands, credentials, transcripts, source files, commits, pushes, merges, deployments, or work outside this workspace.");
         builder.AppendLine($"Workspace: {workspacePath}");
         Append(builder, "Title", request.Title, redaction);

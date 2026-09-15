@@ -1,11 +1,75 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 14 September 2026 (APO-70 planner classification wire-format remediation; local validation)
+**Last Updated:** 15 September 2026 (APO-70 planner output diagnostic and semantic-contract remediation; local validation)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 planner output diagnostic and semantic-contract remediation
+
+**Last Updated:** 15 September 2026
+
+On reviewed source head `c1f2fd9` (planner classification wire-format remediation), the latest
+isolated production-DI `PrepareAsync` reproduction proved a real `gpt-5.6-sol` process exited
+successfully with the output file present, yet the APO planner adapter returned `InvalidResult` and
+the coordinator returned `PlannerInvalid` at Planning, before routing was reached. The adapter's
+single exception boundary wrapped both `JsonSerializer.Deserialize<CodexPlannerResponse>` and
+`CodexPlanMapper.Map` and reported every failure as the same generic `OutputParsingFailed = true`,
+so that runtime evidence alone could not prove whether the historical output failed to deserialize as
+JSON or deserialized successfully but failed `PlannerPlan`'s domain/semantic contract. Because the raw
+model output was intentionally never retained (bounded, redacted diagnostics only), the exact root
+cause of that one historical failure remains unproven and is not claimed to be resolved retroactively
+by this remediation; the fix is forward-looking diagnostic and prompt repair, not a diagnosis of the
+prior run.
+
+The remediation splits the two exception boundaries in `CodexPlannerAdapter.PlanAsync`: a `JsonException`
+from deserialization is now classified separately from an `ArgumentException`/`InvalidOperationException`
+raised by `CodexPlanMapper.Map`. `PlannerInvocationDiagnostic` gains a new typed
+`PlannerOutputFailureKind? OutputFailureKind` field (`JsonDeserialization` or `DomainMapping`); the
+existing `OutputParsingFailed` boolean is preserved for compatibility but is now truthfully `true`
+only for an actual JSON/deserialization failure, never for a structurally valid response that failed
+domain mapping. Error messages were also corrected to stop saying "did not match schema" when the
+real failure occurred in domain mapping. No raw model output, prompt, or transcript is persisted by
+either diagnostic path. The coordinator's existing `plannerResult.Diagnostic` propagation into
+`ExecutionPreparationResult.PlannerDiagnostic` required no change — it already threads the diagnostic
+record through unchanged, so the richer typed field reaches the same boundary automatically.
+
+`CodexPromptBuilder.BuildPlannerPrompt` now explicitly states the domain invariants `PlannerPlan`
+already enforces: `stopConditions` must include at least one `immutableTargetMoved`, one
+`scopeViolation`, and one `budgetExceeded` entry; `executionBudgets` must include at least one
+`attempts` and one `elapsedMinutes` entry, budget kinds must be unique, limits must be positive, and
+the `elapsedMinutes` limit must not exceed 240. No domain invariant in `PlannerPlan`, no strict-schema
+protection in `PlannerSchema`/`ExecutionSchema`, no routing authority, no Luna catalog, and no
+capacity/trust-gate evidence was changed.
+
+New regression coverage in `CodexExecutionAdapterTests`: a JSON-deserialization-failure case now also
+asserts the typed `OutputFailureKind` is `JsonDeserialization`; a new case constructs a structurally
+valid, schema-shaped planner response missing the mandatory `budgetExceeded` stop condition and
+asserts the result is classified `DomainMapping`, not a parsing failure; a theory covers four
+domain-invalid budget shapes (missing `attempts`, missing `elapsedMinutes`, duplicate budget kind,
+`elapsedMinutes` over 240), each asserted as `DomainMapping`; a dedicated valid-response case asserts
+`Succeeded` with no diagnostic; and a prompt regression asserts the mandatory stop/budget invariants,
+uniqueness requirement, and the 240-minute bound are present in the real planner prompt text. All
+prior strict-schema, planner-validator, and routing-authority regressions continue to pass unchanged.
+
+Full local validation: Release build 0 warnings / 0 errors; `git diff --check` clean (only benign
+LF/CRLF notices); focused Provider planner/adapter tests 32/32; Domain 28/28, Connection 345/345,
+Provider 228/228 (221 baseline + 7 new), Desktop 116/116, Infrastructure 675/675 — total 1,392 passed
+/ 0 failed / 0 skipped. Self-contained single-file publish validation passed for `win-x86` (PE
+`0x014C`), `win-x64` (PE `0x8664`), and `win-arm64` (PE `0xAA64`), each using the repository's own
+`win-*.pubxml` publish profiles and `scripts/Validate-PublishOutput.ps1`, with self-contained runtime
+evidence present and no unexpected loose runtime files.
+
+No real Sol/Luna/Codex model was invoked and no real `PrepareAsync`/`StartAsync` was run during this
+remediation; the Desktop app was not launched. No merge, main push, force push, release, tag,
+deployment, or owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review
+of this diagnostic and semantic-contract remediation; if accepted, one fresh isolated real production
+`PrepareAsync` attempt is authorized on the accepted head with truthful Sol/Luna configuration, no
+retry, stopping at Ready — real Luna workspace-write remains unauthorized until Ready is proven.
+
+---
 
 ## CURRENT - APO-70 planner classification wire-format remediation
 
