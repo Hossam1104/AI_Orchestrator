@@ -837,6 +837,7 @@ public sealed class ValidationApo48RemediationTests
         new(fixture.Checkpoint.ProjectId, fixture.Checkpoint.CheckpointId, fixture.Checkpoint.SchemaVersion, fixture.Checkpoint.CreatedAt,
             fixture.Checkpoint.LifecycleState, fixture.Checkpoint.Context, fixture.Checkpoint.PlanningContractReference,
             fixture.Checkpoint.WorkGraphReference, fixture.Checkpoint.WorkGraphNodeId, fixture.Checkpoint.HandoffPackageReference,
+            fixture.Checkpoint.RoutingDecisionReference, fixture.Checkpoint.WorkspacePreparationPlanReference,
             previous ?? fixture.Checkpoint.PreviousCheckpointReference, fixture.Checkpoint.SelectedAgentRoleReferences, evidence,
             fixture.Checkpoint.GateSnapshots, fixture.Checkpoint.Blockers, fixture.Checkpoint.NextSafeAction, fixture.Checkpoint.Explanation);
 
@@ -880,7 +881,7 @@ public sealed class ValidationApo48RemediationTests
                     RecoveryEvidenceFreshness.PointInTime, contentHash: contentHash);
             })
             .ToArray();
-        var inputCheckpoint = new RecoveryCheckpoint(id, Guid.NewGuid(), 1, capturedAt.AddMinutes(-2), RecoveryCheckpointLifecycleState.Ready,
+        var inputCheckpoint = new RecoveryCheckpoint(id, Guid.NewGuid(), RecoveryCheckpointSchema.CurrentVersion, capturedAt.AddMinutes(-2), RecoveryCheckpointLifecycleState.Ready,
             new RecoveryContextReference(Guid.NewGuid(), 1, capturedAt), contract, graph, Guid.NewGuid(), handoff,
             evidenceReferences: inheritedEvidence, nextSafeAction: RecoveryNextSafeAction.ContinueFromCheckpoint);
         var receipt = new WorkspacePreparationReceipt(id, workspaceId, Guid.NewGuid(), capturedAt, workspacePlan, workspace, "main", Sha40('f'), Sha40('f'), "local-repository", "test");
@@ -889,11 +890,11 @@ public sealed class ValidationApo48RemediationTests
         var executionEvidence = new RecoveryEvidenceReference(authority.RunId, RecoveryEvidenceKind.Other,
             $"execution-run:{authority.ProjectId:D}/{authority.RunId:D}/{authority.ContentHash}", authority.CreatedAt,
             RecoveryEvidenceFreshness.PointInTime, contentHash: authority.ContentHash);
-        var preRunCheckpoint = new RecoveryCheckpoint(id, Guid.NewGuid(), 1, capturedAt, RecoveryCheckpointLifecycleState.Waiting,
-            inputCheckpoint.Context, contract, graph, inputCheckpoint.WorkGraphNodeId, handoff, inputCheckpoint.Reference,
+        var preRunCheckpoint = new RecoveryCheckpoint(id, Guid.NewGuid(), RecoveryCheckpointSchema.CurrentVersion, capturedAt, RecoveryCheckpointLifecycleState.Waiting,
+            inputCheckpoint.Context, contract, graph, inputCheckpoint.WorkGraphNodeId, handoff, previousCheckpointReference: inputCheckpoint.Reference,
             evidenceReferences: inheritedEvidence.Append(executionEvidence).ToArray(), nextSafeAction: RecoveryNextSafeAction.ResolveBlocker);
-        var checkpoint = new RecoveryCheckpoint(id, Guid.NewGuid(), 1, capturedAt, RecoveryCheckpointLifecycleState.Ready,
-            inputCheckpoint.Context, contract, graph, inputCheckpoint.WorkGraphNodeId, handoff, preRunCheckpoint.Reference,
+        var checkpoint = new RecoveryCheckpoint(id, Guid.NewGuid(), RecoveryCheckpointSchema.CurrentVersion, capturedAt, RecoveryCheckpointLifecycleState.Ready,
+            inputCheckpoint.Context, contract, graph, inputCheckpoint.WorkGraphNodeId, handoff, previousCheckpointReference: preRunCheckpoint.Reference,
             evidenceReferences: inheritedEvidence.Append(executionEvidence).ToArray(), nextSafeAction: RecoveryNextSafeAction.RunValidation);
         var value = requirement ?? new ValidationRequirement("tests", ValidationEvidenceKind.Test, true, ValidationCoverageScope.Targeted, ValidationBaselineRelation.Standalone, "fake");
         var plan = new ValidationPlan(id, Guid.NewGuid(), 1, capturedAt, authority.Reference, contract, graph, checkpoint.WorkGraphNodeId!.Value,
@@ -913,6 +914,7 @@ public sealed class ValidationApo48RemediationTests
         IReadOnlyList<RecoveryEvidenceReference> evidence, RecoveryCheckpointReference? previous = null) =>
         new(source.ProjectId, source.CheckpointId, source.SchemaVersion, source.CreatedAt, source.LifecycleState, source.Context,
             source.PlanningContractReference, source.WorkGraphReference, source.WorkGraphNodeId, source.HandoffPackageReference,
+            source.RoutingDecisionReference, source.WorkspacePreparationPlanReference,
             previous ?? source.PreviousCheckpointReference, source.SelectedAgentRoleReferences, evidence, source.GateSnapshots,
             source.Blockers, source.NextSafeAction, source.Explanation);
 
@@ -1029,6 +1031,7 @@ public sealed class ValidationApo48RemediationTests
     {
         public Task<ExecutionRunAuthorityRepositoryWriteResult> CreateAsync(ExecutionRunAuthority value, CancellationToken cancellationToken = default) => Task.FromResult(new ExecutionRunAuthorityRepositoryWriteResult(ExecutionRunAuthorityRepositoryWriteStatus.Created));
         public Task<ExecutionRunAuthorityReadResult> GetAsync(Guid projectId, Guid runId, CancellationToken cancellationToken = default) => Task.FromResult(new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Valid, authority));
+        public Task<ExecutionRunAuthorityReadResult> GetByInputCheckpointAsync(Guid projectId, RecoveryCheckpointReference inputCheckpointReference, CancellationToken cancellationToken = default) => Task.FromResult(new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Missing));
     }
 
     private sealed class FakeReceiptRepository(WorkspacePreparationReceipt receipt) : IWorkspacePreparationReceiptRepository
@@ -1075,10 +1078,10 @@ public sealed class ValidationApo48RemediationTests
         {
             CreateCalls++;
             LastRequest = request;
-            var checkpoint = new RecoveryCheckpoint(request.ProjectId, request.CheckpointId, 1, request.CreatedAt ?? predecessor.CreatedAt, request.LifecycleState,
+            var checkpoint = new RecoveryCheckpoint(request.ProjectId, request.CheckpointId, RecoveryCheckpointSchema.CurrentVersion, request.CreatedAt ?? predecessor.CreatedAt, request.LifecycleState,
                 predecessor.Context, request.PlanningContractReference, request.WorkGraphReference, request.WorkGraphNodeId, request.HandoffPackageReference,
-                request.PreviousCheckpointReference, request.SelectedAgentRoleReferences, request.EvidenceReferences, request.GateSnapshots, request.Blockers,
-                request.NextSafeAction, request.Explanation);
+                request.RoutingDecisionReference, request.WorkspacePreparationPlanReference, request.PreviousCheckpointReference, request.SelectedAgentRoleReferences,
+                request.EvidenceReferences, request.GateSnapshots, request.Blockers, request.NextSafeAction, request.Explanation);
             var head = new ContinuationHead(request.ProjectId, 1, 2, checkpoint.Reference, predecessor.Reference, checkpoint.CreatedAt);
             return Task.FromResult(new RecoveryCheckpointCreationResult(RecoveryCheckpointCreationStatus.Created, checkpoint, head));
         }

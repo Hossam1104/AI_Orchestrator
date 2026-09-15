@@ -6,13 +6,21 @@ using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Planning;
 using AIUsageMonitor.Application.Projects;
+using AIUsageMonitor.Application.Routing;
+using AIUsageMonitor.Application.Workspaces;
 
 namespace AIUsageMonitor.Application.Orchestration;
 
 /// <summary>Semantic version of the immutable recovery checkpoint authority.</summary>
 public static class RecoveryCheckpointSchema
 {
-    public const int CurrentVersion = 1;
+    /// <summary>
+    /// Version 2 adds the optional <see cref="RecoveryCheckpoint.RoutingDecisionReference"/> and
+    /// <see cref="RecoveryCheckpoint.WorkspacePreparationPlanReference"/> bindings so a Ready
+    /// checkpoint carries enough durable authority to rehydrate a startable execution after a
+    /// process restart (APO-70). Version 1 records read back as <c>MigrationRequired</c>.
+    /// </summary>
+    public const int CurrentVersion = 2;
 }
 
 public static class RecoveryCheckpointLimits
@@ -443,6 +451,8 @@ public sealed class RecoveryCheckpoint
         WorkGraphReference? workGraphReference = null,
         Guid? workGraphNodeId = null,
         HandoffPackageReference? handoffPackageReference = null,
+        RoutingDecisionReference? routingDecisionReference = null,
+        WorkspacePreparationPlanReference? workspacePreparationPlanReference = null,
         RecoveryCheckpointReference? previousCheckpointReference = null,
         IReadOnlyList<RecoveryAgentRoleReference>? selectedAgentRoleReferences = null,
         IReadOnlyList<RecoveryEvidenceReference>? evidenceReferences = null,
@@ -492,6 +502,13 @@ public sealed class RecoveryCheckpoint
             throw new ArgumentException("A checkpoint cannot reference itself as its predecessor.", nameof(previousCheckpointReference));
         }
 
+        if (workspacePreparationPlanReference is not null && workspacePreparationPlanReference.ProjectId != projectId)
+        {
+            throw new ArgumentException(
+                "Workspace preparation plan reference belongs to another project.",
+                nameof(workspacePreparationPlanReference));
+        }
+
         if (!Enum.IsDefined(nextSafeAction))
         {
             throw new ArgumentException("Next-safe-action value is undefined.", nameof(nextSafeAction));
@@ -505,6 +522,8 @@ public sealed class RecoveryCheckpoint
         WorkGraphReference = workGraphReference;
         WorkGraphNodeId = workGraphNodeId;
         HandoffPackageReference = handoffPackageReference;
+        RoutingDecisionReference = routingDecisionReference;
+        WorkspacePreparationPlanReference = workspacePreparationPlanReference;
         PreviousCheckpointReference = previousCheckpointReference;
         SelectedAgentRoleReferences = NormalizeAgentRoles(selectedAgentRoleReferences);
         EvidenceReferences = NormalizeEvidence(evidenceReferences);
@@ -536,6 +555,8 @@ public sealed class RecoveryCheckpoint
     public WorkGraphReference? WorkGraphReference { get; }
     public Guid? WorkGraphNodeId { get; }
     public HandoffPackageReference? HandoffPackageReference { get; }
+    public RoutingDecisionReference? RoutingDecisionReference { get; }
+    public WorkspacePreparationPlanReference? WorkspacePreparationPlanReference { get; }
     public RecoveryCheckpointReference? PreviousCheckpointReference { get; }
     public IReadOnlyList<RecoveryAgentRoleReference> SelectedAgentRoleReferences { get; }
     public IReadOnlyList<RecoveryEvidenceReference> EvidenceReferences { get; }
@@ -675,6 +696,19 @@ public static class RecoveryCheckpointIntegrity
             value.HandoffPackageReference.PackageId,
             value.HandoffPackageReference.SchemaVersion,
             value.HandoffPackageReference.ContentHash
+        },
+        routingDecisionReference = value.RoutingDecisionReference is null ? null : new
+        {
+            value.RoutingDecisionReference.DecisionId,
+            value.RoutingDecisionReference.SchemaVersion,
+            value.RoutingDecisionReference.ContentHash
+        },
+        workspacePreparationPlanReference = value.WorkspacePreparationPlanReference is null ? null : new
+        {
+            value.WorkspacePreparationPlanReference.ProjectId,
+            value.WorkspacePreparationPlanReference.PlanId,
+            value.WorkspacePreparationPlanReference.SchemaVersion,
+            value.WorkspacePreparationPlanReference.ContentHash
         },
         previousCheckpointReference = value.PreviousCheckpointReference is null ? null : new
         {

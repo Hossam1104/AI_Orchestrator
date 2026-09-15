@@ -35,6 +35,18 @@ public sealed class ProviderConnectionService : IProviderConnectionService
         CancellationToken cancellationToken = default) =>
         _repository.GetByProviderIdAsync(_identityCatalog.GetProviderId(code), cancellationToken);
 
+    public Task<ProviderConnection?> GetAsync(
+        Guid providerId,
+        CancellationToken cancellationToken = default)
+    {
+        if (providerId == Guid.Empty)
+        {
+            throw new ArgumentException("Provider id cannot be empty.", nameof(providerId));
+        }
+
+        return _repository.GetByProviderIdAsync(providerId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ProviderConnection>> LoadAllAsync(
         CancellationToken cancellationToken = default)
     {
@@ -48,7 +60,23 @@ public sealed class ProviderConnectionService : IProviderConnectionService
             }
 
             connections.Add(connection);
-            _runtimeSettings.Apply(code, connection.CredentialReference, connection.Configuration);
+            var configuration = connection.Configuration.ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value,
+                StringComparer.OrdinalIgnoreCase);
+            if (!configuration.ContainsKey(ProviderConnectionConfigurationKeys.AuthenticationMode))
+            {
+                configuration[ProviderConnectionConfigurationKeys.AuthenticationMode] =
+                    connection.ConnectionType switch
+                    {
+                        ProviderConnectionType.ApiKey or ProviderConnectionType.OfficialApi => ProviderAuthenticationMode.ApiKey.ToString(),
+                        ProviderConnectionType.LocalSession => ProviderAuthenticationMode.LocalSession.ToString(),
+                        ProviderConnectionType.ExternalManual or ProviderConnectionType.Manual => ProviderAuthenticationMode.ExternalManual.ToString(),
+                        _ => ProviderAuthenticationMode.None.ToString()
+                    };
+            }
+
+            _runtimeSettings.Apply(code, connection.CredentialReference, configuration);
         }
 
         return connections;
@@ -60,7 +88,9 @@ public sealed class ProviderConnectionService : IProviderConnectionService
     {
         ArgumentNullException.ThrowIfNull(edit);
 
-        var providerId = _identityCatalog.GetProviderId(edit.Code);
+        var providerId = edit.ProviderId ?? (edit.Code is { } code
+            ? _identityCatalog.GetProviderId(code)
+            : throw new ArgumentException("A provider code or provider id is required.", nameof(edit)));
         var previous = await _repository.GetByProviderIdAsync(providerId, cancellationToken)
             .ConfigureAwait(false);
 
@@ -70,7 +100,7 @@ public sealed class ProviderConnectionService : IProviderConnectionService
 
         if (!string.IsNullOrWhiteSpace(edit.Secret))
         {
-            stagedCredentialReference = CreateCredentialReference(edit.Code);
+            stagedCredentialReference = CreateCredentialReference(providerId, edit.Code);
             newCredentialReference = stagedCredentialReference;
             try
             {
@@ -120,7 +150,10 @@ public sealed class ProviderConnectionService : IProviderConnectionService
             throw;
         }
 
-        _runtimeSettings.Apply(edit.Code, newCredentialReference, connection.Configuration);
+        if (edit.Code is { } builtInCode)
+        {
+            _runtimeSettings.Apply(builtInCode, newCredentialReference, connection.Configuration);
+        }
 
         if (stagedCredentialReference is not null &&
             previousCredentialReference is not null &&
@@ -179,8 +212,10 @@ public sealed class ProviderConnectionService : IProviderConnectionService
         _ => ProviderConnectionStatus.Error
     };
 
-    private static string CreateCredentialReference(ProviderCode code) =>
-        $"apo-{code.ToString().ToLowerInvariant()}-{Guid.NewGuid():N}";
+    private static string CreateCredentialReference(Guid providerId, ProviderCode? code) =>
+        code is { } builtInCode
+            ? $"apo-{builtInCode.ToString().ToLowerInvariant()}-{Guid.NewGuid():N}"
+            : $"apo-custom-{providerId:N}-{Guid.NewGuid():N}";
 
     private async Task TryRemoveCredentialAsync(string credentialReference)
     {

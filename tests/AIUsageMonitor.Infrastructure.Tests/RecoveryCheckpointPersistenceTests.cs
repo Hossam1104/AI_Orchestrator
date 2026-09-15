@@ -5,9 +5,12 @@ using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Planning;
 using AIUsageMonitor.Application.Projects;
+using AIUsageMonitor.Application.Routing;
 using AIUsageMonitor.Application.Time;
+using AIUsageMonitor.Application.Workspaces;
 using AIUsageMonitor.Infrastructure.Persistence;
 using AIUsageMonitor.Infrastructure.Persistence.Repositories;
+using AIUsageMonitor.Infrastructure.Workspaces;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AIUsageMonitor.Infrastructure.Tests;
@@ -882,6 +885,8 @@ public sealed class RecoveryCheckpointPersistenceTests
             Contracts = new JsonPlanningExecutionContractRepository(Store.Paths, Store.Files, NullLogger<JsonPlanningExecutionContractRepository>.Instance);
             Graphs = new JsonWorkGraphRepository(Store.Paths, Store.Files, NullLogger<JsonWorkGraphRepository>.Instance);
             Handoffs = new JsonHandoffPackageRepository(Store.Paths, Store.Files, NullLogger<JsonHandoffPackageRepository>.Instance);
+            Routing = new JsonRoutingDecisionRepository(Store.Paths, Store.Files, NullLogger<JsonRoutingDecisionRepository>.Instance);
+            WorkspacePlans = new JsonWorkspacePreparationPlanRepository(Store.Paths, Store.Files, NullLogger<JsonWorkspacePreparationPlanRepository>.Instance);
             Checkpoints = new JsonRecoveryCheckpointRepository(Store.Paths, Store.Files, NullLogger<JsonRecoveryCheckpointRepository>.Instance);
             Heads = new JsonContinuationHeadRepository(Store.Paths, Store.Files, NullLogger<JsonContinuationHeadRepository>.Instance);
             Clock = new FixedClock(Now);
@@ -898,6 +903,8 @@ public sealed class RecoveryCheckpointPersistenceTests
         public JsonPlanningExecutionContractRepository Contracts { get; }
         public JsonWorkGraphRepository Graphs { get; }
         public JsonHandoffPackageRepository Handoffs { get; }
+        public JsonRoutingDecisionRepository Routing { get; }
+        public JsonWorkspacePreparationPlanRepository WorkspacePlans { get; }
         public JsonRecoveryCheckpointRepository Checkpoints { get; }
         public JsonContinuationHeadRepository Heads { get; }
         public FixedClock Clock { get; }
@@ -962,6 +969,8 @@ public sealed class RecoveryCheckpointPersistenceTests
             new JsonPlanningExecutionContractRepository(Store.Paths, Store.Files, NullLogger<JsonPlanningExecutionContractRepository>.Instance),
             new JsonWorkGraphRepository(Store.Paths, Store.Files, NullLogger<JsonWorkGraphRepository>.Instance),
             new JsonHandoffPackageRepository(Store.Paths, Store.Files, NullLogger<JsonHandoffPackageRepository>.Instance),
+            new JsonRoutingDecisionRepository(Store.Paths, Store.Files, NullLogger<JsonRoutingDecisionRepository>.Instance),
+            new JsonWorkspacePreparationPlanRepository(Store.Paths, Store.Files, NullLogger<JsonWorkspacePreparationPlanRepository>.Instance),
             new JsonRecoveryCheckpointRepository(Store.Paths, Store.Files, NullLogger<JsonRecoveryCheckpointRepository>.Instance),
             new JsonContinuationHeadRepository(Store.Paths, Store.Files, NullLogger<JsonContinuationHeadRepository>.Instance),
             Clock);
@@ -972,6 +981,8 @@ public sealed class RecoveryCheckpointPersistenceTests
             Contracts,
             Graphs,
             Handoffs,
+            Routing,
+            WorkspacePlans,
             Checkpoints,
             heads ?? Heads,
             new HandoffRedactionService(),
@@ -983,6 +994,8 @@ public sealed class RecoveryCheckpointPersistenceTests
             Contracts,
             Graphs,
             Handoffs,
+            Routing,
+            WorkspacePlans,
             Checkpoints,
             Heads,
             Clock);

@@ -1,3 +1,5 @@
+using AIUsageMonitor.Application.Orchestration;
+
 namespace AIUsageMonitor.Infrastructure.Persistence;
 
 /// <summary>
@@ -7,6 +9,8 @@ namespace AIUsageMonitor.Infrastructure.Persistence;
 public sealed class ApplicationDataPaths
 {
     public const string ApplicationDirectoryName = "AIUsageMonitor";
+    private const string TestModeEnvironmentVariable = "AIUsageMonitor_TEST_MODE";
+    private const string TestDataRootEnvironmentVariable = "AIUsageMonitor_TEST_DATA_ROOT";
 
     public ApplicationDataPaths(string rootDirectory)
     {
@@ -47,6 +51,8 @@ public sealed class ApplicationDataPaths
 
     public string ProvidersFile => Path.Combine(RootDirectory, "providers.json");
 
+    public string ProviderDefinitionsFile => Path.Combine(RootDirectory, "provider-definitions.json");
+
     public string ConnectionsFile => Path.Combine(RootDirectory, "connections.json");
 
     public string SubscriptionsFile => Path.Combine(RootDirectory, "subscriptions.json");
@@ -63,6 +69,16 @@ public sealed class ApplicationDataPaths
 
     public static ApplicationDataPaths CreateDefault()
     {
+        var isolatedTestRoot = Environment.GetEnvironmentVariable(TestDataRootEnvironmentVariable);
+        if (string.Equals(
+                Environment.GetEnvironmentVariable(TestModeEnvironmentVariable),
+                "1",
+                StringComparison.Ordinal) &&
+            IsSafeTemporaryRoot(isolatedTestRoot))
+        {
+            return new ApplicationDataPaths(isolatedTestRoot!);
+        }
+
         var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         if (string.IsNullOrWhiteSpace(localApplicationData))
         {
@@ -72,6 +88,20 @@ public sealed class ApplicationDataPaths
 
         var root = Path.Combine(localApplicationData, ApplicationDirectoryName);
         return new ApplicationDataPaths(root);
+    }
+
+    private static bool IsSafeTemporaryRoot(string? candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate) || !Path.IsPathFullyQualified(candidate))
+        {
+            return false;
+        }
+
+        var root = Path.GetFullPath(candidate)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var temporaryRoot = Path.GetFullPath(Path.GetTempPath())
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return root.StartsWith(temporaryRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     public void EnsureDirectories()
@@ -252,6 +282,13 @@ public sealed class ApplicationDataPaths
 
     public string GetExecutionRunAuthorityFile(Guid projectId, Guid runId) =>
         Path.Combine(GetExecutionRunAuthorityDirectory(projectId, runId), "authority.json");
+
+    public string GetExecutionRunAuthorityInputCheckpointFile(Guid projectId, RecoveryCheckpointReference checkpoint)
+    {
+        ArgumentNullException.ThrowIfNull(checkpoint);
+        return Path.Combine(GetProjectExecutionRunAuthoritiesDirectory(projectId), "inputs",
+            checkpoint.CheckpointId.ToString("D"), $"schema-{checkpoint.SchemaVersion:D6}-{checkpoint.ContentHash.ToLowerInvariant()}", "authority.json");
+    }
 
     public string GetProjectEvidenceDirectory(Guid projectId) => GetProjectPaths(projectId).EvidenceDirectory;
 

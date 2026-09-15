@@ -81,6 +81,29 @@ public sealed class GitLocalRepositoryInspectorTests : IDisposable
     }
 
     [Fact]
+    public async Task Discovery_ReportsBoundedWorkspacePresenceWithoutReadingContents()
+    {
+        var directory = CreateDirectory("workspace-discovery");
+        Directory.CreateDirectory(Path.Combine(directory, ".ai"));
+        File.WriteAllText(Path.Combine(directory, "AGENTS.md"), "owner-controlled content");
+        File.WriteAllText(Path.Combine(directory, "workspace.sln"), "solution content");
+        var runner = ScriptedRunner(
+            directory,
+            remote: "origin\thttps://github.com/org/repo.git (fetch)\r\n");
+
+        var result = await CreateInspector(runner).InspectAsync(directory);
+
+        Assert.NotNull(result.Workspace);
+        Assert.True(result.Workspace!.Exists);
+        Assert.True(result.Workspace.IsReadable);
+        Assert.Equal(WorkspaceFileState.Present, result.Workspace.GovernanceFiles["AGENTS.md"]);
+        Assert.Equal(WorkspaceFileState.Present, result.Workspace.GovernanceFiles[".ai"]);
+        Assert.Equal(WorkspaceFileState.Missing, result.Workspace.GovernanceFiles["CLAUDE.md"]);
+        Assert.Contains("workspace.sln", result.Workspace.ProjectFiles);
+        Assert.Equal("GitHub", result.Workspace.RemoteProvider);
+    }
+
+    [Fact]
     public async Task DirtyTrackedFile_IsParsedAsModified()
     {
         var directory = CreateDirectory("dirty");

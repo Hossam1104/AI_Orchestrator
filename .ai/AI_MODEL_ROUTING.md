@@ -56,13 +56,32 @@ product functionality, not orchestration-executor policy.
   architecture-sensitive, cross-cutting, persistence/state, concurrency-sensitive, integration,
   and high-blast-radius implementation. Sol may explicitly route a task elsewhere when justified.
 - **Luna Max** — exceptional escalation only; never the default executor.
-- **Opus** - independent critical review only, roughly every fifth substantial implementation prompt
-  where review adds meaningful value, or at genuinely critical checkpoints. Not for routine coding
-  and not a fallback implementation model.
+- **Opus** - independent critical review only, roughly every seventh substantial implementation
+  prompt where review adds meaningful value, or at genuinely critical checkpoints. Not for routine
+  coding and not a fallback implementation model. Any Opus execution session is an explicitly
+  authorized exception granted by the owner for a named scope, and does not change this default.
 - **Terra** - specialist assurance for security, trust boundaries, concurrency, authorization, data
   integrity, credential boundaries, destructive operations. Not a general executor.
 
 One assigned canonical GitHub APO Issue remains the maximum active scope for one executor.
+
+### Execution share targets
+
+These are the owner's current targets for how routed execution work is distributed. They are
+planning guidance for Sol, not a quota to be spent: an under-used ceiling is never a reason to
+route work to a model, and §6's priority order still decides every individual route.
+
+| Model | Target share of routed execution |
+|---|---|
+| GPT-5.6 Sol | ~0% — control plane only; chat mode, no repository execution |
+| GPT-5.6 Luna xHigh | ~60% — the normal primary executor |
+| GPT-5.6 Terra High | up to ~20% — specialist assurance only, within §7 risk areas |
+| Claude Sonnet 5 | up to ~10% — Sol-selected fallback / special need |
+| Claude Opus 5 | up to ~10% — independent review, roughly every seventh substantial prompt |
+
+Opus is review-only by default. An Opus session that changes repository files requires an explicit,
+named, owner-granted authorization for that scope; such an authorization is a one-off exception and
+must not be treated as establishing a new default route.
 
 ---
 

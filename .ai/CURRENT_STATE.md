@@ -1,8 +1,711 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 10 September 2026 (APO-33 controlled integration and final closeout)
+**Last Updated:** 15 September 2026 (APO-70 planner output diagnostic and semantic-contract remediation; local validation)
 
-## APO-33 final controlled integration closeout
+Only the sections above the `Historical record` divider describe the current state of the
+repository. Everything below that divider is retained evidence from a boundary that has already
+closed: it is preserved for provenance and must not be read as current status, even where a line
+inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 persisted-Ready replay closure
+
+**Last Updated:** 15 September 2026
+
+Sol's exact-head review of `fc1783c` identified two P0 recovery gaps: a `Ready` coordinator cache
+could be returned for a different project, and a crash after durable run-authority persistence but
+before Ready supersession could re-use the same persisted Ready input through a new transient RunId.
+The coordinator now reuses cached Ready authority only for its exact project and clears stale cache
+before restoring another project.
+
+`ExecutionRunAuthority` remains the storage owner and RunId remains generated at Start. The
+repository now atomically creates a full immutable authority claim indexed by the exact input Ready
+checkpoint (project, checkpoint ID, schema version, and content hash) before its RunId index. A
+claim conflict returns AlreadyStarted/recovery-required with no adapter invocation; a crash before
+the RunId index is written still leaves the durable input claim. Restore reads that claim before
+workspace or executor rehydration, without planning, routing, or workspace preparation.
+
+Deterministic coverage proves project-cache isolation, failed cross-project restore clears Ready,
+durable same-Ready/different-RunId conflict, crash-window replay rejection, and consumed-Ready
+rehydration rejection. No real Sol, Luna, Codex, `PrepareAsync`, or `StartAsync` invocation was
+performed. Focused Connection tests passed 28/28; the two new Infrastructure regressions passed
+2/2. Release build compilation completed with no reported errors, but local child test hosts did
+not exit after the bounded wait; this is recorded as a local host stall, not a full validation pass.
+
+The next gate is Sol exact-head review after complete CI. The real cross-process
+Sol-to-Ready-to-restart-to-Restore-to-Luna proof remains pending. PR #112 remains Draft/Open/
+Unmerged and Issue #111 remains Open/current-gate.
+
+## CURRENT - APO-70 persisted-Ready rehydration completion safeguards
+
+**Last Updated:** 15 September 2026
+
+Claude's existing partial rehydration implementation at `de827fe3b3bf0d0a10cf8ba7696a8fc85e6a5d5a`
+was retained and audited. A persisted `Ready` checkpoint carries the immutable planning contract,
+graph/node, handoff, routing decision, workspace-plan, workspace receipt, source Git identity, and
+selected executor lineage. `RestoreAsync` consumes those durable authorities only: it does not plan,
+route, prepare a workspace, invoke a model, or silently repair missing state. The rehydrator accepts
+only the resolver's latest, current `Ready` continuation; source HEAD/branch/clean-state and the
+recorded workspace receipt must still match exactly. Content/artifact integrity remains hash-bound,
+while source identity continues to use authoritative Git state rather than working-tree byte equality.
+
+Run identity is intentionally created at `StartAsync`, not persisted with the pre-execution `Ready`
+authority. The durable `ExecutionRunAuthority` is created before adapter invocation and binds that
+fresh run ID to the immutable input checkpoint; it is the cross-process anti-replay boundary. After
+the first start publishes its non-Ready continuation, the resolver refuses the old `Ready` checkpoint;
+an identical run ID is additionally rejected as `AlreadyStarted`. The existing bounded-service
+replay/concurrency coverage remains the authority for that durable consumption behavior.
+
+The completion audit removed a duplicate executor-eligibility implementation from the rehydrator;
+both new and restored execution now use the single Application eligibility rule. Planner availability
+is no longer revalidated during restore: planner identity remains in checkpoint lineage, but an
+already completed planning authority does not need a currently available planner to execute. The
+Desktop view model serializes restore attempts and generation-checks project selection, so an old
+asynchronous restore cannot overwrite a newer selected project; restored planner display is truthfully
+shown as persisted lineage when no live planner resolution is needed.
+
+New deterministic coverage exercises exact Ready rehydration, source moved/dirty rejection, missing
+workspace rejection, disabled executor rejection, routing-reference mismatch rejection, superseded
+checkpoint rejection, coordinator restore-without-planning/routing/workspace preparation, persisted
+planner lineage, and the Desktop stale-selection race. No real Sol, Luna, Codex, `PrepareAsync`, or
+`StartAsync` invocation was performed; no Desktop app was launched.
+
+Local validation: Release build passed with 0 warnings / 0 errors; Domain 28/28, Connection 353/353,
+Provider 228/228, Desktop 118/118, and focused Infrastructure recovery/persistence coverage 174/174
+passed. The unfiltered Infrastructure host again stalled before reporting a result and was stopped;
+it is not claimed as a local full-suite pass. Self-contained single-file publish and structural
+validation passed for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64` (PE `0xAA64`).
+The next required gate is the exact-head PR CI run, followed by Sol's exact-head review. PR #112 remains
+Draft/Open/Unmerged and Issue #111 remains Open/current-gate.
+
+---
+
+## CURRENT - APO-70 planner output diagnostic and semantic-contract remediation
+
+**Last Updated:** 15 September 2026
+
+On reviewed source head `c1f2fd9` (planner classification wire-format remediation), the latest
+isolated production-DI `PrepareAsync` reproduction proved a real `gpt-5.6-sol` process exited
+successfully with the output file present, yet the APO planner adapter returned `InvalidResult` and
+the coordinator returned `PlannerInvalid` at Planning, before routing was reached. The adapter's
+single exception boundary wrapped both `JsonSerializer.Deserialize<CodexPlannerResponse>` and
+`CodexPlanMapper.Map` and reported every failure as the same generic `OutputParsingFailed = true`,
+so that runtime evidence alone could not prove whether the historical output failed to deserialize as
+JSON or deserialized successfully but failed `PlannerPlan`'s domain/semantic contract. Because the raw
+model output was intentionally never retained (bounded, redacted diagnostics only), the exact root
+cause of that one historical failure remains unproven and is not claimed to be resolved retroactively
+by this remediation; the fix is forward-looking diagnostic and prompt repair, not a diagnosis of the
+prior run.
+
+The remediation splits the two exception boundaries in `CodexPlannerAdapter.PlanAsync`: a `JsonException`
+from deserialization is now classified separately from an `ArgumentException`/`InvalidOperationException`
+raised by `CodexPlanMapper.Map`. `PlannerInvocationDiagnostic` gains a new typed
+`PlannerOutputFailureKind? OutputFailureKind` field (`JsonDeserialization` or `DomainMapping`); the
+existing `OutputParsingFailed` boolean is preserved for compatibility but is now truthfully `true`
+only for an actual JSON/deserialization failure, never for a structurally valid response that failed
+domain mapping. Error messages were also corrected to stop saying "did not match schema" when the
+real failure occurred in domain mapping. No raw model output, prompt, or transcript is persisted by
+either diagnostic path. The coordinator's existing `plannerResult.Diagnostic` propagation into
+`ExecutionPreparationResult.PlannerDiagnostic` required no change — it already threads the diagnostic
+record through unchanged, so the richer typed field reaches the same boundary automatically.
+
+`CodexPromptBuilder.BuildPlannerPrompt` now explicitly states the domain invariants `PlannerPlan`
+already enforces: `stopConditions` must include at least one `immutableTargetMoved`, one
+`scopeViolation`, and one `budgetExceeded` entry; `executionBudgets` must include at least one
+`attempts` and one `elapsedMinutes` entry, budget kinds must be unique, limits must be positive, and
+the `elapsedMinutes` limit must not exceed 240. No domain invariant in `PlannerPlan`, no strict-schema
+protection in `PlannerSchema`/`ExecutionSchema`, no routing authority, no Luna catalog, and no
+capacity/trust-gate evidence was changed.
+
+New regression coverage in `CodexExecutionAdapterTests`: a JSON-deserialization-failure case now also
+asserts the typed `OutputFailureKind` is `JsonDeserialization`; a new case constructs a structurally
+valid, schema-shaped planner response missing the mandatory `budgetExceeded` stop condition and
+asserts the result is classified `DomainMapping`, not a parsing failure; a theory covers four
+domain-invalid budget shapes (missing `attempts`, missing `elapsedMinutes`, duplicate budget kind,
+`elapsedMinutes` over 240), each asserted as `DomainMapping`; a dedicated valid-response case asserts
+`Succeeded` with no diagnostic; and a prompt regression asserts the mandatory stop/budget invariants,
+uniqueness requirement, and the 240-minute bound are present in the real planner prompt text. All
+prior strict-schema, planner-validator, and routing-authority regressions continue to pass unchanged.
+
+Full local validation: Release build 0 warnings / 0 errors; `git diff --check` clean (only benign
+LF/CRLF notices); focused Provider planner/adapter tests 32/32; Domain 28/28, Connection 345/345,
+Provider 228/228 (221 baseline + 7 new), Desktop 116/116, Infrastructure 675/675 — total 1,392 passed
+/ 0 failed / 0 skipped. Self-contained single-file publish validation passed for `win-x86` (PE
+`0x014C`), `win-x64` (PE `0x8664`), and `win-arm64` (PE `0xAA64`), each using the repository's own
+`win-*.pubxml` publish profiles and `scripts/Validate-PublishOutput.ps1`, with self-contained runtime
+evidence present and no unexpected loose runtime files.
+
+No real Sol/Luna/Codex model was invoked and no real `PrepareAsync`/`StartAsync` was run during this
+remediation; the Desktop app was not launched. No merge, main push, force push, release, tag,
+deployment, or owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review
+of this diagnostic and semantic-contract remediation; if accepted, one fresh isolated real production
+`PrepareAsync` attempt is authorized on the accepted head with truthful Sol/Luna configuration, no
+retry, stopping at Ready — real Luna workspace-write remains unauthorized until Ready is proven.
+
+---
+
+## CURRENT - APO-70 planner classification wire-format remediation
+
+**Last Updated:** 14 September 2026
+
+On reviewed source head `9dc51e2` (caller/planner routing classification authority repair), a
+subsequent Sol exact-head review found one remaining runtime-readiness defect: the authoritative
+classification payload that `CodexPromptBuilder.BuildPlannerPrompt` embeds in the planner prompt was
+serialized with enum `.ToString()` values (`Bounded`, `Moderate`, `Module`, `Executor`, `Optional`,
+etc.), while the strict `PlannerSchema` accepts only camel/lower-case wire values (`bounded`,
+`moderate`, `module`, `executor`, `optional`). The prompt simultaneously instructs the planner to
+"return this exact routing classification in your output unchanged," so the mismatch put the
+prompt's literal instruction and the strict output schema in direct conflict.
+
+The remediation removes the ad hoc `.ToString()` mapping and reuses the single existing provider
+serialization authority instead: `AppendClassification` now passes the raw
+`RoutingScopeScale`/`RoutingTaskRisk`/`RoutingBlastRadius`/`RoutingValidationCost`/`AgentRole`/
+`RoutingCapacityRequirement` enum values into the anonymous classification payload and serializes it
+with `CodexLocalInvocation.JsonOptions` — the same `JsonStringEnumConverter(JsonNamingPolicy.CamelCase)`
+options already used for all Codex structured-output serialization/deserialization. No second,
+hand-maintained enum-to-wire-value mapping was introduced. "Return it unchanged" is now internally
+consistent: the wire representation shown to the planner is the same one the strict schema accepts.
+
+All fourteen classification fields remain in the prompt payload unchanged in shape; normalized
+`RequiredCapabilities`/`PolicyTags` collections and all boolean trust-gate fields are untouched. No
+routing engine, coordinator, agent catalog, capacity-evidence, or schema-vocabulary change was made;
+the schema was not loosened and no PascalCase/camelCase aliases were added to it.
+
+New regression coverage in `CodexExecutionAdapterTests`: a parsed (not substring-only) extraction of
+the embedded classification JSON asserting exact wire values for a non-default classification
+(`scopeScale`, `risk`, `blastRadius`, `validationCost`, `requiredRole`, `capacityRequirement`, the
+normalized collections, and every boolean trust-gate field); and a schema-compatibility regression
+that, for every defined value of all six classification enums, serializes that value through the
+real `CodexPromptBuilder.BuildPlannerPrompt` code path and asserts the emitted wire value is present
+in the parsed `PlannerSchema`'s `classification` enum list for that field — so the prompt's wire
+vocabulary cannot drift from the strict schema unnoticed. The pre-existing planner-prompt authority
+test was corrected to assert the schema-compatible camelCase wire values (it previously pinned the
+`.ToString()` PascalCase bug). All prior authority-boundary and strict-schema regressions from
+`9dc51e2` continue to pass unchanged.
+
+Full local validation: Release build 0 warnings / 0 errors; `git diff --check` clean (only benign
+LF/CRLF notices); Domain 28/28, Connection 345/345, Provider 221/221 (219 baseline + 2 new), Desktop
+116/116, Infrastructure 675/675 — total 1,385 passed / 0 failed / 0 skipped. Self-contained
+structural publish validation passed for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and
+`win-arm64` (PE `0xAA64`), each with self-contained runtime evidence present.
+
+No real Sol/Luna/Codex model was invoked and no real `PrepareAsync`/`StartAsync` was run during this
+remediation; the Desktop app was not launched. No merge, main push, force push, release, tag,
+deployment, or owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review
+of this wire-format repair; if accepted, one fresh isolated real production `PrepareAsync` validation
+using truthful Sol/Luna configuration is authorized, stopping at Ready — `StartAsync` and real Luna
+workspace-write remain unauthorized until Ready is proven.
+
+---
+
+## CURRENT - APO-70 planner/routing authority-boundary remediation
+
+**Last Updated:** 14 September 2026
+
+On reviewed source head `d225772`, real GPT-5.6 Sol structured planning was runtime-proven and
+routing was reached with a truthfully configured Luna candidate; routing then rejected every
+candidate because the coordinator passed the planner-generated `PlannerPlan.Classification` into
+routing-policy resolution and the routing decision instead of the caller/control-plane
+`OrchestrationWorkRequest.Classification`. `RoutingTaskClassification` is documented owner/control-
+plane authority — scope/risk/blast-radius/validation-cost, required role/capabilities, policy tags,
+capacity requirement, review/security/owner-approval gates, and connection/authentication/
+entitlement trust gates — and the planner is only permitted to echo it, never redefine it. Source
+review confirmed this caller/planner routing-authority mismatch as the sole proven authority defect;
+`RoutingDecisionEngine`/`RoutingInputAssembler` fail-closed behavior and the strict Codex
+planner/execution output schemas were independently confirmed correct and were not touched.
+
+The remediation now preserves caller/control-plane classification authority end to end:
+`ExecutionPreparationCoordinator` passes `request.Classification` (not `plan.Classification`) into
+both `IExecutableRoutingPolicyResolver.ResolveAsync` and the `RoutingDecisionRequest` sent to
+routing. `PlannerPlanValidator.Validate` now performs an exact field-by-field comparison of the
+planner-echoed classification against the owner's classification (all fourteen fields, including
+`SequenceEqual` with `StringComparer.Ordinal` for the normalized `RequiredCapabilities`/
+`PolicyTags` collections) and rejects the plan before routing is ever reached if any field drifts.
+`CodexPromptBuilder.BuildPlannerPrompt` now presents the caller classification to the planner as an
+explicit JSON payload with an instruction to return it unchanged, and no longer asks the planner to
+"classify" the task. No planner-generated capability string was added to the Luna/agent catalog, no
+capacity or trust-gate evidence was fabricated or defaulted positive, and no routing engine
+strictness was weakened.
+
+New regression coverage: exact-preservation of a complete caller classification; capability drift;
+capacity drift; connection/authentication/availability/entitlement (trust gate) drift; scope/risk/
+blast-radius/validation-cost drift; policy-tag drift; review/security/owner-approval gate drift; a
+coordinator-level regression proving (via `Assert.Same`/`Assert.NotSame`) that routing receives the
+caller's own classification instance rather than the planner's echoed instance, and a companion
+regression proving the coordinator rejects planner classification drift before routing is invoked;
+and a planner-prompt regression proving the caller classification is presented as authoritative and
+unchangeable. All pre-existing strict-schema and planner-validator tests continue to pass unchanged.
+
+Focused Connection and Provider tests covering this change passed. Full local validation: Release
+build 0 warnings / 0 errors; `git diff --check` clean (only benign LF/CRLF notices); Domain 28/28,
+Connection 345/345 (327 baseline + 18 new), Provider 219/219 (218 baseline + 1 new), Desktop 116/116,
+Infrastructure 675/675 — total 1,383 passed / 0 failed / 0 skipped. Self-contained structural publish
+validation passed for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64` (PE
+`0xAA64`), each with self-contained runtime evidence present.
+
+No real Sol/Luna/Codex model was invoked and no real `PrepareAsync`/`StartAsync` was run after this
+remediation; the Desktop app was not launched. No merge, main push, force push, release, tag,
+deployment, or owner/Sol acceptance was performed. The next planner boundary is Sol exact-head
+review of this remediation, followed by one fresh isolated real `PrepareAsync`-to-Ready runtime
+validation; do not authorize `StartAsync` or Luna execution until that reaches Ready.
+
+---
+
+## CURRENT - APO-70 strict schema compatibility repair (partial; runtime acceptance pending)
+
+**Last Updated:** 13 September 2026
+
+On reviewed source head `56bee65a9ef4742921721ba7253d3f224ca349da`, the latest isolated production-DI
+`PrepareAsync` reproduction reached the real `gpt-5.6-sol` planner and failed at Planning with
+typed `NonZeroExit`, exit code `1`, no output file, no timeout/cancellation, and confirmed process
+termination. The bounded redacted diagnostic did not prove that strict-schema defect as the sole
+runtime cause. Sol source review independently found that `PlannerSchema` omitted nullable
+`commandOrReference` from its nested required set and that `ExecutionSchema` required only
+`summary`; both are now repaired on delivered source head
+`0745f9f5720d8c7277859e6a87340d87eb27e178`. No routing, workspace preparation, `StartAsync`, Luna
+invocation, or disposable repository mutation occurred.
+
+The planner boundary now preserves a redacted, 1,000-character-bounded diagnostic through
+`PlannerInvocationResult` and `ExecutionPreparationResult`: typed process outcome, exit code,
+timeout/cancellation derivation, termination confirmation, output-file presence, parse state, and
+stdout/stderr truncation/summary evidence. The provider runner also preserves the host's termination
+confirmation. The schema writer is UTF-8 without a BOM. The current source/test remediation makes
+both planner and execution schemas recursively strict-compatible: every object with declared
+properties explicitly rejects additional properties and requires exactly those properties, while
+nullable semantic fields remain required and nullable. Existing regressions cover typed process
+outcomes, missing/malformed output, redaction, no-BOM emission, and JSON validity; the new parsed
+structural regression covers both schemas.
+
+Focused Provider tests passed 22/22. Release build passed with 0 warnings and 0 errors; Domain
+28/28, Connection 327/327, Provider 218/218, and Desktop 116/116 passed locally. The local
+Infrastructure host stalled at discovery and was stopped after bounded observation, so its 675
+tests are not claimed as a local pass. Structural self-contained publish validation passed for
+`win-x86`, `win-x64`, and `win-arm64`.
+
+Exact-head GitHub Actions run `34762145928` passed on `0745f9f` with 1,364/1,364 tests passed,
+0 failed, 0 skipped, Release build 0 warnings and 0 errors, and `win-x86`, `win-x64`, and
+`win-arm64` publish jobs passed. No real planner invocation was made after this remediation; no
+real Luna workspace-write execution, merge, main push, release, tag, deployment, tracker closure,
+credential inspection, owner acceptance, or Sol final acceptance occurred. The next planner
+boundary is exact-head Sol review, then one isolated read-only real `PrepareAsync` validation using
+`gpt-5.6-sol`; do not authorize `StartAsync` or Luna until that reaches Ready.
+
+---
+
+## CURRENT - APO-70 Codex invocation-policy recovery
+
+**Last Updated:** 13 September 2026 (APO-70 safety-net implementation and exact local model verification)
+
+The shared local Codex invocation path now carries a typed planner/executor policy: planner uses
+`read-only` and executor uses the installed CLI's supported `workspace-write` sandbox, with
+non-interactive `-a never` approval and direct `codex.exe` argument invocation in both cases. The
+executor instruction now permits normal sandboxed agent tooling inside the prepared workspace while
+continuing to forbid commits, pushes, merges, deployments, and unrelated deletion. The planner-plan
+validator also rejects a planner result whose required downstream role differs from the owner flow's
+required role, so the default Planner-to-Executor flow cannot route a reviewer-only result into the
+bounded executor boundary.
+
+Focused Provider, Connection, and Desktop tests passed (13, 326, and 6 respectively), followed by
+full project suites of 209 Provider, 326 Connection, and 116 Desktop tests. Release solution build
+passed with 0 warnings / 0 errors, `git diff --check` passed, and self-contained structural publish
+validation passed for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64` (PE
+`0xAA64`). A solution-wide test run passed Domain 28, Connection 326, Provider 209, and Desktop
+116 before the Infrastructure test host stalled at discovery; the isolated Infrastructure run also
+produced no result within the bounded observation and was stopped. This is not recorded as a passing
+full suite.
+
+The installed direct executable
+`C:\Users\Win11\.vscode\extensions\openai.chatgpt-26.908.40401-win32-x64\bin\windows-x86_64\codex.exe`
+(version `codex-cli 0.154.0-alpha.6.2`) verified both exact model identifiers, `gpt-5.6-sol` and
+`gpt-5.6-luna`, using separate ephemeral, explicit-model, read-only, `approval=never`, structured
+output sessions in a disposable temporary workspace. No write-enabled real model smoke was run.
+The verified identifiers are now persisted only in the existing `DefaultAgentCatalog` authority;
+other default agents remain unverified and fail closed.
+
+No merge, main push, force push, release, tag, deployment, credential inspection, or owner/Sol
+acceptance was performed. The remaining blocker is Infrastructure test-host recovery; the next
+planner boundary is Sol exact-head review of the pushed Draft PR.
+
+---
+
+## CURRENT - APO-70 execution spine and command center recovery
+
+**Last Updated:** 13 September 2026 (evidence sync bff0e37 pushed; acceptance pending)
+
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+CURRENT IMPLEMENTATION HEAD = `bff0e37` (metadata sync; code/evidence commit `6070399ecbc141784161a14c506d13c78593e3f1`)
+LOCAL DELIVERY HEAD = `bff0e37`
+REMOTE FEATURE HEAD = `bff0e37`
+PR STATE = OPEN / DRAFT / NOT MERGED
+PR CHECK STATE = IN PROGRESS; mergeability currently BLOCKED by the running check
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = PENDING / NOT CLAIMED
+OWNER FUNCTIONAL ACCEPTANCE = PENDING / NOT CLAIMED
+SOL ACCEPTANCE = PENDING ON THE FINAL EXACT HEAD
+
+The Application now exposes `IExecutionCoordinator` with a real planner boundary. It resolves one
+enabled planner, verifies the exact clean repository first, invokes one exact planner adapter, validates
+the structured provider-independent plan, and only then creates the immutable planning contract,
+single-node work graph, centralized persisted-policy routing decision, redacted planner-to-executor
+handoff, exact workspace plan and receipt, recovery checkpoint, and `BoundedExecutionRequest`.
+Planner output now carries normalized objective, included scope, typed validation expectations,
+acceptance criteria, constraints, routing classification, typed stop conditions, and bounded budgets;
+owner acceptance and constraints cannot be dropped. The persisted routing policy now carries typed
+preferred/prohibited agent ids, resolved by `IExecutableRoutingPolicyResolver` with project-over-global
+inheritance and default role metadata.
+
+Production composition now registers one exact local Codex planner and one exact local Codex executor.
+Both require a direct `.exe`, explicit OpenAI/Cli model identity, authenticated `codex login status`,
+bounded typed arguments, strict output schemas, redaction checks, cancellation/timeouts, and the
+prepared workspace. Planning uses `read-only`; execution uses `workspace-write`; APO does not invoke a
+shell or authorize commit, push, merge, deployment, or unrelated deletion. The default catalog now
+contains the two verified exact Codex model identifiers while connection, authentication, and
+entitlement state remain Unknown, so it still fails closed until an eligible configured local Codex
+planner/executor pair exists. No fake Claude path or silent model fallback was added.
+
+The Desktop Execution workspace remains bounded and truthful. Its touched presentation is extracted
+to `Views/ExecutionView.xaml`; the shell continues to reuse the existing RMS-derived semantic cards,
+logo treatment, sidebar, light/dark resources, and focusable controls. No raw prompt, arbitrary command,
+credential, transcript, or fake progress path is exposed.
+
+Validation on evidence commit `6070399ecbc141784161a14c506d13c78593e3f1`: Release solution build
+PASS with 0 warnings / 0 errors; Domain 28/28, Connection 326/326, Provider 209/209, and Desktop
+116/116 passed; the solution-wide run stalled in Infrastructure test-host discovery and is not
+counted as a full-suite pass; focused APO-70 lifecycle coverage PASS; `git diff --check` PASS; and
+self-contained single-file publish validation PASS for `win-x86` (PE `0x014C`), `win-x64` (PE
+`0x8664`), and `win-arm64` (PE `0xAA64`). The installed direct Codex probe found
+`C:\Users\Win11\.vscode\extensions\openai.chatgpt-26.908.40401-win32-x64\bin\windows-x86_64\codex.exe`,
+version `codex-cli 0.154.0-alpha.6.2`; both exact model IDs were verified in separate ephemeral
+read-only structured sessions with approval `never`, and no write-enabled smoke was run.
+
+Fresh current-run evidence on an earlier clean implementation commit: `scripts/Run-FreshDesktop.ps1 -SmokeTest`
+published and launched `artifacts/local-run/win-x64/AIUsageMonitor.Desktop.exe` with
+SHA-256 `441EE78F1535E8882CBD4BB22630CB1590C43F94E7F370FDAC519879672CC431`; PID `60216`, title
+`AI Orchestrator`, responding, smoke test PASS, and stopped by the script. Computer Use still exposes
+no targetable native apps (`apps: []`), so owner visual/functional acceptance is not claimed. A live
+write-enabled planner/executor invocation was not attempted; only the explicitly authorized
+read-only model verification sessions were run.
+
+No merge, main push, force push, release, tag, deployment, tracker closure, credential access, or
+owner/Sol acceptance was performed. The next planner boundary is Sol exact-head review, followed by
+owner visual/functional acceptance and any separately authorized real bounded Codex execution attempt.
+
+The evidence commit is pushed to the PR feature branch. PR #112 remains Draft/Open/Unmerged and
+Issue #111 remains Open with its current-gate/in-progress labels; no tracker closure or merge was
+performed.
+
+---
+
+## CURRENT - APO-70 owner-rejection functional recovery (this session)
+
+**Last Updated:** 12 September 2026 (bounded remediation and fresh owner-run evidence)
+
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+STARTING HEAD = `a8fdebe5e7dbf6e7500f733442f4304c015f7ecf`
+DELIVERED CODE HEAD = `58b9734555fb8d88d3c3f5aa0cc8c917e6c3795b`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = PENDING / NOT CLAIMED
+OWNER FUNCTIONAL ACCEPTANCE = PENDING / NOT CLAIMED
+SOL ACCEPTANCE = PENDING ON THE NEW EXACT HEAD
+
+This session reproduced the provider configuration defect in source: connection hydration applied
+authentication mode to the card but not the persisted capacity mode. The card now rehydrates the
+saved mode, rejects Automatic for Claude local-session authentication, and exposes the effective
+mode for regression coverage. The editor now derives capacity options from provider capability and
+authentication channel, explains the organization-API versus consumer-subscription boundary, and
+rejects impossible Automatic saves. Codex executable lookup now prefers a directly launchable image
+across PATH entries before `.cmd`/`.bat` wrappers; the machine's direct Codex status probe reported
+an authenticated session without reading or storing credentials. Claude's official local status
+probe reported logged-in truth; no output beyond the bounded boolean is exposed by the provider.
+
+Project onboarding command state now propagates through the shell: a healthy loaded registry enables
+`Add Existing Project`, and unavailable states expose a reason instead of a mysteriously disabled
+CTA. Provider cards use a wrapping panel with a bounded card width instead of a fixed three-column
+grid. This was the pre-coordinator baseline. The safe request-authoring boundary is now implemented
+in the newer execution-spine section above; the remaining P0 gap is the absence of a registered
+provider-specific bounded execution adapter.
+
+Validation: focused Desktop remediation tests 55 passed / 0 failed / 0 skipped; provider
+session/locator tests 14 passed / 0 failed / 0 skipped; full solution 1,314 passed / 0 failed / 0
+skipped (28 Domain, 306 Connection, 196 Provider, 109 Desktop, 675 Infrastructure); Release build
+0 warnings / 0 errors. Remote CI run `34715313646` passed on the delivered code head, including
+the canonical test job and win-x86, win-x64, and win-arm64 publish jobs. Fresh owner-run publish
+passed on that head at `2026-09-12T19:50:42Z`: executable
+`artifacts/local-run/win-x64/AIUsageMonitor.Desktop.exe`, SHA256
+`ABBB6987535CF74F5A8D629E11F3535507A8DCE47F059C3F1AD3099718D6D10B`, PID `25376`, title
+`AI Orchestrator`, responsive, one process, and explicitly left running. Interactive Windows
+validation is blocked because the Computer Use surface exposes no targetable native apps; no owner
+visual acceptance is claimed. PR evidence update is complete.
+
+No merge, main push, force push, release, tag, deployment, tracker closure, credential access, or
+owner acceptance was performed.
+
+---
+
+## CURRENT - APO-70 deterministic fresh desktop run workflow
+
+**Last Updated:** 12 September 2026 (deterministic fresh-run workflow implementation)
+
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = NOT PRESENTED / NOT APPROVED
+SOL ACCEPTANCE = PENDING FOR THE NEW HEAD
+
+The stale local root `publish/` output was removed. The canonical owner launch workflow is now
+`scripts/Run-FreshDesktop.ps1`: it captures current Git state, replaces only the ignored
+`artifacts/local-run/win-x64` output, performs a Release self-contained publish with the accepted
+`win-x64` profile, calls `scripts/Validate-PublishOutput.ps1`, hashes the exact executable, and
+launches only that newly created path. Default mode leaves the process running; `-SmokeTest` uses
+a bounded responding-window check and stops only the process it launched. No fallback executable
+or new runtime architecture was introduced.
+
+The root cause of the obsolete owner-visible UI was manual launch from an existing ignored publish
+directory that had not been recreated from the current repository state. Existing binaries are no
+longer current-run evidence under the repository contract.
+
+Validation on the implementation worktree: PowerShell parse PASS; focused fresh-run contract test
+1 / 1 passed; Release solution build PASS with 0 warnings / 0 errors; canonical solution tests
+1,310 passed / 0 failed / 0 skipped; fresh runner smoke mode PASS with publish validation PASS for
+`win-x64` (PE `0x8664`) and final smoke cleanup `APO PROCESS COUNT = 0`.
+
+No credentials, owner LocalAppData state, external repositories, merge, main push, force push,
+release, tag, deployment, or owner visual acceptance were performed.
+
+## CURRENT — APO-70 architecture health, deep clean, and remediation
+
+**Last Updated:** 12 September 2026 (owner-authorized Opus execution session)
+
+SESSION AUTHORITY = OWNER-AUTHORIZED OPUS EXECUTION EXCEPTION, NAMED SCOPE, NOT A NEW DEFAULT ROUTE
+ACTIVE IMPLEMENTATION CURRENT GATE = APO-70 / GitHub issue #111
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+OWNER VISUAL ACCEPTANCE = NOT PRESENTED / NOT APPROVED
+SOL ACCEPTANCE = PENDING
+
+This session continued APO-70 on the same branch as an audit-and-fix pass rather than a review
+report. Defects were repaired where they were proven and safely repairable inside the project
+boundary:
+
+- **Project folder selection (§11 gap).** The picker now prefers the last successfully used project
+  folder, then `D:\AI Tools\Active Projects`, then the ordinary Windows fallback. Nothing is
+  auto-registered or auto-selected, the preference is persisted through the existing
+  `ISettingsService` boundary rather than an ad-hoc repository write, and an absent directory
+  degrades truthfully instead of hard-failing on another machine.
+- **Shell lifetime.** `MainWindow` releases its static theme subscription on close, so a closed
+  shell no longer stays reachable from `ThemeManager`.
+- **Selection refresh.** A superseded selection no longer disposes the cancellation token of a
+  refresh that is still in flight.
+- **Provider identity.** The built-in provider identifier table moved to the Domain layer, and the
+  Application-layer registry contract stopped minting a fresh `Guid` per call, which had made
+  `FindDefinition(id)` unable to match a definition the same contract had just returned.
+- **Rendered-name collisions.** Duplicate detection now compares the label an operator actually
+  sees, so two registrations can no longer render under one identical title.
+- **Executable resolution.** The locator probes directory-major, extension-minor in Windows order
+  and prefers a directly launchable image, because the bounded process host runs with
+  `UseShellExecute` disabled, where Windows cannot launch a `.cmd`, `.bat`, or extensionless shim.
+  Such shims are still reported when they are the only match, so presence stays truthful.
+- **Bounded process host.** The timeout timer is cancelled on every exit path, output readers are
+  cancelled once the process exits, and abandoned readers are observed so a late fault cannot
+  surface as an unobserved task exception attributed to unrelated code.
+- **Deferred CI findings.** `OPUS-33-02` (timing-sensitive test) now races a deterministic signal
+  instead of sleeping; `OPUS-33-03` (suite completeness) is self-enforcing — CI fails if a test
+  project exists outside the canonical list; `OPUS-33-04` (job timeouts) is bounded on both jobs;
+  `OPUS-33-05` (Actions major-version / Node runtime hardening) moves checkout, setup-dotnet, and
+  upload-artifact off the deprecated Node 20 runtime, which a CI run on this branch was annotating
+  on every job. Checkout no longer persists its token, as no job writes to the repository. All four
+  deferred APO-33 findings are now remediated.
+- **Tooling.** The Codex host's Serena MCP registration uses the `codex` context instead of the
+  `claude-code` context.
+
+No credential value, token, or session secret is read, copied, logged, or persisted by any of this
+work; only opaque credential references are stored. Workspace discovery remains read-only. No demo
+project, fake provider, fake capacity, fake connected state, or fake tracker/CI data was added.
+
+Repository cleanliness audit: nothing to delete. The working tree is clean with no untracked files,
+every retained asset is referenced, and `docs/evidence/*.png` plus
+`.ai/history/CURRENT_STATE_ARCHIVE.md` are legitimate retained historical evidence.
+
+Jira writes = NONE. Merge, push to `main`, force push, history rewrite, branch-protection bypass,
+release, tag, and deployment = NONE.
+
+### Validation evidence
+
+RELEASE BUILD = PASS / 0 warnings / 0 errors
+CANONICAL TESTS = 1,309 passed / 0 failed / 0 skipped
+
+| Test project | Passed | Failed | Skipped |
+|---|---|---|---|
+| `AIUsageMonitor.Domain.Tests` | 28 | 0 | 0 |
+| `AIUsageMonitor.Connection.Tests` | 306 | 0 | 0 |
+| `AIUsageMonitor.Provider.Tests` | 196 | 0 | 0 |
+| `AIUsageMonitor.Desktop.Tests` | 104 | 0 | 0 |
+| `AIUsageMonitor.Infrastructure.Tests` | 675 | 0 | 0 |
+
+Focused runs for every area changed in this round:
+
+- provider identity and executable resolution — 14 / 14 passed;
+- shell lifetime, Mission Control, and the project folder picker — 12 / 12 passed;
+- deterministic WPF visual render — 1 / 1 passed;
+- bounded process host, workspace preparation, and settings persistence — 157 / 157 passed.
+
+PUBLISH VALIDATION = PASS for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64`
+(PE `0xAA64`), each self-contained and each checked by `scripts/Validate-PublishOutput.ps1`.
+
+Runtime check: the published `win-x64` executable, SHA-256
+`68719641C59FD349C2C4FEFC48B48E1BF88FF6C18631E366C9C22B65A98837ED`, was launched against a
+disposable temporary state root with no owner credential and no production state. It presented the
+`AI Orchestrator` window, responded, wrote only inside that disposable root, and logged no warning
+or error. The process was then stopped: `APO PROCESS COUNT = 0`,
+`APPLICATION LEFT RUNNING = NO`, and the disposable root was deleted.
+
+Remote CI is verified against the exact pushed head; the run identifier is recorded on PR #112.
+
+AUTOMATED VISUAL VALIDATION = PASS (deterministic structural render assertions only).
+OWNER VISUAL ACCEPTANCE = NOT PRESENTED / NOT APPROVED. Automated render checks are not owner
+visual acceptance and this session does not claim it. No interactive owner walkthrough was
+performed by this session.
+
+---
+
+## CURRENT — APO-70 provider-authentication and dynamic-registry scope
+
+Delivered earlier on this same branch and still part of the unmerged APO-70 gate. The test and CI
+figures quoted in this section are the figures of that earlier session; the current counts are in
+the final validation section of this file.
+
+**Last Updated:** 11 September 2026 (APO-70 provider-authentication and dynamic-registry implementation; exact-head CI passed; owner visual acceptance pending)
+
+REMEDIATION STATUS = IMPLEMENTED / PENDING OWNER VISUAL ACCEPTANCE
+REMEDIATION SCOPE = local-session-first Codex/Claude authentication, optional API-key fallback, dynamic provider registry, generic custom providers, explicit availability/authentication/capacity states
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+
+This same-branch remediation keeps the existing recovery shell and replaces the rejected fixed
+provider-authentication surface with a registry-driven AI Providers page. The default catalog is
+Codex, Claude, and Antigravity; Kimi and GitHub Copilot remain supported only as legacy persisted
+data/compatibility adapters and are not default cards. Codex and Claude default to local-session
+authentication, with explicit optional API-key mode. Custom provider definitions support safe
+metadata, external/manual or API-key authentication, truthful manual/unavailable capacity, stable
+IDs, secure credential references, persistence, and registration-only removal. No provider
+credentials, file contents, remote mutations, demo data, release, tag, or merge were added.
+
+Validation evidence: Release build passed with 0 warnings / 0 errors; the full solution passed
+1,273 / 1,273 with 0 failures and 0 skips; the focused WPF visual render passed 1 / 1 and retained
+15 deterministic PNGs, including light/dark AI Providers, custom manual registration, local-session
+and API-key editor states, and the existing recovery shell states. `win-x86`, `win-x64`, and
+`win-arm64` self-contained publish outputs passed `scripts/Validate-PublishOutput.ps1`. Exact-head
+remote CI run `34641371944` passed its canonical test job and all three publish jobs for commit
+`b87d4bcfcd052e9552c357ef4f0c2cf379fb21cf`. The final local x64 executable is
+`C:\Users\Win11\AppData\Local\Temp\apo70-publish-final-1c818b1ec8f14c049837d2eb6e845491\win-x64\AIUsageMonitor.Desktop.exe`
+with SHA-256 `8B2AE035910C6A21AA3DB6D201445069BE89B5AEBE793459EB2CE127911DED35`. Computer
+Use returned no targetable apps (`apps: []`) and its trusted RPC was unavailable, so owner
+interactive visual acceptance is not claimed. The manual fallback x64 process is running from an
+isolated temp root with no credential entry (PID `45068`, title `AI Orchestrator`, responding).
+
+Read-only local tooling observation: Codex tooling was detected and its supported CLI status command
+reported an authenticated session; Claude tooling was detected and `claude auth status --json`
+reported an authenticated session. APO does not copy either session credential. The application
+detector invokes only native executable paths through the bounded no-shell process host; if a local
+wrapper cannot be safely invoked, its UI remains `authentication not machine-verifiable` rather than
+claiming a false result.
+
+The branch remains unmerged and release frozen pending Sol review and the owner's visual response.
+
+## CURRENT — APO-70 V1 desktop product recovery scope
+
+Delivered first on this same branch and still part of the unmerged APO-70 gate. The test and CI
+figures quoted in this section are the figures of that session; the current counts are in the final
+validation section of this file.
+
+**Last Updated:** 11 September 2026 (APO-70 acceptance completion; release remains frozen)
+
+PREVIOUS_VISUAL_CHECKPOINT = OWNER REJECTED
+V1 RELEASE = FROZEN / NOT AUTHORIZED
+v1.0.0 = NOT RELEASED
+V1 TAG = NOT CREATED
+V1 RELEASE = NOT CREATED
+ACTIVE CURRENT GATE = APO-70 / GitHub issue #111
+RECOVERY ISSUE = `https://github.com/Hossam1104/AI_Orchestrator/issues/111`
+BASE SHA = `d7c1231df9ea1a4d008aa473210d0ccc735c0302`
+BRANCH = `feature/APO-70-v1-desktop-product-recovery`
+RMS REFERENCE PATH = `D:\AI Tools\Active Projects\RMS_Support_Hub`
+RMS REFERENCE SHA = `fe3d06d2337093d322cb29cb3fefc369248e60a1`
+
+Recovery implementation covers the RMS-family light/dark semantic resource system, WPF shell
+header/sidebar/card/control treatment, truthful global local-state pill, session theme switching,
+native local-path selection, and hiding Post-V1 Agents/Activity entries from primary navigation.
+Existing Mission Control, Projects, AI Capacity, persistence, provider, and credential-reference
+services remain the source of runtime data; no demo data or secrets were added.
+
+Acceptance completion added a test-only deterministic WPF render suite with 14 retained temporary
+PNG renders and structural assertions for light/dark Mission Control, Projects, New Project,
+AI Capacity, provider connection, friendly error, and open-combobox states. The dark overlay now
+owns its semantic brushes and gradients at runtime; the prior nested-resource defect left dark
+renders visually light. A focused render run passed 1/1, and the full solution passed 1,253 / 1,253
+with 0 failures and 0 skips. `win-x86`, `win-x64`, and `win-arm64` self-contained publish outputs
+also passed `scripts/Validate-PublishOutput.ps1`.
+
+The x64 published executable launched from an isolated `%TEMP%` state root and responded with an
+`AI Orchestrator` window before cleanup. A disposable local Git workspace was created outside both
+repositories with two commits for the acceptance boundary. Native Computer Use remained unavailable
+(`apps: []`; no controllable Windows app surface), so the interactive Projects persistence,
+AI Capacity/provider, theme-toggle, and owner visual walkthrough are not claimed.
+
+Jira writes = NONE. Product remote mutation, release/tag/deploy, merge, force push, bypass, and
+auto-merge = NONE.
+
+### APO-70 handoff evidence
+
+IMPLEMENTATION COMMIT = `cd142d8` (`test(APO-70): add visual acceptance coverage`)
+PR = `https://github.com/Hossam1104/AI_Orchestrator/pull/112`
+PR STATE = OPEN / DRAFT / NOT MERGED
+CI RUN = `34601533946`
+CI REQUIRED CHECKS = PASS (Restore, build, and test; Publish win-x86; Publish win-x64; Publish win-arm64)
+OWNER VISUAL CHECKPOINT = NOT PRESENTED / NOT APPROVED
+COMPUTER USE SURFACE = UNAVAILABLE (no controllable Windows app surface exposed)
+LIVE REMOTE WRITE ACCEPTANCE = NOT PERFORMED / NOT CLAIMED
+NEXT AUTHORITY = GPT-5.6 Sol for exact-head review and owner visual response
+
+## V1 active AI execution resources
+
+Canonical routing, model portfolio, effort selection, quota governance, and execution share targets
+live in [`AI_MODEL_ROUTING.md`](AI_MODEL_ROUTING.md) and
+[`AI_EXECUTION_POLICY.md`](AI_EXECUTION_POLICY.md). That policy is authoritative; this file does not
+restate it.
+
+Two providers are active for AI-assisted execution: OpenAI/Codex and Anthropic/Claude. Antigravity
+and GitHub Copilot are APO **product-domain** providers that APO can monitor; neither is an active
+execution provider for work in this repository.
+
+`COPILOT = POST-V1`
+
+`ALL NEW PROVIDER-SPECIFIC WORK OUTSIDE THE ACTIVE V1 RESOURCE SET = POST-V1`
+
+Existing optional provider adapters and provider-independent architecture remain in the repository;
+provider cleanup/removal is deferred and is not part of this closeout.
+
+---
+
+# Historical record
+
+Everything below this line is retained evidence from a closed boundary. It is preserved for
+provenance and is **not** current status. Where a historical line reads `CURRENT GATE`, `ACTIVE`,
+or `NONE`, it was true when written and has since been superseded by the current sections above.
+
+---
+
+## HISTORICAL / SUPERSEDED — APO-33 final controlled integration closeout
 
 APO GITHUB MIGRATION = COMPLETE
 CANONICAL ISSUES = 69
@@ -289,34 +992,6 @@ current authority snapshot and must not be treated as an executable prompt.
 - PR #25 is `AUTO-MARKED MERGED BY ANCESTRY / SUPERSEDED BY PR #27`; no separate PR #25 merge
   command occurred.
 - PR #26 is `CLOSED / UNMERGED / SUPERSEDED`.
-
-## V1 active AI resources
-
-V1 is intentionally optimized around the currently available resource groups:
-
-### OpenAI
-
-- Two GPT accounts are available.
-- GPT-5.6 Sol: planning, architecture, routing, acceptance, and prompt authority.
-- GPT-5.6 Luna xHigh: main substantial executor.
-- GPT-5.6 Terra HIGH: recovery/finalization or surgical pass when needed.
-
-### Claude
-
-- Claude Sonnet 5: bounded implementation and fixes.
-- Claude Opus 5: critical independent review only.
-
-### Antigravity Plus
-
-- Auxiliary bounded/mechanical execution.
-- Gemini-family usage may be routed here when appropriate and available.
-
-`COPILOT = POST-V1`
-
-`ALL NEW PROVIDER-SPECIFIC WORK OUTSIDE THE ACTIVE V1 RESOURCE SET = POST-V1`
-
-Existing optional provider adapters and provider-independent architecture remain in the repository;
-provider cleanup/removal is deferred and is not part of this closeout.
 
 ## HISTORICAL / SUPERSEDED — APO-63 R1 executor delivery
 

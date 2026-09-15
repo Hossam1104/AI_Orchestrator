@@ -476,6 +476,9 @@ continue. Accuracy, evidence, and explicit uncertainty outrank visual symmetry.
 
 # 16. Application Runtime Contract
 
+Fresh run/open/launch semantics are canonicalized in `.ai/AI_EXECUTION_POLICY.md` §2.1 and
+implemented by `scripts/Run-FreshDesktop.ps1`.
+
 Originally established by the APO-37 SOL-37-01..05 remediation (Prompt 4/5) as a leave-running
 default; superseded by the governance remediation recorded in `.ai/CURRENT_STATE.md` to a
 stop-by-default rule. This rule is permanent and applies to every future local prompt in this

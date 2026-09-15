@@ -455,6 +455,20 @@ public sealed class ProjectsWorkspaceTests
     }
 
     [Fact]
+    public async Task AddExistingProjectIsEnabledAfterHealthyRegistryInitialization()
+    {
+        var viewModel = CreateViewModel(new FakeProjectRepository());
+
+        Assert.False(viewModel.AddExistingProjectCommand.CanExecute(null));
+
+        await viewModel.InitializeAsync();
+
+        Assert.True(viewModel.CanAddExistingProject);
+        Assert.True(viewModel.AddExistingProjectCommand.CanExecute(null));
+        Assert.Equal(string.Empty, viewModel.AddExistingProjectStateText);
+    }
+
+    [Fact]
     public async Task CancelClearsEditTargetAndRestoresRegistryInteraction()
     {
         var alpha = CreateProject("Alpha", "C:\\alpha");

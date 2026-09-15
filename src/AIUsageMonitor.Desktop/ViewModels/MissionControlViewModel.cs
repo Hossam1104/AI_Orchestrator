@@ -390,8 +390,10 @@ public sealed class MissionControlViewModel : ObservableObject
         long generation,
         CancellationToken cancellationToken = default)
     {
+        // Cancel only. The superseded refresh still owns that source and disposes it in its own
+        // finally; disposing it here races an in-flight operation that may still register on its
+        // token, which surfaces as an ObjectDisposedException instead of a clean cancellation.
         _selectionRefreshCancellation?.Cancel();
-        _selectionRefreshCancellation?.Dispose();
         var selectionCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _selectionRefreshCancellation = selectionCancellation;
         try

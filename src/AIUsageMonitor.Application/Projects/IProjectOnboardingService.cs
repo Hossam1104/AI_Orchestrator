@@ -17,7 +17,8 @@ public enum ProjectOnboardingCompletionStatus
 {
     Succeeded,
     FailedBeforeProjectCreation,
-    PartialProjectCreated
+    PartialProjectCreated,
+    AlreadyRegistered
 }
 
 public sealed class ProjectOnboardingResult
@@ -26,10 +27,12 @@ public sealed class ProjectOnboardingResult
         ProjectOnboardingCompletionStatus status,
         Project? project,
         ProjectContextReference? context,
-        string? errorMessage)
+        string? errorMessage,
+        Project? existingProject = null)
     {
         Status = status;
         Project = project;
+        ExistingProject = existingProject;
         Context = context;
         ErrorMessage = errorMessage;
     }
@@ -38,6 +41,7 @@ public sealed class ProjectOnboardingResult
     public bool Succeeded => Status == ProjectOnboardingCompletionStatus.Succeeded;
     public bool IsPartialProjectCreated => Status == ProjectOnboardingCompletionStatus.PartialProjectCreated;
     public Project? Project { get; }
+    public Project? ExistingProject { get; }
     public ProjectContextReference? Context { get; }
     public string? ErrorMessage { get; }
 
@@ -57,6 +61,14 @@ public sealed class ProjectOnboardingResult
             project ?? throw new ArgumentNullException(nameof(project)),
             null,
             errorMessage);
+
+    public static ProjectOnboardingResult AlreadyRegistered(Project project) =>
+        new(
+            ProjectOnboardingCompletionStatus.AlreadyRegistered,
+            project,
+            null,
+            "Project already registered.",
+            project);
 
     // Kept as a small compatibility helper for existing callers while making the result's
     // semantic status explicit. A result carrying a project is necessarily partial.

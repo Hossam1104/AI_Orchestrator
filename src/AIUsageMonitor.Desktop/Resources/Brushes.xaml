@@ -2,32 +2,111 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <SolidColorBrush x:Key="BrandDeepNavyBrush" Color="{StaticResource BrandDeepNavyColor}" />
-    <SolidColorBrush x:Key="BrandNavyBlueBrush" Color="{StaticResource BrandNavyBlueColor}" />
-    <SolidColorBrush x:Key="BrandSurfaceRaisedBrush" Color="{StaticResource BrandSurfaceRaisedColor}" />
-    <SolidColorBrush x:Key="BrandCyanBrush" Color="{StaticResource BrandElectricCyanColor}" />
-    <SolidColorBrush x:Key="BrandTealBrush" Color="{StaticResource BrandNeonTealColor}" />
-    <SolidColorBrush x:Key="BrandVioletBrush" Color="{StaticResource BrandVioletColor}" />
-    <SolidColorBrush x:Key="BrandPurpleBrush" Color="{StaticResource BrandElectricPurpleColor}" />
-    <SolidColorBrush x:Key="BrandSoftGlowBrush" Color="{StaticResource BrandSoftGlowColor}" />
-    <SolidColorBrush x:Key="BrandSteelGrayBrush" Color="{StaticResource BrandSteelGrayColor}" />
-    <SolidColorBrush x:Key="BrandTextBrush" Color="{StaticResource BrandTextColor}" />
-    <SolidColorBrush x:Key="BrandMutedTextBrush" Color="{StaticResource BrandSteelGrayColor}" />
-    <SolidColorBrush x:Key="BrandBorderBrush" Color="{StaticResource BrandBorderColor}" />
-    <SolidColorBrush x:Key="BrandSuccessBrush" Color="{StaticResource BrandSuccessColor}" />
-    <SolidColorBrush x:Key="BrandWarningBrush" Color="{StaticResource BrandWarningColor}" />
-    <SolidColorBrush x:Key="BrandErrorBrush" Color="{StaticResource BrandErrorColor}" />
+    <!-- Brushes deliberately bind to semantic color tokens dynamically. The dark
+         overlay therefore updates every existing view without recreating controls. -->
+    <SolidColorBrush x:Key="CanvasBrush" Color="{DynamicResource CanvasColor}" />
+    <SolidColorBrush x:Key="ShellBrush" Color="{DynamicResource ShellColor}" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="{DynamicResource SurfaceColor}" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="{DynamicResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="SurfaceMutedBrush" Color="{DynamicResource SurfaceMutedColor}" />
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="{DynamicResource SurfaceHoverColor}" />
+    <SolidColorBrush x:Key="SurfaceSelectedBrush" Color="{DynamicResource SurfaceSelectedColor}" />
+    <SolidColorBrush x:Key="SurfaceDisabledBrush" Color="{DynamicResource SurfaceDisabledColor}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{DynamicResource BorderColor}" />
+    <SolidColorBrush x:Key="HeroBrush" Color="{DynamicResource HeroColor}" />
+    <SolidColorBrush x:Key="HeroBorderBrush" Color="{DynamicResource HeroBorderColor}" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{DynamicResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{DynamicResource TextMutedColor}" />
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="{DynamicResource TextDisabledColor}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{DynamicResource AccentColor}" />
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{DynamicResource AccentHoverColor}" />
+    <SolidColorBrush x:Key="AccentPressedBrush" Color="{DynamicResource AccentPressedColor}" />
+    <SolidColorBrush x:Key="AccentSecondaryBrush" Color="{DynamicResource AccentSecondaryColor}" />
+    <SolidColorBrush x:Key="AccentVioletBrush" Color="{DynamicResource AccentVioletColor}" />
+    <SolidColorBrush x:Key="AccentBlueBrush" Color="{DynamicResource AccentBlueColor}" />
+    <SolidColorBrush x:Key="AccentTurquoiseBrush" Color="{DynamicResource AccentTurquoiseColor}" />
+    <SolidColorBrush x:Key="AccentCyanBrush" Color="{DynamicResource AccentCyanColor}" />
+    <SolidColorBrush x:Key="PrimaryCyanBrush" Color="{DynamicResource PrimaryCyanColor}" />
+    <SolidColorBrush x:Key="OnAccentBrush" Color="{DynamicResource OnAccentColor}" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource SuccessColor}" />
+    <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource WarningColor}" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="{DynamicResource ErrorColor}" />
+    <SolidColorBrush x:Key="ErrorHoverBrush" Color="{DynamicResource ErrorHoverColor}" />
+    <SolidColorBrush x:Key="ErrorPressedBrush" Color="{DynamicResource ErrorPressedColor}" />
+    <SolidColorBrush x:Key="InfoBrush" Color="{DynamicResource InfoColor}" />
+    <SolidColorBrush x:Key="StatusNeutralBrush" Color="{DynamicResource StatusNeutralColor}" />
+    <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="{DynamicResource SuccessSurfaceColor}" />
+    <SolidColorBrush x:Key="WarningSurfaceBrush" Color="{DynamicResource WarningSurfaceColor}" />
+    <SolidColorBrush x:Key="ErrorSurfaceBrush" Color="{DynamicResource ErrorSurfaceColor}" />
+    <SolidColorBrush x:Key="InfoSurfaceBrush" Color="{DynamicResource InfoSurfaceColor}" />
+    <SolidColorBrush x:Key="FocusRingBrush" Color="{DynamicResource FocusRingColor}" />
+    <SolidColorBrush x:Key="ShadowBrush" Color="{DynamicResource ShadowColor}" />
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="{DynamicResource ScrollBarTrackColor}" />
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="{DynamicResource TextMutedColor}" />
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="{DynamicResource AccentBlueColor}" />
 
-    <LinearGradientBrush x:Key="BrandAccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="{StaticResource BrandElectricCyanColor}" Offset="0" />
-        <GradientStop Color="{StaticResource BrandVioletColor}" Offset="1" />
+    <!-- Existing APO aliases retained for view compatibility. They now follow the
+         RMS semantic palette instead of hard-coded dark-only values. -->
+    <SolidColorBrush x:Key="BrandDeepNavyBrush" Color="{DynamicResource ShellColor}" />
+    <SolidColorBrush x:Key="BrandNavyBlueBrush" Color="{DynamicResource SurfaceMutedColor}" />
+    <SolidColorBrush x:Key="BrandSurfaceRaisedBrush" Color="{DynamicResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="BrandCyanBrush" Color="{DynamicResource AccentColor}" />
+    <SolidColorBrush x:Key="BrandTealBrush" Color="{DynamicResource AccentTurquoiseColor}" />
+    <SolidColorBrush x:Key="BrandVioletBrush" Color="{DynamicResource AccentVioletColor}" />
+    <SolidColorBrush x:Key="BrandPurpleBrush" Color="{DynamicResource AccentSecondaryColor}" />
+    <SolidColorBrush x:Key="BrandSoftGlowBrush" Color="{DynamicResource FocusRingColor}" />
+    <SolidColorBrush x:Key="BrandFocusBrush" Color="{DynamicResource FocusRingColor}" />
+    <SolidColorBrush x:Key="BrandSteelGrayBrush" Color="{DynamicResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="BrandTextBrush" Color="{DynamicResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="BrandMutedTextBrush" Color="{DynamicResource TextMutedColor}" />
+    <SolidColorBrush x:Key="BrandBorderBrush" Color="{DynamicResource BorderColor}" />
+    <SolidColorBrush x:Key="BrandSuccessBrush" Color="{DynamicResource SuccessColor}" />
+    <SolidColorBrush x:Key="BrandWarningBrush" Color="{DynamicResource WarningColor}" />
+    <SolidColorBrush x:Key="BrandErrorBrush" Color="{DynamicResource ErrorColor}" />
+
+    <LinearGradientBrush x:Key="PrimaryGradientBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="{DynamicResource AccentVioletColor}" />
+        <GradientStop Offset="0.48" Color="{DynamicResource AccentBlueColor}" />
+        <GradientStop Offset="1" Color="{DynamicResource PrimaryCyanColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="NavigationSelectedGradientBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="{DynamicResource SurfaceSelectedColor}" />
+        <GradientStop Offset="1" Color="{DynamicResource HeroColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="BrandGradientBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="{DynamicResource AccentVioletColor}" />
+        <GradientStop Offset="0.48" Color="{DynamicResource AccentBlueColor}" />
+        <GradientStop Offset="1" Color="{DynamicResource PrimaryCyanColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="BrandAccentGradientBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="{DynamicResource AccentVioletColor}" />
+        <GradientStop Offset="0.48" Color="{DynamicResource AccentBlueColor}" />
+        <GradientStop Offset="1" Color="{DynamicResource PrimaryCyanColor}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="BrandSurfaceGradientBrush" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Offset="0" Color="{DynamicResource SurfaceRaisedColor}" />
+        <GradientStop Offset="1" Color="{DynamicResource SurfaceColor}" />
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="BrandSurfaceGradientBrush" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#FF142342" Offset="0" />
-        <GradientStop Color="#FF0F1B33" Offset="1" />
-    </LinearGradientBrush>
-
-    <SolidColorBrush x:Key="BrandFocusBrush" Color="{StaticResource BrandSoftGlowColor}" />
-
+    <!-- RMS-compatible semantic aliases used by the shell and future views. -->
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="{DynamicResource CanvasColor}" />
+    <SolidColorBrush x:Key="NavigationBackgroundBrush" Color="{DynamicResource ShellColor}" />
+    <SolidColorBrush x:Key="SurfaceSecondaryBrush" Color="{DynamicResource SurfaceMutedColor}" />
+    <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{DynamicResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="{DynamicResource BorderColor}" />
+    <SolidColorBrush x:Key="TextPrimary" Color="{DynamicResource TextPrimaryColor}" />
+    <SolidColorBrush x:Key="TextSecondary" Color="{DynamicResource TextSecondaryColor}" />
+    <SolidColorBrush x:Key="TextMuted" Color="{DynamicResource TextMutedColor}" />
+    <SolidColorBrush x:Key="DisabledSurfaceBrush" Color="{DynamicResource SurfaceDisabledColor}" />
+    <SolidColorBrush x:Key="DisabledTextBrush" Color="{DynamicResource TextDisabledColor}" />
+    <SolidColorBrush x:Key="AppBackground" Color="{DynamicResource CanvasColor}" />
+    <SolidColorBrush x:Key="ShellSurfaceBrush" Color="{DynamicResource ShellColor}" />
+    <SolidColorBrush x:Key="ContentSurfaceBrush" Color="{DynamicResource SurfaceColor}" />
+    <SolidColorBrush x:Key="ContentSurfaceAltBrush" Color="{DynamicResource SurfaceMutedColor}" />
+    <SolidColorBrush x:Key="ElevatedSurfaceBrush" Color="{DynamicResource SurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="CardSurfaceBrush" Color="{DynamicResource SurfaceColor}" />
+    <SolidColorBrush x:Key="CardSurfaceAccentBrush" Color="{DynamicResource HeroColor}" />
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="{DynamicResource HeroBorderColor}" />
+    <SolidColorBrush x:Key="InvertedTextBrush" Color="{DynamicResource OnAccentColor}" />
 </ResourceDictionary>

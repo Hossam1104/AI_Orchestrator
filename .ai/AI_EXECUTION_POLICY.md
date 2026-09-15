@@ -44,6 +44,18 @@ This gate is canonical here; any prior duplicate description elsewhere is supers
 - No unrelated cleanup, no speculative abstractions, no requirement invention.
 - Stop and report on contradictory evidence rather than guessing.
 
+### 2.1 Fresh APO desktop runs
+
+The canonical local desktop workflow is `scripts/Run-FreshDesktop.ps1`. Requests to run, launch,
+or open APO always mean: verify the current repository state, recreate the dedicated local-run
+directory, publish the current working tree in Release, validate the publish output, report the
+Git state and executable hash, and launch that newly created executable. Existing binaries from
+prior publish or artifact directories must never be reused as current-state evidence.
+
+The script's default interactive mode leaves the fresh application running for owner inspection.
+Use `-SmokeTest` only for bounded runtime verification; it stops only the process it launched after
+verification and reports the final APO process count.
+
 ---
 
 ## 3. Acceptance Evidence
