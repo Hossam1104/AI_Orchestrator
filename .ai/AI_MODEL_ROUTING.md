@@ -219,3 +219,54 @@ justification.
 Sol remains the final acceptance authority for all routed work, regardless of which executor
 performed it. Executor self-declaration is not final acceptance (see
 `.ai/AI_EXECUTION_POLICY.md`).
+
+---
+
+## 10. Retry, Benchmarking, and Historical-Performance Routing
+
+The external-reference reconciliation adds future routing behaviors without changing the current
+model portfolio or priority policy.
+
+### 10.1 Failure-classified fallback
+
+A failed executor does **not** automatically imply "try another model". Any future fallback must be
+derived from typed failure classification, the latest verified checkpoint, observed side effects,
+remaining execution budget, current agent readiness, routing policy, owner policy, and quota/capacity
+truth.
+
+Eligible fallback candidates must pass the same normal routing requirements as an initial route.
+A model switch must never bypass source/workspace reconciliation, authentication, security,
+approval, validation, anti-replay, or destructive-action boundaries.
+
+This behavior is tracked by APO-72 / GitHub Issue #114.
+
+### 10.2 Controlled benchmarking
+
+Future parallel model comparison is an explicit benchmark mode, not ordinary production routing.
+Each write-capable candidate receives a separate isolated workspace and execution authority. No
+benchmark candidate may affect another candidate's workspace, protected delivery, or production
+state by default.
+
+Benchmark results are evidence only. They do not automatically change the production routing policy.
+This behavior is tracked by APO-73 / GitHub Issue #115.
+
+### 10.3 Historical performance signal
+
+After APO has sufficient durable execution/validation/review/acceptance evidence, Automatic routing
+may use transparent historical performance as an additional advisory signal. The first version must
+be deterministic and explainable, not opaque ML.
+
+Historical evidence can only operate **after** correctness, security, required capability/risk, and
+explicit project/owner policy have established eligibility. It cannot activate prohibited models,
+weaken assurance, or override current authentication/entitlement/capacity truth.
+
+Each historical metric must expose cohort, sample size, freshness, provenance, and limitations.
+Sparse/stale evidence remains unavailable rather than being invented into a score.
+
+This behavior is tracked by APO-74 / GitHub Issue #116.
+
+### 10.4 Product roadmap vs current execution policy
+
+APO-71 through APO-74 are product-roadmap capabilities. They do not authorize changing the owner's
+current development-time model allocation or the standalone `p` prompt gate. The approved roadmap
+integration is recorded in `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`.
