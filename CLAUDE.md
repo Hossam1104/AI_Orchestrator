@@ -36,21 +36,29 @@ quota preservation. Only Sol chooses when a Claude executor is explicitly assign
 Before changing files, read completely:
 
 1. `AGENTS.md`;
-2. `docs/BRD.md`;
-3. `.ai/CURRENT_STATE.md`;
-4. `docs/IMPLEMENTATION_PLAN.md`;
-5. the active root `TASK.md`; and
-6. the referenced prompt or review section in `docs/SESSION_PROMPTS.md`, if any.
+2. `.ai/AI_EXECUTION_POLICY.md`;
+3. `.ai/AI_MODEL_ROUTING.md`;
+4. `docs/BRD.md`;
+5. `.ai/CURRENT_STATE.md`;
+6. `docs/IMPLEMENTATION_PLAN.md`;
+7. `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md` when the assigned work touches local agent readiness, runtime/process recovery, retry/fallback, workflow templates, execution evidence/history, benchmarking, or historical-performance routing;
+8. the active root `TASK.md`; and
+9. the referenced prompt or review section in `docs/SESSION_PROMPTS.md`, if any.
 
-Then inspect Git status and only the files relevant to the assigned Jira work item. The repository,
+Then inspect Git status and only the files relevant to the assigned GitHub APO work item. The repository,
 not an old chat, is authoritative.
 
 ## Sonnet Executor Mode
 
-When Sonnet is explicitly assigned, execute only the bounded Jira work item. Preserve the approved
+When Sonnet is explicitly assigned, execute only the bounded GitHub APO work item. Preserve the approved
 WPF/.NET/JSON/JSONL architecture, use existing abstractions where sound, avoid speculative provider
 work, validate the actual change, inspect the diff and secrets, update `.ai/CURRENT_STATE.md`,
 complete the Git Delivery Contract, and stop at the planner boundary.
+
+A failed executor is not permission to self-route to another model. Retry/fallback must follow the
+canonical policy in `.ai/AI_EXECUTION_POLICY.md` and `.ai/AI_MODEL_ROUTING.md`; future automatic
+fallback is owned by APO-72 and must be based on typed failure/checkpoint/policy evidence rather than
+a hard-coded provider order.
 
 ## Opus Reviewer Mode
 
@@ -59,6 +67,9 @@ validation, security, provider truthfulness, persistence, project isolation, hum
 release prerequisites independently. Classify findings as BLOCKER/HIGH/MEDIUM/LOW. Do not add
 scope or implement fixes unless explicitly requested. Opus must remain independent from the
 implementation executor by default.
+
+For future benchmark work, reviewer independence and equivalent validation criteria must be
+preserved per candidate; competing write-capable models must never share one working tree.
 
 ## Active Architecture Reminder
 
@@ -72,6 +83,11 @@ Domain/Application boundaries, dynamic quota windows, remaining-capacity semanti
 last-known-good data, atomic writes, schema handling, JSONL history, cross-Windows graceful
 degradation, and self-contained consumer deployment are mandatory. Do not invent provider endpoints,
 scrape cookies, log tokens, or treat a CLI as a whole-application prerequisite.
+
+APO is local-PC-first. Durable project state, execution authority, workspaces, checkpoints, and
+evidence belong to APO's persistent local storage and registered repositories. Temporary chat/test
+sandboxes are never canonical project state. Do not persist unrestricted environment variables,
+raw provider transcripts, credentials, or private chain-of-thought as recovery evidence.
 
 ## Jira and Work Items
 
@@ -88,6 +104,16 @@ GitHub Issue -> Sol contract -> TASK.md -> executor -> validation
 
 Do not create duplicate Epics or speculative Stories. Work on one assigned item at a time. The old
 numbered provider Session 04 sequence is legacy/superseded and must not be executed.
+
+Current reference-derived roadmap identities are:
+
+- APO-71 / #113 — Local Agent Readiness and executable provenance;
+- APO-72 / #114 — failure-classified retry and policy-driven fallback;
+- APO-73 / #115 — isolated multi-model benchmarking;
+- APO-74 / #116 — transparent historical-performance routing signals.
+
+APO-52 / #90 and APO-54 / #92 remain the existing owners of workflow templates and decision/evidence
+history; APO-55 / #93 remains the runtime/process/restart evidence owner.
 
 ## Delivery and Validation
 
