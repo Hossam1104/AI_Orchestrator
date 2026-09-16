@@ -8,8 +8,11 @@ This is the universal execution contract for every AI model working in this repo
 **Previous Product Identity:** AI Usage Monitor, AI Project Orchestrator
 **Primary Requirements:** `docs/BRD.md`
 **Implementation Plan:** `docs/IMPLEMENTATION_PLAN.md`
+**Strategic Roadmap:** `docs/STRATEGIC_ROADMAP.md`
+**External Reference Roadmap Integration:** `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`
 **Prompt Library:** `docs/SESSION_PROMPTS.md`
 **Live Handoff:** `.ai/CURRENT_STATE.md`
+**Current-State Addendum:** `.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md`
 **Jira Project:** `APO`
 
 APO-20 renamed the GitHub repository and physical local folder to the current product identity.
@@ -29,8 +32,12 @@ Canonical, detailed AI execution governance lives in:
   states, shared cross-project quota location, task risk tiers, default routing, provider
   balancing, and the APO-specific risk appendix.
 - `.ai/AI_EXECUTION_POLICY.md` — the universal `p` prompt gate, bounded implementation discipline,
-  acceptance evidence, root-cause debugging method, context budget, and tool policy (Ponytail,
-  Serena, Context7).
+  acceptance evidence, root-cause debugging method, context budget, tool policy, and local-PC
+  execution/recovery/evidence rules.
+
+The approved external-reference roadmap delta is maintained in
+`docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`; it extends APO incrementally and never replaces
+existing architecture or authorizes implementation by itself.
 
 This section states only the durable operating-model summary; do not duplicate the canonical files
 here.
@@ -70,6 +77,10 @@ Sonnet remains an active Claude-family option, but only Sol may explicitly selec
 quota balancing, task fit, or another special need. Sonnet Medium covers contained bounded work;
 Sonnet High covers difficult or substantial isolated work. Neither is the automatic routine primary.
 
+A failed executor is not permission for an executor or UI layer to self-route to another model.
+Future automatic retry/fallback is governed by APO-72 and must use typed failure, verified
+checkpoint, side-effect, capability, routing/owner policy, quota/capacity, and budget evidence.
+
 ## Disabled Model - Claude Haiku 4.5
 
 Haiku is disabled from active routing. Do not assign it automatically or route repository work to it.
@@ -102,18 +113,21 @@ rereading:
 
 1. Always read completely: `AGENTS.md`, `.ai/AI_MODEL_ROUTING.md`, `.ai/AI_EXECUTION_POLICY.md`,
    and the active root `TASK.md`.
-2. Always inspect: Git branch, status, remote state, and only the latest relevant boundary section
-   of `.ai/CURRENT_STATE.md` (search/find the relevant heading rather than rereading the whole
-   file).
+2. Always inspect: Git branch, status, remote state, the latest relevant boundary section of
+   `.ai/CURRENT_STATE.md`, and the complete `.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md` while that
+   addendum remains the current planning delta.
 3. Read the `docs/BRD.md` and `docs/IMPLEMENTATION_PLAN.md` sections relevant to the assigned work
    item; search for headings or semantic references before a whole-file read.
-4. Read the complete BRD only when architecture/requirements scope genuinely requires it, when
+4. Read `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md` when the assigned work touches agent
+   readiness, runtime/process recovery, retry/fallback, workflow templates, evidence/history,
+   benchmarking, or historical-performance routing.
+5. Read the complete BRD only when architecture/requirements scope genuinely requires it, when
    conflicting authority requires it, or when the assigned task genuinely spans the whole product.
-5. Read only the exact relevant section of `docs/SESSION_PROMPTS.md` when the work item references
+6. Read only the exact relevant section of `docs/SESSION_PROMPTS.md` when the work item references
    a prompt or review gate.
-6. Inspect task-relevant source/configuration files. Do not reread an unchanged large file without
+7. Inspect task-relevant source/configuration files. Do not reread an unchanged large file without
    a specific reason.
-7. Prefer Serena for symbol/reference navigation over a full-file read or broad grep where
+8. Prefer Serena for symbol/reference navigation over a full-file read or broad grep where
    applicable; use Context7 only under the conditional rule in `.ai/AI_EXECUTION_POLICY.md` §6.
 
 Do not depend on previous chat context. The repository is the source of truth. This section governs
@@ -127,11 +141,14 @@ When instructions conflict, use this order:
 
 1. `docs/BRD.md`;
 2. `AGENTS.md`;
-3. planner-approved architecture decisions and `.ai/CURRENT_STATE.md`;
+3. planner-approved architecture decisions, `.ai/CURRENT_STATE.md`, and the current dated
+   current-state addendum;
 4. the assigned canonical GitHub APO Issue and its accepted planning/architecture scope;
-5. `docs/IMPLEMENTATION_PLAN.md`;
-6. the root `TASK.md`; and
-7. executor preference.
+5. `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md` for the approved reference-derived capability
+   delta when relevant;
+6. `docs/IMPLEMENTATION_PLAN.md`;
+7. the root `TASK.md`; and
+8. executor preference.
 
 GitHub Issues in `Hossam1104/AI_Orchestrator` are the active work-tracking system for APO.
 Repository documentation, the BRD, approved architecture decisions, and validation evidence remain
@@ -176,20 +193,24 @@ requires them.
 # 4. TASK.md and Prompt-Library Lifecycle
 
 `TASK.md` is the current executable work-item contract only when it explicitly contains an
-assigned, approved task. It must never be used as a historical execution log. `.ai/CURRENT_STATE.md`
-contains factual history and live status.
+assigned, approved task. It may instead explicitly record that the execution gate is closed; in
+that state it is governance/status only and must not be treated as permission to execute. It must
+never be used as a historical execution log. `.ai/CURRENT_STATE.md` plus the current dated addendum
+contain factual history and live planning status.
 
 `docs/SESSION_PROMPTS.md` is a permanent prompt library and historical record. The old numbered
 AI Usage Monitor provider sequence is superseded and must not be treated as executable. Future APO
-execution prompts are prepared by Sol only after Jira decomposition and assignment; do not
-pre-generate speculative implementation prompts.
+execution prompts are prepared by Sol only after GitHub decomposition and assignment and only after
+the universal standalone lowercase `p` gate opens; do not pre-generate speculative implementation
+prompts.
 
 After a completed work item is delivered, Sol determines the next approved work item, prepares its
 self-contained execution contract, replaces `TASK.md` when appropriate, commits/pushes that
 preparation, and stops. Updating `TASK.md` never authorizes executing the next task automatically.
 
 If work is partial or blocked, keep a remediation/recovery task and do not advance to a normal next
-Story. A fresh user instruction is required to execute a newly prepared task.
+Story. A fresh user instruction is required to execute a newly prepared task, and the `p` prompt
+gate still applies to generated executor/reviewer prompts.
 
 ---
 
@@ -233,6 +254,10 @@ application services/view models and must not parse provider payloads, inspect p
 manage tokens. Infrastructure owns persistence, safe files, paths, credentials, logging, and OS
 integration. Providers own detection, collection, parsing, normalization, and capability truth.
 
+External-reference-derived work must extend these boundaries. Do not introduce duplicate agent
+registries, runners, state machines, persistence stores, project registries, routing engines, or
+provider checks in WPF.
+
 ---
 
 # 6. Provider and Data Truthfulness
@@ -260,6 +285,10 @@ never guess an unknown reset timezone.
 Refresh failures retain last-known valid values and mark them stale/error. One provider failure
 must not crash or hide other providers. A provider CLI is optional and never a whole-application
 prerequisite; browser-only and non-developer fallback paths must be truthful.
+
+For local Agent Readiness, keep installation, executable resolution/provenance, CLI version,
+authentication, entitlement/subscription, capabilities, freshness, and quota/capacity as distinct
+facts. One fact must never be inferred from another without independent evidence.
 
 ---
 
@@ -305,14 +334,28 @@ Distinguish missing, empty, valid, unsupported-schema, corrupt, I/O-failure, and
 states. Report and isolate/quarantine safely where useful. Never silently destroy user data, write
 beside the executable or under Program Files, or require administrator privileges.
 
+APO is local-PC-first for normal local software-delivery work. The owner's persistent registered
+repositories, APO LocalAppData state, APO-managed workspaces, durable execution authorities,
+checkpoints, and evidence are authoritative. Temporary chat sandboxes, provider temp files, or test
+harness directories are never canonical project state.
+
 Never store passwords, raw tokens, refresh tokens, cookies, authenticated payloads, prompts,
 conversations, source code, repository content, or unrelated credentials in files, logs, or source
 control. JSON may store only an opaque credential reference. Use Windows Credential Manager, DPAPI
 when justified, or another planner-approved secure mechanism. Redact secrets from diagnostics.
 
+Where environment fingerprinting is needed for reproducibility/recovery, capture only an explicit
+non-secret allowlist such as OS/version, architecture, APO version, selected CLI version, Git
+version, registered project path/branch/commit, working directory, and selected tool/runtime
+availability. Never persist unrestricted environment variables.
+
 APO may transmit only the context and source/code reasonably required by an explicitly configured
 executor. Honor project isolation, exclusions, secret scanning/redaction, least privilege, and
 visible destination. APO-owned telemetry and cloud sync are not enabled by default.
+
+Operational evidence should store observable decisions, assumptions/limitations, commands/tool
+results where safe, process/Git/validation/review evidence, timing, failure classification, and
+final disposition. Private hidden chain-of-thought is not an execution artifact requirement.
 
 ---
 
@@ -324,6 +367,11 @@ accessible labels/icons, readable remaining capacity, reset countdowns, polished
 stale/partial/error states, responsive resizing, keyboard navigation, high DPI support, and
 restrained motion. Color alone must not communicate state. A lightweight tray and optional Focus
 HUD may provide glanceable status beside an IDE.
+
+Future owner-facing orchestration UX should expose Agent Readiness, current execution/process state,
+recoverability, evidence freshness, retry/fallback disposition and reason, execution timeline, and
+benchmark comparison only through Application/read-model contracts. WPF must not probe processes,
+PATH, provider sessions, or routing policy directly.
 
 Monitoring defaults to approximately 60 seconds plus startup, resume, foreground, manual refresh,
 and safe local-change triggers. Use cancellation, timeout, retry/backoff, throttling, rate-limit
@@ -355,13 +403,21 @@ Target tests at high-risk logic:
 - settings/provider/subscription/alert persistence;
 - credential-reference safety and secret redaction;
 - routing, burn rate, recommendations, state transitions, and gates;
+- local Agent Readiness executable provenance/version/auth/freshness truth;
+- process-tree cancellation, termination-unconfirmed, stale PID, and restart reconciliation;
+- checkpoint/authority anti-replay across failure and retry;
+- retry/fallback decision correctness for authentication, quota, capability, validation,
+  workspace/source, security, approval, and exhausted-budget failures;
+- isolated benchmark workspace/candidate independence and absence of delivery side effects;
+- deterministic historical-routing replay, sparse/stale evidence, and owner override;
 - critical WPF view-model behavior; and
 - self-contained publish smoke checks.
 
 No live authenticated provider calls or credentials in CI. Use sanitized fixtures. Documentation-only
 work must not claim build/test results for an architecture it did not implement. Every executor must
 run validation proportionate to the assigned work, review warnings and diff, inspect secrets and
-generated artifacts, and update `.ai/CURRENT_STATE.md` honestly.
+generated artifacts, and update `.ai/CURRENT_STATE.md` and the current dated addendum when its
+planning delta is affected.
 
 ---
 
@@ -372,6 +428,17 @@ initial Epic structure is APO-1 through APO-17 as listed in `docs/BRD.md` and
 `docs/IMPLEMENTATION_PLAN.md`; migrated Jira project `APO` remains historical provenance.
 Sol progressively decomposes Epics into canonical GitHub Stories/Tasks and backfills historical
 implementation with evidence.
+
+Reference-derived canonical roadmap identities currently include:
+
+- APO-71 / #113 — Local Agent Readiness and executable provenance;
+- APO-72 / #114 — failure-classified retry and policy-driven fallback;
+- APO-73 / #115 — controlled multi-model benchmarking in isolated workspaces;
+- APO-74 / #116 — transparent historical-performance routing signals.
+
+Existing APO-52 / #90, APO-54 / #92, and APO-55 / #93 own workflow templates, historical evidence
+browsing/decision chronology, and live runtime/process/restart evidence respectively. Do not create
+duplicate systems for those capabilities.
 
 Do not create duplicate Epics or speculative Stories during an assigned Story unless instructed.
 Do not start source refactoring, a provider, runtime, routing engine, or another Epic early. Use one
@@ -387,7 +454,7 @@ Every completed executor implementation or governance/remediation session must:
 1. inspect status and preserve unrelated changes;
 2. work on an appropriately named branch such as `refactor/APO-18-product-governance-rebaseline`;
 3. validate the assigned scope and review the diff/secrets;
-4. update `.ai/CURRENT_STATE.md`;
+4. update `.ai/CURRENT_STATE.md` and any current authoritative addendum required by the work;
 5. commit the completed work;
 6. push the session branch to `origin`;
 7. open or update a Draft pull request against `main`; and
@@ -413,6 +480,10 @@ Do not add AI chat, unrelated productivity features, mobile/cloud sync, payment 
 billing, prompt/conversation collection, browser-cookie extraction, unsafe credential access,
 speculative provider endpoints, database/ORM runtime, Angular/Electron/Node/embedded browser, or
 new providers without explicit planner approval.
+
+External references are idea sources only. Do not copy their code, permission bypasses, shell
+runner architecture, provider-specific fallback sequences, stage-index recovery semantics, private
+reasoning memo requirements, or shared mutable benchmark workspaces into APO.
 
 For APO-18 specifically, do not implement product functionality, providers, orchestration runtime,
 model routing, Jira/GitHub adapters, source-code refactoring, namespace/project renaming, LocalAppData
@@ -466,7 +537,8 @@ Opus review severity is:
 Reviewers inspect actual code and evidence, not executor summaries. Required review gates must
 explicitly inspect the zero-prerequisite consumer contract, cross-Windows compatibility, provider
 truthfulness, dynamic used/remaining semantics, file-persistence integrity, credential security,
-project isolation, human approval gates, and self-contained release evidence where applicable.
+project isolation, human approval gates, process/restart evidence where applicable, isolated
+benchmark/workspace boundaries where applicable, and self-contained release evidence.
 
 The core product standard is trust: an individual should be able to glance at APO and decide which
 paid AI service or model has sufficient remaining capacity and which project work can safely
