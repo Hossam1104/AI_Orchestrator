@@ -234,3 +234,25 @@ They do not claim:
 - merge/release/deployment readiness.
 
 Use live Git/GitHub state for the exact branch HEAD after these documentation updates.
+
+---
+
+## 9. Active Markdown synchronization completed
+
+The current planning/governance delta has been synchronized into the active project Markdown set:
+
+- `README.md`;
+- `AGENTS.md`;
+- `CLAUDE.md`;
+- `TASK.md`;
+- `docs/BRD.md`;
+- `docs/IMPLEMENTATION_PLAN.md`;
+- `docs/STRATEGIC_ROADMAP.md`;
+- `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`;
+- `.ai/AI_EXECUTION_POLICY.md`;
+- `.ai/AI_MODEL_ROUTING.md`;
+- this current-state addendum.
+
+`.ai/CURRENT_STATE.md` is intentionally preserved as the historical/live evidence narrative and is supplemented by this dated addendum rather than rewritten after the fact. `docs/SESSION_PROMPTS.md`, `docs/LEGACY_IMPLEMENTATION_MAP.md`, provider-evidence documents, `.ai/history/`, migration reports, and retained acceptance/evidence Markdown are also intentionally preserved as historical/provenance artifacts unless a future bounded task specifically requires changing them. Rewriting those files simply to make every Markdown timestamp current would damage traceability.
+
+The current roadmap sequence in Sections 3–5 and in the refreshed BRD/implementation plan/strategic roadmap supersedes stale sequencing statements in older historical snapshots, while the underlying historical facts remain preserved.
