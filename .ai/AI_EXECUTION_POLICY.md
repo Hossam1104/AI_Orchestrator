@@ -150,3 +150,79 @@ this section states the durable rule, not a point-in-time snapshot:
 
 Verify current upstream instructions for all three tools before reinstalling or upgrading; do not
 blindly trust commands recorded here if upstream documentation has changed.
+
+---
+
+## 8. Local-PC Execution, Recovery, and Evidence Policy
+
+APO's normal software-delivery execution environment is the owner's persistent local Windows PC and
+APO-managed project/workspace state. Temporary chat, test, provider-output, or validation sandboxes
+must never become the canonical project or execution store.
+
+### 8.1 Agent readiness
+
+A local AI CLI is not considered ready merely because a command name or executable exists. Where
+supported, readiness should derive from independently observable facts such as executable path and
+provenance, CLI version, supported invocation modes, authentication/session truth, entitlement when
+verifiable, registered capabilities/limitations, freshness, and provider-specific health evidence.
+
+Installation, authentication, entitlement/subscription, and quota/capacity are separate facts and
+must never be inferred from one another.
+
+### 8.2 Process ownership
+
+Every local process started by APO must remain bounded and owned by the orchestration runtime. The
+runtime must consume stdout/stderr safely, record bounded process evidence where appropriate,
+support cancellation/timeout, and either confirm execution-owned process-tree termination or mark
+termination as unconfirmed and keep the workspace guarded.
+
+PID/process identity is evidence, not completion proof. A missing process after restart must not be
+interpreted as successful business completion.
+
+### 8.3 Restart reconciliation
+
+After APO or Windows restart, persisted Running/Waiting work must be reconciled against durable run
+authority, checkpoint, workspace/repository/Git state, process reality, and known side effects before
+any automatic continuation. The result must be a typed safe state such as completed externally,
+safely interrupted, reconciliation required, blocked, or unsafe to resume automatically.
+
+Retry must resume from the latest **verified authoritative checkpoint**, not merely from a UI stage
+number.
+
+### 8.4 Retry and fallback
+
+A fallback executor is never selected solely because another model failed. Retry/fallback policy
+must consider failure class, checkpoint truth, side effects, task requirements, allowed agents,
+capabilities, routing/owner policy, quota/capacity truth, and remaining execution budget.
+
+Authentication failures, quota exhaustion, unsupported capability, source/workspace conflicts,
+validation failures, security boundaries, owner-approval boundaries, and irreversible side-effect
+ambiguity require different dispositions. Model switching must never bypass an authority or safety
+gate.
+
+### 8.5 Environment fingerprint
+
+Where reproducibility/recovery requires it, APO may persist a lightweight explicit allowlist of
+non-secret environment facts such as OS/version, architecture, APO version, selected CLI version,
+Git version, project path/branch/commit, working directory, and selected tool/runtime availability.
+Never capture unrestricted environment variables or secret-bearing values.
+
+### 8.6 Evidence contents
+
+Persist observable operational evidence: requests, immutable authority references, decisions,
+assumptions/limitations, commands/tool results where safe, process metadata, Git/validation/review
+findings, timing, failure classification, and final disposition.
+
+Do **not** require or persist private hidden chain-of-thought. Do not retain raw provider transcripts,
+prompts, unrestricted stdout/stderr, credentials, or unrelated source content merely to create a
+complete-looking execution folder.
+
+### 8.7 Parallel benchmarking
+
+Any future multi-model benchmark with write-capable executors must use a separate isolated workspace,
+run authority, checkpoint chain, and evidence set per candidate. Competing executors must never
+write to the same working tree. Benchmarking is measurement only unless a separately approved
+routing policy explicitly consumes its evidence.
+
+The approved roadmap integration for these behaviors is maintained in
+`docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md` and the associated canonical GitHub APO Issues.
