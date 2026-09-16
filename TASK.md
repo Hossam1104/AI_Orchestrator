@@ -15,11 +15,12 @@ Read these authorities before any future execution work:
 2. `.ai/AI_EXECUTION_POLICY.md`
 3. `.ai/AI_MODEL_ROUTING.md`
 4. `.ai/CURRENT_STATE.md`
-5. `docs/BRD.md`
-6. `docs/IMPLEMENTATION_PLAN.md`
-7. `docs/STRATEGIC_ROADMAP.md`
-8. `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`
-9. GitHub Issue #111 and the exact current PR #112 state
+5. `.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md`
+6. `docs/BRD.md`
+7. `docs/IMPLEMENTATION_PLAN.md`
+8. `docs/STRATEGIC_ROADMAP.md`
+9. `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`
+10. GitHub Issue #111 and the exact current PR #112 state
 
 The new reference-derived roadmap additions are:
 
@@ -80,6 +81,10 @@ After APO-70 reaches owner functional/visual acceptance and final exact-head Sol
 6. APO-74 transparent historical-performance routing signals.
 
 P2 optimization work must not delay the owner-usable single-executor orchestration path.
+
+## Documentation-only planning delta
+
+The source/runtime baseline at `14d8d470d63c17e726278cb0336e737b4fdc5022` was not modified by the reference analysis itself. Subsequent commits on this branch update roadmap/governance Markdown only. Therefore any future **exact-head** CI/runtime claim must use the live branch HEAD after these documentation commits; do not reuse the older SHA as exact-head acceptance.
 
 ## Delivery boundary
 
