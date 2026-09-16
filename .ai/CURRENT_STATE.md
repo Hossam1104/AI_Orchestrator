@@ -7,6 +7,18 @@ repository. Everything below that divider is retained evidence from a boundary t
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
 
+## CURRENT - APO-70 canonical workspace authority remediation
+
+**Last Updated:** 17 September 2026
+
+The real cross-process proof on reviewed source `d1367e64e1b4ddf14b6ad1d17c62fe463385c826` reached persisted `Ready` in Process A (`PrepareAsync=1`, real Sol=1), but fresh Process B restore returned `WorkspaceUnavailable` before `StartAsync` or real Luna. The persisted Ready checkpoint existed. Source audit confirmed that `ReadyExecutionRehydrator` and `BoundedExecutionService` each compared `receipt.WorkspacePath` with `workspacePlan.ProposedWorkspacePath` using raw ordinal equality, while the existing Application-layer `WorkspaceRepositoryIdentity.AreEqual` is the canonical workspace authority and already normalizes full path, separators, non-root trailing separators, and Windows case.
+
+Remediation source commit `5d98b29e38a236d070ae7a23212011f726781dd6` replaces only those two comparisons with that existing authority; it adds deterministic rehydration and start-gate coverage for an equivalent canonical path and a genuinely distinct path. Equivalent paths restore/reach the adapter; distinct paths remain `WorkspaceUnavailable`/`WorkspaceConflict`, invoke no adapter, and create no run authority. No immutable authority, persistence schema, lifecycle ordering, routing, provider, WPF, or workspace architecture changed.
+
+Focused Release validation passed: rehydration 10/10; bounded execution plus the existing canonical-identity characterization 67/67. Restore and Release build passed with 0 warnings / 0 errors. The CI-equivalent serial command reported Domain 28/28, Connection 357/357, and Provider 228/228; the unfiltered Desktop and Infrastructure local test hosts did not exit or return summaries after their bounded waits and were stopped as local-host stalls, so full local-suite success is not claimed. Repository publish validation passed for `win-x86` (PE `0x014C`), `win-x64` (PE `0x8664`), and `win-arm64` (PE `0xAA64`). Exact-head CI is pending.
+
+No real proof was retried: this remediation performed `PrepareAsync=0`, real Sol=0, `StartAsync=0`, real Luna=0, and did not launch the Desktop. The next boundary is Sol exact-head review and, only after a fresh authorization, one new real cross-process proof.
+
 ## CURRENT - APO-70 persisted-Ready replay closure
 
 **Last Updated:** 15 September 2026
