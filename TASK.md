@@ -1,80 +1,91 @@
-# AI_Orchestrator — APO-70 V1 Desktop Product Recovery
+# AI_Orchestrator — Current Execution Gate
 
-**Mode:** BOUNDED EXECUTION CONTRACT
+**Mode:** PLANNING COMPLETE / EXECUTION GATE CLOSED
 **Tracker:** GitHub issue #111 (`APO-70`)
 **Branch:** `feature/APO-70-v1-desktop-product-recovery`
 **Base:** `origin/main` at `d7c1231df9ea1a4d008aa473210d0ccc735c0302`
 
-## Scope
+## Current authority
 
-Recover the V1 WPF desktop shell using the accepted RMS Support Hub visual system while retaining
-AI Orchestrator identity and existing application/domain services. Complete the bounded visual and
-functional surface work for Mission Control, Projects, AI Capacity, truthful global status, theme
-switching, native local-path selection, and Post-V1 navigation treatment.
+APO-70 remains the sole current implementation gate. The repository has completed the external-reference planning reconciliation and extended the roadmap without authorizing production-code implementation.
 
-## Current execution slice
+Read these authorities before any future execution work:
 
-This assigned APO-70 slice also includes the smallest safe owner-facing execution workflow:
+1. `AGENTS.md`
+2. `.ai/AI_EXECUTION_POLICY.md`
+3. `.ai/AI_MODEL_ROUTING.md`
+4. `.ai/CURRENT_STATE.md`
+5. `docs/BRD.md`
+6. `docs/IMPLEMENTATION_PLAN.md`
+7. `docs/STRATEGIC_ROADMAP.md`
+8. `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`
+9. GitHub Issue #111 and the exact current PR #112 state
 
-- an Application `IExecutionCoordinator` converts bounded owner intent into the existing planning
-  contract, work graph, routing decision, handoff, workspace preparation, recovery checkpoint, and
-  exact `BoundedExecutionRequest` authorities;
-- the Desktop Execution workspace allows explicit project selection, title/objective/criteria/
-  constraint authoring, Prepare, Start, and Cancel actions, and displays only real coordinator and
-  bounded-service state;
-- no raw prompt, internal authority GUID, direct provider process, or arbitrary command is exposed
-  from WPF;
-- production composition registers a real Codex local-session planner/executor path; it may run only
-  for an explicitly configured OpenAI/Cli model with an authenticated local session, otherwise the
-  coordinator and bounded service fail closed without a simulated result;
-- planner output is structured, application-validated, and becomes the durable contract/routing
-  authority before workspace preparation or execution.
+The new reference-derived roadmap additions are:
 
-Current recovery note: the shared Codex invocation policy now splits planner `read-only` from
-executor `workspace-write` with non-escalating approval. Real execution remains fail-closed until
-the owner configures exact, supported model identifiers; no CLI default is used.
+- APO-55 / #93 — runtime process ownership, restart reconciliation, and safe environment evidence;
+- APO-71 / #113 — local Agent Readiness and executable provenance/version;
+- APO-72 / #114 — failure-classified retry and policy-driven fallback from verified checkpoints;
+- APO-73 / #115 — controlled multi-model benchmarking in isolated workspaces;
+- APO-74 / #116 — transparent historical-performance signals for Automatic routing;
+- APO-52 / #90 and APO-54 / #92 remain the existing owners of composable workflow templates and owner-browsable decision/evidence history.
 
-Current diagnostic checkpoint: a real isolated Sol planner run proved that APO generated an invalid
-strict output schema. The bounded repair now preserves typed/redacted process diagnostics and emits
-valid no-BOM JSON, but the one allowed post-fix real validation occurred before the structural schema
-repair. A fresh explicit authorization is required for one new isolated read-only `PrepareAsync`
-planner validation; it must not call `StartAsync` or invoke Luna.
+## Next implementation boundary
 
-Validation and delivery remain bounded to this branch and Draft PR #112. Do not merge, push `main`,
-create a release/tag/deployment, close Issue #111, or claim owner/Sol acceptance.
+The next implementation/execution boundary remains the existing APO-70 real cross-process proof:
 
-## Rounds on this branch
+```text
+Process A
+  real Sol PrepareAsync
+       ↓
+     Ready
+       ↓
+Coordinator/process restart
 
-APO-70 is one gate delivered over successive rounds on the same branch. All of them are still
-unmerged and unaccepted:
+Process B
+  Restore persisted Ready
+       ↓
+Exactly one real gpt-5.6-luna StartAsync
+       ↓
+Bounded disposable workspace mutation
+       ↓
+Execution/workspace/checkpoint evidence
+       ↓
+Anti-replay validation
+       ↓
+STOP
+```
 
-1. **Desktop product recovery** — the RMS-family visual system, shell treatment, truthful global
-   state pill, theme switching, native local-path selection, Post-V1 navigation treatment.
-2. **Provider authentication and dynamic registry** — local-session-first Codex/Claude
-   authentication, optional API-key fallback, registry-driven AI Providers page, generic custom
-   providers, explicit availability/authentication/capacity states.
-3. **Architecture health, deep clean, and remediation** (owner-authorized Opus execution exception,
-   named scope) — the project-folder selection gap, shell lifetime, selection-refresh disposal,
-   provider identity, rendered-name collisions, executable resolution, bounded process-host
-   lifetime, the deferred CI findings, and documentation/governance reconciliation. Detail and
-   evidence are in [`.ai/CURRENT_STATE.md`](.ai/CURRENT_STATE.md).
+The proof must continue to use production orchestration authority, real local session truth, an isolated disposable repository/workspace, no fake routing/capacity/entitlement state, and no merge/release/deployment side effect.
 
-## Acceptance evidence
+## Execution authorization
 
-- RMS reference source inspected at `D:\AI Tools\Active Projects\RMS_Support_Hub`.
-- Light and dark semantic themes, shared cards/controls, header, sidebar, status pills, and
-  keyboard/focus behavior are covered by source and automated checks.
-- Existing project, Mission Control, provider, persistence, and credential-reference services are
-  reused; no fake runtime data, tokens, database, browser, or new provider is authorized.
-- Release build, full tests, and `win-x86`, `win-x64`, and `win-arm64` publish validation are
-  required before PR handoff.
-- Owner visual acceptance is required before merge or release promotion. Automated render checks are
-  not owner visual acceptance and never satisfy this gate.
+This file is **not** an executor prompt and does not authorize implementation.
 
-## Governance boundaries
+The universal prompt gate in `.ai/AI_EXECUTION_POLICY.md` remains authoritative:
 
-- V1 release remains frozen. Do not create a tag, release, deployment, or release assets.
-- Use one feature branch and one Draft PR against `main`; do not merge or bypass protection.
-- Jira is historical provenance only; no Jira writes.
-- Agents and Activity remain Post-V1 and must not appear as shipped primary navigation.
-- Stop at the Sol acceptance boundary after validation and PR handoff.
+> Sol may generate exactly one executable executor/reviewer prompt only when the owner's entire trimmed message is exactly lowercase `p`.
+
+Messages such as `proceed`, `continue`, `go`, or ordinary planning approval do not open the execution gate.
+
+## Roadmap sequencing after APO-70
+
+After APO-70 reaches owner functional/visual acceptance and final exact-head Sol acceptance, the approved reference-derived delivery sequence is:
+
+1. APO-55 runtime/process evidence continuation;
+2. APO-71 local Agent Readiness;
+3. APO-72 safe retry/fallback policy;
+4. APO-52/APO-54 workflow and evidence-history continuation as separately authorized;
+5. APO-73 isolated multi-model benchmarking;
+6. APO-74 transparent historical-performance routing signals.
+
+P2 optimization work must not delay the owner-usable single-executor orchestration path.
+
+## Delivery boundary
+
+- PR #112 remains Draft/Open/Unmerged until the existing APO-70 acceptance requirements are satisfied.
+- Do not merge or push `main` under this planning task.
+- Do not create a release, tag, or deployment.
+- Do not close Issue #111.
+- Do not infer owner product acceptance from planning/documentation updates.
+- Documentation-only commits do not constitute runtime, functional, visual, or final product acceptance.
