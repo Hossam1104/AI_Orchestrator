@@ -212,7 +212,7 @@ public sealed class ReadyExecutionRehydrator : IReadyExecutionRehydrator
             var receipt = workspaceRecovery.Receipt;
             if (receipt.ProjectId != projectId || receipt.WorkspaceId != workspacePlan.WorkspaceId ||
                 !SameWorkspacePlan(receipt.PlanReference, workspacePlan.Reference) ||
-                !string.Equals(receipt.WorkspacePath, workspacePlan.ProposedWorkspacePath, StringComparison.Ordinal) ||
+                !WorkspaceRepositoryIdentity.AreEqual(receipt.WorkspacePath, workspacePlan.ProposedWorkspacePath) ||
                 !string.Equals(receipt.BaseCommitSha, workspacePlan.BaseCommitSha, StringComparison.OrdinalIgnoreCase) ||
                 !string.Equals(receipt.ActualHeadCommitSha, workspacePlan.BaseCommitSha, StringComparison.OrdinalIgnoreCase))
             {

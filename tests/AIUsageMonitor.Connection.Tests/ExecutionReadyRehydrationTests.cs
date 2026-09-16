@@ -31,6 +31,27 @@ public sealed class ExecutionReadyRehydrationTests
         Assert.Equal(1, fixture.WorkspaceInspection.Calls);
     }
 
+    [Fact]
+    public async Task ReadyAuthority_RehydratesEquivalentCanonicalWorkspacePath()
+    {
+        var fixture = new Fixture(receiptWorkspacePath: EquivalentWorkspacePath());
+
+        var result = await fixture.Rehydrator.TryRehydrateAsync(fixture.Project.Id);
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ReadyAuthority_RejectsDifferentWorkspacePath()
+    {
+        var fixture = new Fixture(receiptWorkspacePath: @"C:\apo-other-workspace");
+
+        var result = await fixture.Rehydrator.TryRehydrateAsync(fixture.Project.Id);
+
+        Assert.Equal(ExecutionRehydrationStatus.WorkspaceUnavailable, result.Status);
+        Assert.Null(result.PreparedExecution);
+    }
+
     [Theory]
     [InlineData(Failure.SourceMoved, ExecutionRehydrationStatus.SourceMoved)]
     [InlineData(Failure.SourceDirty, ExecutionRehydrationStatus.SourceDirty)]
@@ -64,6 +85,10 @@ public sealed class ExecutionReadyRehydrationTests
 
     public enum Failure { None, SourceMoved, SourceDirty, WorkspaceMissing, ExecutorDisabled, RoutingMismatch, Superseded }
 
+    private static string EquivalentWorkspacePath() => OperatingSystem.IsWindows()
+        ? @"C:\APO-WORKSPACE\"
+        : @"C:\apo-workspace" + Path.DirectorySeparatorChar;
+
     private sealed class Fixture
     {
         private static readonly DateTimeOffset Now = new(2026, 9, 15, 12, 0, 0, TimeSpan.Zero);
@@ -85,7 +110,7 @@ public sealed class ExecutionReadyRehydrationTests
         internal readonly ClaimRepository Claims = new();
         internal readonly ReadyExecutionRehydrator Rehydrator;
 
-        internal Fixture(Failure failure = Failure.None)
+        internal Fixture(Failure failure = Failure.None, string? receiptWorkspacePath = null)
         {
             var projectId = Guid.NewGuid();
             var plannerId = Guid.NewGuid();
@@ -120,7 +145,7 @@ public sealed class ExecutionReadyRehydrationTests
                 failure == Failure.Superseded ? SmartContinueResolutionState.Blocked : SmartContinueResolutionState.Resumable,
                 projectId, Checkpoint.Reference, Checkpoint.Reference, LatestLifecycleState: failure == Failure.Superseded ? RecoveryCheckpointLifecycleState.Waiting : RecoveryCheckpointLifecycleState.Ready,
                 NextSafeAction: failure == Failure.Superseded ? RecoveryNextSafeAction.ResolveBlocker : RecoveryNextSafeAction.ContinueFromCheckpoint));
-            WorkspaceInspection = new FakeWorkspaceInspection(new WorkspacePreparationReceipt(projectId, Plan.WorkspaceId, Plan.CorrelationId, Now, Plan.Reference, WorkspacePath, Plan.WorkspaceBranch, Head, Head, SourcePath, "owner:test"), failure == Failure.WorkspaceMissing ? WorkspaceRecoveryState.NotPrepared : WorkspaceRecoveryState.PreparedAndRecorded);
+            WorkspaceInspection = new FakeWorkspaceInspection(new WorkspacePreparationReceipt(projectId, Plan.WorkspaceId, Plan.CorrelationId, Now, Plan.Reference, receiptWorkspacePath ?? WorkspacePath, Plan.WorkspaceBranch, Head, Head, SourcePath, "owner:test"), failure == Failure.WorkspaceMissing ? WorkspaceRecoveryState.NotPrepared : WorkspaceRecoveryState.PreparedAndRecorded);
             var source = failure == Failure.SourceMoved ? new LocalRepositoryInspection(RepositoryVerificationStatus.AvailableClean, SourcePath, SourcePath, true, "main", false, new string('b', 40), "bbbbbbb", isClean: true)
                 : new LocalRepositoryInspection(RepositoryVerificationStatus.AvailableClean, SourcePath, SourcePath, true, "main", false, Head, "aaaaaaa", isClean: failure != Failure.SourceDirty);
             var persistedRouting = failure == Failure.RoutingMismatch

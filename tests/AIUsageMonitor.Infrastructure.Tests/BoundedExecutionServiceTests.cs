@@ -627,6 +627,29 @@ public sealed class BoundedExecutionServiceTests
     }
 
     [Fact]
+    public async Task EquivalentCanonicalWorkspacePath_ReachesAdapter()
+    {
+        using var harness = ExecutionHarness.Create(receiptWorkspacePath: EquivalentWorkspacePath);
+
+        var result = await harness.Service.ExecuteAsync(harness.Request);
+
+        Assert.Equal(BoundedExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(1, harness.Adapter.InvocationCount);
+    }
+
+    [Fact]
+    public async Task DifferentWorkspacePath_IsRejectedBeforeAdapterOrAuthorityClaim()
+    {
+        using var harness = ExecutionHarness.Create(receiptWorkspacePath: path => path + "-other");
+
+        var result = await harness.Service.ExecuteAsync(harness.Request);
+
+        Assert.Equal(BoundedExecutionStatus.WorkspaceConflict, result.Status);
+        Assert.Equal(0, harness.Adapter.InvocationCount);
+        Assert.Equal(0, harness.Authorities.Count);
+    }
+
+    [Fact]
     public async Task RunningHistoryFailure_LeavesPreCheckpointAndReplayDoesNotInvoke()
     {
         using var harness = ExecutionHarness.Create(failHistoryStatus: ExecutionRunStatus.Running);
@@ -964,6 +987,10 @@ public sealed class BoundedExecutionServiceTests
         request.WorkspacePreparationPlanReference,
         request.CurrentRecoveryCheckpointReference);
 
+    private static string EquivalentWorkspacePath(string path) => OperatingSystem.IsWindows()
+        ? path.ToUpperInvariant() + Path.DirectorySeparatorChar
+        : path + Path.DirectorySeparatorChar;
+
     public enum AgentSnapshotDrift
     {
         ConnectionMode,
@@ -1101,7 +1128,8 @@ public sealed class BoundedExecutionServiceTests
             Guid? requestedRunId = null,
             IExecutionInvocationGate? invocationGate = null,
             IBoundedExecutionTiming? timing = null,
-            Action? onContextResolved = null)
+            Action? onContextResolved = null,
+            Func<string, string>? receiptWorkspacePath = null)
         {
             var projectId = Guid.NewGuid();
             var contextId = Guid.NewGuid();
@@ -1195,7 +1223,7 @@ public sealed class BoundedExecutionServiceTests
                 plan.CorrelationId,
                 Now,
                 plan.Reference,
-                workspacePath,
+                receiptWorkspacePath?.Invoke(workspacePath) ?? workspacePath,
                 plan.WorkspaceBranch,
                 baseSha,
                 baseSha,
