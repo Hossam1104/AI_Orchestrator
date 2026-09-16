@@ -359,8 +359,11 @@ For an owner-visible local run, use the canonical fresh-run script:
 .\scripts\Run-FreshDesktop.ps1
 ```
 
-Use the runtime/stop semantics defined in `AGENTS.md` and `.ai/AI_EXECUTION_POLICY.md`; existing
-binaries from prior publish/artifact directories are not current-run evidence.
+The script recreates `artifacts/local-run/win-x64`, publishes a fresh Release build from the
+current working tree, validates that output, then launches only its executable. Use the
+runtime/stop semantics defined in `AGENTS.md` and `.ai/AI_EXECUTION_POLICY.md`; `-SmokeTest`
+provides bounded startup validation and cleanup. Existing binaries from prior publish/artifact
+directories are not current-run evidence.
 
 ### Continuous integration
 
