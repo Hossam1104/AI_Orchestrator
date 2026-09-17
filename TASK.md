@@ -16,11 +16,13 @@ Read these authorities before any future execution work:
 3. `.ai/AI_MODEL_ROUTING.md`
 4. `.ai/CURRENT_STATE.md`
 5. `.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md`
-6. `docs/BRD.md`
-7. `docs/IMPLEMENTATION_PLAN.md`
-8. `docs/STRATEGIC_ROADMAP.md`
-9. `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`
-10. GitHub Issue #111 and the exact current PR #112 state
+6. `.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md`
+7. `docs/BRD.md`
+8. `docs/IMPLEMENTATION_PLAN.md`
+9. `docs/STRATEGIC_ROADMAP.md`
+10. `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`
+11. `docs/GITHUB_ECOSYSTEM_ROADMAP_EXTENSION_2026-09-17.md`
+12. GitHub Issue #111 and the exact current PR #112 state
 
 The new reference-derived roadmap additions are:
 
@@ -31,33 +33,59 @@ The new reference-derived roadmap additions are:
 - APO-74 / #116 — transparent historical-performance signals for Automatic routing;
 - APO-52 / #90 and APO-54 / #92 remain the existing owners of composable workflow templates and owner-browsable decision/evidence history.
 
-## Next implementation boundary
+## APO-70 backend cross-process runtime proof
 
-The next implementation/execution boundary remains the existing APO-70 real cross-process proof:
+**SOL-ACCEPTED / COMPLETE**
+
+Proven on source head `a2719257e6dc2b276152f35aa34ad945a912a20a` for ProjectId
+`c743e0da-24a6-4ad3-b309-aeb72658013c`:
 
 ```text
 Process A
-  real Sol PrepareAsync
-       ↓
-     Ready
-       ↓
-Coordinator/process restart
+  PrepareAsync = 1
+  real Sol = 1
+  state = Ready
+  Process A exited
 
 Process B
-  Restore persisted Ready
-       ↓
-Exactly one real gpt-5.6-luna StartAsync
-       ↓
-Bounded disposable workspace mutation
-       ↓
-Execution/workspace/checkpoint evidence
-       ↓
-Anti-replay validation
-       ↓
-STOP
+  PrepareAsync = 0
+  real Sol = 0
+  RestoreAsync = 1
+  result = Restored / Ready
+  StartAsync = 1
+  real Luna = 1
+  model = gpt-5.6-luna
+  result = Succeeded / Completed
+  Process B exited
+
+  prepared-workspace mutation: STATE=before -> STATE=after
+  original disposable source: same HEAD, clean, no remotes, STATE=before
+
+Process C
+  RestoreAsync = 1
+  consumed old Ready executable = NO
+  second StartAsync = 0
+  second Luna = 0
+  duplicate execution authority = NO
+  anti-replay = PASS
 ```
 
-The proof must continue to use production orchestration authority, real local session truth, an isolated disposable repository/workspace, no fake routing/capacity/entitlement state, and no merge/release/deployment side effect.
+Totals: `PrepareAsync=1`, `RestoreAsync=2`, `StartAsync=1`, `real Sol=1`, `real Luna=1`,
+`fallback=0`, `model retry=0`.
+
+This proves the backend cross-process orchestration boundary only. It does not constitute owner
+Desktop functional acceptance, owner visual acceptance, final APO-70 acceptance, merge authority,
+or release authority.
+
+## Current implementation/product gate
+
+**FRESH OWNER-VISIBLE DESKTOP FUNCTIONAL + VISUAL ACCEPTANCE**
+
+The remaining Issue #111 gate is a fresh-published Desktop with real existing-project
+registration/reload, truthful Mission Control and local provider/session state, one Desktop-started
+real orchestration workflow with runtime/result evidence, usable cancellation/validation, the
+required Cairo/layout/theme/scrolling/CTA UX recovery, explicit owner functional + visual acceptance,
+and final exact-head Sol acceptance.
 
 ## Execution authorization
 
@@ -71,14 +99,19 @@ Messages such as `proceed`, `continue`, `go`, or ordinary planning approval do n
 
 ## Roadmap sequencing after APO-70
 
-After APO-70 reaches owner functional/visual acceptance and final exact-head Sol acceptance, the approved reference-derived delivery sequence is:
+After the current APO-70 Desktop gate and final exact-head Sol acceptance, the approved delivery
+sequence is:
 
-1. APO-55 runtime/process evidence continuation;
+1. APO-55 runtime/process/restart evidence + observability projection;
 2. APO-71 local Agent Readiness;
-3. APO-72 safe retry/fallback policy;
-4. APO-52/APO-54 workflow and evidence-history continuation as separately authorized;
-5. APO-73 isolated multi-model benchmarking;
-6. APO-74 transparent historical-performance routing signals.
+3. APO-75 HEAD-bound Project Intelligence Map;
+4. APO-72 safe retry/fallback + attempt lineage;
+5. APO-52/APO-54 workflow, skills, hooks, and evidence-history continuation;
+6. APO-76 shared-core Headless CLI;
+7. APO-77 governed schedule/event triggers;
+8. APO-73 isolated multi-model benchmarking;
+9. APO-74 transparent historical-performance routing signals;
+10. APO-78 governed ACP/A2A/MCP interoperability.
 
 P2 optimization work must not delay the owner-usable single-executor orchestration path.
 

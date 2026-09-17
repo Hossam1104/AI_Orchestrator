@@ -101,19 +101,90 @@ APO-78 protocol interoperability
 
 This is planning order, not automatic hard dependency.
 
-## 5. Planning-branch isolation
+## 5. APO-70 backend proof authority
 
-The active APO-70 runtime proof is exact-head sensitive. To avoid invalidating an already-authorized runtime proof with documentation-only commits, this 2026-09-17 planning synchronization is staged on:
+The backend cross-process runtime proof is **SOL-ACCEPTED / COMPLETE**. It ran on source head
+`a2719257e6dc2b276152f35aa34ad945a912a20a` for ProjectId
+`c743e0da-24a6-4ad3-b309-aeb72658013c`.
 
-`docs/APO-75-78-github-ecosystem-roadmap`
+Process A:
 
-based on accepted APO-70 head:
+- `PrepareAsync = 1`;
+- real Sol = `1`;
+- state = `Ready`;
+- Process A exited.
 
-`a2719257e6dc2b276152f35aa34ad945a912a20a`
+Process B:
 
-The active APO-70 feature branch is intentionally not moved by this planning update.
+- `PrepareAsync = 0`, real Sol = `0`;
+- `RestoreAsync = 1`, result = `Restored / Ready`;
+- `StartAsync = 1`, real Luna = `1`, model = `gpt-5.6-luna`;
+- result = `Succeeded / Completed`;
+- Process B exited.
 
-## 6. Guardrails retained
+The prepared workspace changed `STATE=before` to `STATE=after`. The original disposable source
+remained on the same HEAD, clean, without remotes, and with `STATE=before`.
+
+Process C:
+
+- `RestoreAsync = 1`;
+- consumed old Ready executable = `NO`;
+- second `StartAsync = 0`, second Luna = `0`;
+- duplicate execution authority = `NO`;
+- anti-replay = `PASS`.
+
+Totals: `PrepareAsync=1`, `RestoreAsync=2`, `StartAsync=1`, `real Sol=1`, `real Luna=1`,
+`fallback=0`, `model retry=0`.
+
+Authority continuity was preserved: replan = `NO`, reroute = `NO`, workspace reprepare = `NO`,
+executor replacement = `NO`.
+
+This proves the backend cross-process orchestration boundary only. It does not constitute owner
+Desktop functional acceptance, owner visual acceptance, final APO-70 acceptance, merge authority,
+or release authority.
+
+## 6. Current APO-70 boundary
+
+The current implementation/product gate is:
+
+**FRESH OWNER-VISIBLE DESKTOP FUNCTIONAL + VISUAL ACCEPTANCE**
+
+Issue #111 still requires a fresh-published Desktop, real existing-project registration/reload,
+truthful Mission Control and local provider/session state, a Desktop-started real orchestration
+workflow with runtime/result evidence, usable cancellation/validation, the required Cairo/layout/
+theme/scrolling/CTA UX recovery, explicit owner functional + visual acceptance, and final exact-head
+Sol acceptance.
+
+PR #112 remains Draft/Open/Unmerged and Issue #111 remains Open with `status:in-progress` and
+`current-gate`. No merge, release, deployment, or final acceptance is implied.
+
+## 7. Architecture Health Check
+
+**Overall project drift: LEVEL 2 — MODERATE DRIFT**
+
+The code architecture is generally healthy (approximately Level 0/1); no systemic boundary
+degradation was found. Level 2 arose primarily from operational documentation/tracker drift that
+could direct a future session to repeat already-completed runtime work. No broad architecture
+refactor is authorized.
+
+Standing WATCH items:
+
+- `BoundedExecutionService` — largest runtime complexity hotspot: concurrency, anti-replay,
+  checkpoints, authority validation, adapter invocation, timeout/cancellation/finalization;
+- `ExecutionCoordinator` — broad orchestration responsibility and high collaborator count;
+- `ReadyExecutionRehydrator` — long durable-authority reconstruction path;
+- repeated reference-equality helpers such as `SameContract`, `SameGraph`, and `SameRouting`.
+
+Record these as WATCH only; correct them only through future evidence-driven related work.
+
+## 8. Integrated planning delta
+
+The planning-only commits from PR #121 were directly fast-forwarded into the APO-70 feature branch.
+The final integrated planning head is `9b7d7c3bc7d70d35f1448b5ae67ac48e3ad3d542`. The active branch
+now contains the approved APO-75..78 roadmap extension and remains the only delivery line for PR
+#112. No product source, test, script, workflow, package, or asset code was changed.
+
+## 9. Guardrails retained
 
 No change to these principles:
 
@@ -129,10 +200,12 @@ No change to these principles:
 - parallel write-capable models never share one mutable working tree;
 - no merge/release/deploy/Issue #111 closure is authorized by planning work.
 
-## 7. Current boundary
+## 10. Current boundary
 
-The newly added/extended work is backlog planning only.
+The backend proof is complete and accepted; the remaining APO-70 gate is fresh owner-visible
+Desktop functional + visual acceptance.
 
 APO-70 remains the sole implementation gate.
 
-A planning document or tracker update does not authorize implementation. Generated executor/reviewer prompts remain governed by the standalone lowercase `p` rule in `.ai/AI_EXECUTION_POLICY.md`.
+A planning document or tracker update does not authorize implementation. Generated executor/reviewer
+prompts remain governed by the standalone lowercase `p` rule in `.ai/AI_EXECUTION_POLICY.md`.

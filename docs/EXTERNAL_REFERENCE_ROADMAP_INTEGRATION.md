@@ -17,6 +17,10 @@ The governing rule is:
 
 The current implementation gate remains APO-70 / GitHub Issue #111. No reference-derived feature may interrupt or broaden that gate unless a verified P0 correctness defect requires it.
 
+The approved 2026-09-17 GitHub ecosystem extension is recorded in
+`docs/GITHUB_ECOSYSTEM_ROADMAP_EXTENSION_2026-09-17.md` and the latest current-state authority in
+`.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md`.
+
 ---
 
 ## 2. Current APO product direction
@@ -398,7 +402,7 @@ The approved sequence is:
 
 ```text
 CURRENT GATE
-APO-70 real cross-process execution proof
+APO-70 backend cross-process proof (SOL-ACCEPTED / COMPLETE)
   ↓
 APO-70 fresh Desktop functional + visual owner acceptance
   ↓
@@ -408,13 +412,21 @@ P0/P1 runtime evidence continuation — APO-55
   ↓
 P1 local Agent Readiness — APO-71
   ↓
+P1 HEAD-bound Project Intelligence Map — APO-75
+  ↓
 P1 retry/fallback policy — APO-72
   ↓
 P1 workflow/evidence UX continuation through APO-52/APO-54 as separately authorized
   ↓
+P1/P2 shared-core Headless CLI — APO-76
+  ↓
+P2 governed schedule/event triggers — APO-77
+  ↓
 P2 isolated model benchmarking — APO-73
   ↓
 P2 transparent historical routing signals — APO-74
+  ↓
+P2 governed ACP / A2A / MCP interoperability — APO-78
 ```
 
 APO-73 and APO-74 must not delay the owner-usable single-executor path.
@@ -423,7 +435,7 @@ APO-73 and APO-74 must not delay the owner-usable single-executor path.
 
 ## 9. Current gate preservation
 
-The active APO-70 runtime boundary remains:
+The accepted APO-70 backend boundary is:
 
 ```text
 Process A
@@ -447,7 +459,10 @@ Anti-replay validation
 STOP
 ```
 
-This document does not authorize that execution. The repository's universal standalone lowercase `p` prompt gate remains authoritative.
+The proof is complete and Sol-accepted on source head
+`a2719257e6dc2b276152f35aa34ad945a912a20a`; this document does not authorize a new execution. The
+remaining APO-70 gate is fresh owner-visible Desktop functional + visual acceptance. The repository's
+universal standalone lowercase `p` prompt gate remains authoritative.
 
 ---
 
@@ -477,11 +492,15 @@ Every reference-derived implementation must:
 | APO-70 / #111 | V1 Desktop recovery + real orchestration spine | P0 | FAST V1 | Current gate |
 | APO-55 / #93 | Runtime/process evidence + restart reconciliation + environment fingerprint | P0/P1 | FAST V1 continuation | In Progress |
 | APO-71 / #113 | Local Agent Readiness + executable provenance/version | P1 | Post-V1 | Backlog |
+| APO-75 / #117 | HEAD-bound Project Intelligence Map + Planner Context Pack | P1 | Post-V1 | Backlog |
 | APO-72 / #114 | Failure-classified retry + policy-driven fallback | P1 | Post-V1 | Backlog |
 | APO-52 / #90 | Composable workflow templates | P1 | Post-V1 | Backlog |
 | APO-54 / #92 | Decision ledger + owner-browsable execution/evidence history | P1 | Post-V1 | Backlog |
+| APO-76 / #118 | Shared-core Headless APO CLI | P1/P2 | Post-V1 | Backlog |
+| APO-77 / #119 | Governed schedule and event triggers | P2 | Post-V1 | Backlog |
 | APO-73 / #115 | Controlled isolated multi-model benchmarking | P2 | Post-V1 | Backlog |
 | APO-74 / #116 | Transparent historical-performance routing signals | P2 | Post-V1 | Backlog |
+| APO-78 / #120 | Governed ACP/A2A/MCP interoperability | P2 | Post-V1 | Backlog |
 
 ---
 

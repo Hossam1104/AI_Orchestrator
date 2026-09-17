@@ -30,17 +30,18 @@ The sole active implementation/recovery gate is **APO-70 (GitHub issue #111)** o
 `feature/APO-70-v1-desktop-product-recovery`, with Draft PR #112. The recovery line has already
 proved a real production-composed Sol `PrepareAsync` path through contract, WorkGraph, routing,
 Luna selection, handoff, isolated workspace preparation, recovery checkpoint, and `Ready`. Persisted
-`Ready` can be rehydrated across coordinator/process restart with project isolation and durable
-single-consumption/anti-replay protection. The next unproven runtime boundary is still one real
-`gpt-5.6-luna` `StartAsync` workspace-write execution from restored Ready authority. Owner visual
-and functional acceptance, final exact-head Sol acceptance, merge, release, and deployment remain
-pending.
+`Ready` was rehydrated across coordinator/process restart, followed by exactly one real
+`gpt-5.6-luna` `StartAsync` workspace-write execution and a passing fresh-process anti-replay
+check. The backend cross-process proof is **SOL-ACCEPTED / COMPLETE** on source head
+`a2719257e6dc2b276152f35aa34ad945a912a20a` for ProjectId `c743e0da-24a6-4ad3-b309-aeb72658013c`.
+The remaining gate is fresh owner-visible Desktop functional + visual acceptance, followed by final
+exact-head Sol acceptance; merge, release, and deployment remain pending.
 
-The external-reference review of `monocsp/flutter_ai_orchestration` has now been integrated as
-**planning/governance only**. It did not replace APO's stack or execution architecture and did not
-perform the pending Luna execution. See
+The external-reference reviews have now been integrated as **planning/governance only**. They did
+not replace APO's stack or execution architecture. See
 [`docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`](docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md)
-and [`.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md`](.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md).
+and [`.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md`](.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md), plus
+[`docs/GITHUB_ECOSYSTEM_ROADMAP_EXTENSION_2026-09-17.md`](docs/GITHUB_ECOSYSTEM_ROADMAP_EXTENSION_2026-09-17.md).
 
 V1 execution is focused on OpenAI and Claude under the canonical routing policy. Antigravity remains
 auxiliary bounded capacity where separately approved. `COPILOT = POST-V1`, and new
@@ -135,7 +136,7 @@ APO is an active foundation, not a finished orchestration product.
 | :white_check_mark: Implemented / validated | APO-38..43 control-plane contracts/services: agent/model truth, progressive onboarding, versioned contracts, dependency-aware WorkGraphs, structured handoffs, and durable Smart Continue/recovery state |
 | :white_check_mark: Implemented / validated | APO-44..46 bounded execution foundation: explainable quality-first routing, isolated workspaces, and bounded cancellable execution with project/authority/recovery safeguards |
 | :white_check_mark: Implemented / validated | APO-68 workspace-preparation hardening: fail-closed approval-index recovery, mutation timeout safety, repository lock identity, and inherited Git-environment hardening |
-| :warning: Partial / validated | APO-70 production execution spine: real Sol planner reached Ready, real Luna was naturally selected, persisted Ready restores across process restart with anti-replay; real restored-Ready Luna workspace-write execution remains pending |
+| :warning: Partial / validated | APO-70 backend cross-process proof is Sol-accepted and complete; fresh owner-visible Desktop functional + visual acceptance remains pending |
 | :white_check_mark: Implemented / validated | APO-47 tracker-agnostic work-item/dependency synchronization foundation with bounded reads, explicit mutation authority, post-verification, and audit evidence |
 | :white_check_mark: Implemented / validated | Official provider capacity adapter surfaces for Codex, Claude, Kimi, GitHub Copilot, and Antigravity, with documented manual/unsupported boundaries |
 | :white_check_mark: Implemented / validated | APO-62 provider-independent, read-only remote SCM and CI evidence (GitHub and Azure Repos) |
@@ -144,7 +145,7 @@ APO is an active foundation, not a finished orchestration product.
 | :white_check_mark: Delivered / accepted | APO-49 human approval policy and gates |
 | :white_check_mark: Delivered / accepted | APO-63 controlled remote source-control delivery with explicit gates and exact-target evidence |
 | :white_check_mark: Delivered / accepted | APO-33 repository-owned GitHub Actions CI and multi-RID packaging |
-| :compass: Active roadmap | APO-55 process/restart evidence; APO-71 Agent Readiness; APO-72 safe retry/fallback; APO-52 workflow templates; APO-54 execution/evidence history; APO-73 isolated benchmarking; APO-74 historical-performance routing |
+| :compass: Active roadmap | APO-55 → APO-71 → APO-75 → APO-72 → APO-52/APO-54 → APO-76 → APO-77 → APO-73 → APO-74 → APO-78 |
 
 The source/runtime validation baseline immediately before the 2026-09-16 planning-only roadmap
 commits was feature SHA `14d8d470d63c17e726278cb0336e737b4fdc5022`, PR CI run
@@ -153,10 +154,9 @@ successful self-contained publish validation for `win-x86`, `win-x64`, and `win-
 planning/documentation commits move the branch HEAD and must not reuse that older SHA as an
 exact-head runtime acceptance claim.
 
-Not yet proven/accepted: real Luna execution on restored Ready authority, the complete owner-visible
-end-to-end lifecycle, owner visual/functional acceptance, final APO-70 exact-head acceptance, and
-release readiness. Claude execution remains a separate provider/runtime capability and must not be
-claimed from the Codex proof.
+Not yet proven/accepted: the complete owner-visible end-to-end lifecycle, owner visual/functional
+acceptance, final APO-70 exact-head acceptance, and release readiness. Claude execution remains a
+separate provider/runtime capability and must not be claimed from the Codex proof.
 
 ## Smart Continue and integration boundaries
 
@@ -389,6 +389,8 @@ an older test count forward as proof for a newer documentation or source head.
 - [Canonical AI Model Routing Policy](.ai/AI_MODEL_ROUTING.md)
 - [Current State and Validation Handoff](.ai/CURRENT_STATE.md)
 - [Current-State Addendum — 2026-09-16](.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md)
+- [Current-State Addendum — 2026-09-17](.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md)
+- [GitHub Ecosystem Roadmap Extension — 2026-09-17](docs/GITHUB_ECOSYSTEM_ROADMAP_EXTENSION_2026-09-17.md)
 - [Current Task / Execution Gate](TASK.md)
 
 ## Roadmap
@@ -397,14 +399,17 @@ The roadmap follows the approved APO Epics and canonical GitHub work items. Deli
 identified explicitly; remaining entries are planned capability boundaries, not shipped runtime
 claims:
 
-1. **Current P0 gate — APO-70 / #111:** finish the real restored-Ready Luna execution proof, then fresh Desktop owner functional/visual acceptance and final exact-head Sol acceptance.
+1. **Current P0 gate — APO-70 / #111:** fresh owner-visible Desktop functional + visual acceptance, then final exact-head Sol acceptance.
 2. **P0/P1 runtime evidence — APO-55 / #93:** process ownership, process-tree termination truth, restart reconciliation, environment fingerprint, and Mission Control runtime evidence.
 3. **P1 local Agent Readiness — APO-71 / #113:** executable provenance/path/version + supported modes + authentication/entitlement/capability/freshness truth.
-4. **P1 safe recovery — APO-72 / #114:** failure-classified retry and policy-driven fallback from verified checkpoints.
-5. **P1 workflow/evidence UX — APO-52 / #90 and APO-54 / #92:** provider-independent workflow templates and owner-browsable decision/execution evidence history.
-6. **P2 benchmarking — APO-73 / #115:** opt-in multi-model comparison with isolated workspace/authority/evidence per candidate.
-7. **P2 routing optimization — APO-74 / #116:** transparent deterministic historical-performance signals after sufficient trustworthy evidence exists.
-8. **Other post-V1 work:** bounded background automation/housekeeping, optional remote approval security design, and remaining local-Git evidence hardening remain separately sequenced.
+4. **P1 Project Intelligence Map — APO-75 / #117:** HEAD-bound, read-only planning context and impact analysis.
+5. **P1 safe recovery — APO-72 / #114:** failure-classified retry/fallback and attempt lineage from verified checkpoints.
+6. **P1 workflow/evidence UX — APO-52 / #90 and APO-54 / #92:** versioned skills/hooks plus owner-browsable run/evidence history.
+7. **P1/P2 shared-core CLI — APO-76 / #118:** headless presentation over the existing Application/Domain core.
+8. **P2 governed triggers — APO-77 / #119:** schedules/events entering the normal policy and evidence pipeline.
+9. **P2 benchmarking — APO-73 / #115:** opt-in multi-model comparison with isolated workspace/authority/evidence per candidate.
+10. **P2 routing optimization — APO-74 / #116:** transparent deterministic historical-performance signals after sufficient trustworthy evidence exists.
+11. **P2 interoperability — APO-78 / #120:** governed ACP/A2A/MCP adapters that cannot bypass APO authorities.
 
 The detailed reference-derived sequence and anti-patterns are maintained in
 `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`.

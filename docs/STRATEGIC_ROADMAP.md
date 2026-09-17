@@ -49,14 +49,18 @@ Current APO-70 product/runtime truth:
 - persisted Ready rehydrates across coordinator/process restart;
 - cross-project cached-Ready isolation is enforced;
 - durable single-consumption/anti-replay protects the immutable Ready input authority;
-- real restored-Ready Luna `StartAsync` workspace-write execution remains **unproven**;
+- backend cross-process proof is **SOL-ACCEPTED / COMPLETE** on source head
+  `a2719257e6dc2b276152f35aa34ad945a912a20a`;
+- exactly one real `gpt-5.6-luna` `StartAsync` executed after fresh-process Restore;
+- prepared workspace mutation and original-source isolation passed;
+- fresh-process anti-replay passed with no duplicate execution authority;
 - owner visual/functional acceptance and final exact-head Sol acceptance remain pending.
 
 The branch now also contains documentation-only roadmap/governance commits after the source/runtime
 baseline above. Therefore future exact-head validation must use the live branch HEAD and must not
 reuse the older source SHA as proof for the newer documentation head.
 
-The live planning delta is summarized in `.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md`.
+The live planning delta is summarized in `.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md`.
 
 ## 3. Product experience we are building
 
@@ -148,9 +152,11 @@ APO-72 and must pass normal eligibility/policy checks.
 
 APO-70 remains first. The reference-derived roadmap does **not** preempt it.
 
-### 6.1 Immediate runtime proof
+### 6.1 Accepted backend runtime proof
 
-The next execution boundary remains:
+The backend cross-process proof is **SOL-ACCEPTED / COMPLETE**. It ran on source head
+`a2719257e6dc2b276152f35aa34ad945a912a20a` for ProjectId
+`c743e0da-24a6-4ad3-b309-aeb72658013c`. The proven shape was:
 
 ```text
 Process A
@@ -174,13 +180,15 @@ Anti-replay validation
 STOP
 ```
 
-This proof must use production orchestration services, truthful local session detection, natural
-routing, one isolated disposable repository/workspace, no fake capacity/entitlement, no second Luna
-attempt, and no push/merge/release/deploy.
+It recorded `PrepareAsync=1`, `RestoreAsync=2`, `StartAsync=1`, real Sol `=1`, real Luna `=1`,
+fallback `=0`, and model retry `=0`; authority continuity was preserved with no replan, reroute,
+workspace reprepare, or executor replacement. The prepared workspace changed `STATE=before` to
+`STATE=after`; the original disposable source remained on the same HEAD, clean, without remotes,
+and with `STATE=before`. This proves the backend boundary only.
 
-### 6.2 Product acceptance after runtime proof
+### 6.2 Current product acceptance gate
 
-After the runtime proof is Sol-accepted, continue APO-70 through:
+The remaining APO-70 gate is **FRESH OWNER-VISIBLE DESKTOP FUNCTIONAL + VISUAL ACCEPTANCE**:
 
 - a fresh Desktop publish;
 - real registered-project workflow;
@@ -401,16 +409,29 @@ APO-55 stable runtime/process/restart evidence
         ↓
 APO-71 Agent Readiness
         ↓
+APO-75 Project Intelligence Map
+        ↓
 APO-72 retry/fallback
         ↓
 APO-52 / APO-54 workflow + evidence-history acceleration
         ↓
+APO-76 shared-core Headless CLI
+        ↓
+APO-77 governed schedule/event triggers
+        ↓
 APO-73 benchmarking
         ↓
 APO-74 historical-performance routing
+        ↓
+APO-78 governed ACP / A2A / MCP interoperability
 ```
 
 APO-73 and APO-74 must not delay the first owner-usable single-executor product loop.
+
+The 2026-09-17 extensions remain bounded: APO-75 is advisory HEAD-bound planning context, APO-76
+is a presentation surface over the existing Application/Domain core, APO-77 submits triggers to
+the normal policy/approval/workspace/evidence pipeline, and APO-78 protocol adapters cannot bypass
+Agent Readiness, routing, approval, workspace, evidence, or execution authorities.
 
 ## 15. External-reference anti-patterns explicitly rejected
 
@@ -445,7 +466,7 @@ This is a bounded architecture health check, not a rewrite authorization.
 
 ```text
 NOW
-APO-70 real cross-process execution proof
+APO-70 backend cross-process proof (SOL-ACCEPTED / COMPLETE)
   ↓
 APO-70 Desktop functional + visual owner acceptance
   ↓
@@ -455,13 +476,21 @@ APO-55 runtime/process/restart evidence
   ↓
 APO-71 local Agent Readiness
   ↓
+APO-75 HEAD-bound Project Intelligence Map
+  ↓
 APO-72 failure-classified retry/fallback
   ↓
 APO-52 / APO-54 workflow and evidence-history continuation
   ↓
+APO-76 shared-core Headless CLI
+  ↓
+APO-77 governed schedule/event triggers
+  ↓
 APO-73 isolated multi-model benchmarking
   ↓
 APO-74 transparent historical-performance routing
+  ↓
+APO-78 governed ACP / A2A / MCP interoperability
   ↓
 remaining post-V1 strategic capabilities as separately authorized
 ```
@@ -470,8 +499,8 @@ remaining post-V1 strategic capabilities as separately authorized
 
 The execution gate is **closed**. This roadmap update is planning/governance work only.
 
-No real Luna `StartAsync`, new implementation session, merge, main push, release, tag, deployment,
-or Issue #111 closure is authorized by this file.
+No new real Luna `StartAsync` is authorized by this file. No new implementation session, merge, main
+push, release, tag, deployment, or Issue #111 closure is authorized by this file.
 
 The next executable AI-worker prompt may be generated only after a future owner message whose
 entire trimmed content is exactly lowercase `p`.

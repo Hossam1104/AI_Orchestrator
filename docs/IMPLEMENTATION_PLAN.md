@@ -103,76 +103,65 @@ Issue/PR history and are not recopied here as mutable plan truth.
 
 APO-70 remains **OPEN / IN PROGRESS / SOLE CURRENT GATE** on Draft PR #112.
 
-The source/runtime baseline immediately before the 2026-09-16 planning-only commits was:
+The accepted backend proof source head was `a2719257e6dc2b276152f35aa34ad945a912a20a`, with
+PR CI run `35162849445` succeeding on that exact head:
 
-- feature SHA `14d8d470d63c17e726278cb0336e737b4fdc5022`;
+- feature SHA `a2719257e6dc2b276152f35aa34ad945a912a20a`;
 - base `main` `d7c1231df9ea1a4d008aa473210d0ccc735c0302`;
-- PR CI run `34987372556`: SUCCESS;
-- 1,406 passed / 0 failed / 0 skipped;
+- PR CI run `35162849445`: SUCCESS;
+- 1,410 passed / 0 failed / 0 skipped;
 - Release build 0 warnings / 0 errors;
 - win-x86, win-x64, win-arm64 self-contained publish validation PASS.
 
-At that baseline, production-composed real Sol `PrepareAsync` reached `Ready`, routing naturally
-selected Luna, and persisted Ready recovery across coordinator/process restart plus durable
-single-consumption/anti-replay were proven. Real restored-Ready Luna `StartAsync` workspace-write
-execution remains pending.
+On that head, the production-composed backend cross-process proof reached `Ready`, restored it in a
+fresh process, performed exactly one real `gpt-5.6-luna` `StartAsync` workspace mutation, and passed
+fresh-process anti-replay. Sol accepted the proof. It does not constitute Desktop owner functional
+or visual acceptance, final APO-70 acceptance, merge authority, or release authority.
 
-Documentation/governance commits now follow that runtime baseline. Future exact-head claims must
-use the live branch HEAD rather than carrying forward the older SHA.
+The current integrated documentation head is `9b7d7c3bc7d70d35f1448b5ae67ac48e3ad3d542`; future
+exact-head validation must use the live branch HEAD rather than carrying forward the accepted proof
+or CI SHA.
 
 ---
 
-## 4. Current execution boundary — complete APO-70 first
+## 4. Current execution boundary — APO-70 Desktop acceptance
 
-### Phase 4A — real restored-Ready Luna execution proof
+### Phase 4A — backend cross-process proof complete
 
-The next authorized implementation session, after the standalone `p` gate, must remain bounded to:
+The backend proof is **SOL-ACCEPTED / COMPLETE**. It proved the following bounded sequence on source
+head `a2719257e6dc2b276152f35aa34ad945a912a20a` for ProjectId
+`c743e0da-24a6-4ad3-b309-aeb72658013c`:
 
 ```text
 Process A
-  verify live repository/tracker state
-  ↓
-  use production DI/services
-  ↓
-  real Sol PrepareAsync
-  ↓
-  Ready persisted
-  ↓
-  dispose/restart coordinator/process
+  PrepareAsync = 1
+  real Sol = 1
+  state = Ready
+  Process A exited
 
 Process B
-  restore persisted Ready
-  ↓
-  prove immutable references still match
-  ↓
-  StartAsync exactly once
-  ↓
-  real gpt-5.6-luna execution exactly once
-  ↓
-  one bounded intended mutation in disposable prepared workspace
-  ↓
-  capture execution/workspace/checkpoint evidence
-  ↓
-  prove anti-replay / no second consumption
-  ↓
-  STOP
+  RestoreAsync = 1 -> Restored / Ready
+  StartAsync = 1 -> real Luna = 1 -> Succeeded / Completed
+  prepared workspace: STATE=before -> STATE=after
+  Process B exited
+
+Process C
+  RestoreAsync = 1
+  consumed old Ready executable = NO
+  second StartAsync = 0
+  second Luna = 0
+  anti-replay = PASS
 ```
 
-Required boundaries:
-
-- production Application/Infrastructure/Provider services only;
-- real local session detection;
-- no fake routing/capacity/entitlement/readiness state;
-- disposable repository with no remote;
-- source APO checkout must not be mutated by the proof;
-- no second Luna attempt;
-- no automatic remediation;
-- no push/merge/tag/release/deploy;
-- truthful `COMPLETE`, `PARTIAL`, or `BLOCKED` result.
+The original disposable source remained on the same HEAD, clean, without remotes, and with
+`STATE=before`. Totals were `PrepareAsync=1`, `RestoreAsync=2`, `StartAsync=1`, real Sol `=1`, real
+Luna `=1`, fallback `=0`, and model retry `=0`. Authority continuity was preserved: no replan,
+reroute, workspace reprepare, or executor replacement.
 
 ### Phase 4B — APO-70 Desktop owner workflow
 
-After the runtime proof is Sol-accepted:
+The current implementation/product gate is **FRESH OWNER-VISIBLE DESKTOP FUNCTIONAL + VISUAL
+ACCEPTANCE**. After the accepted backend proof:
 
 1. fresh-publish the current exact tree;
 2. register/reload a real existing project;
@@ -185,13 +174,15 @@ After the runtime proof is Sol-accepted:
 9. run final exact-head validation/CI/publish checks;
 10. obtain final Sol acceptance.
 
-Only a separate finalization authorization may merge/release after those gates.
+Only a separate finalization authorization may merge/release after those gates. No backend proof,
+documentation update, or CI result substitutes for owner acceptance.
 
 ---
 
 ## 5. Reference-derived reliability extension — APO-55 / #93
 
-After APO-70 proves the single-executor path, continue the existing APO-55 runtime-evidence Story.
+After APO-70 reaches Desktop and final Sol acceptance, continue the existing APO-55 runtime-evidence
+Story.
 
 ### Product behavior
 
@@ -439,6 +430,17 @@ Priority: **P2 / Post-V1**.
 
 ## 11. Existing strategic work retained
 
+The approved 2026-09-17 planning extension adds these bounded follow-ons:
+
+- APO-75 / #117 — HEAD-bound, read-only Project Intelligence Map and Planner Context Pack; it is
+  advisory and never a second repository authority.
+- APO-76 / #118 — Headless APO CLI over the same Application/Domain orchestration core; it is not a
+  second router, runner, registry, checkpoint, evidence, or permission system.
+- APO-77 / #119 — governed schedules and event triggers; triggers request work but never bypass the
+  normal policy, approval, workspace, evidence, validation, or delivery pipeline.
+- APO-78 / #120 — governed ACP/A2A/MCP interoperability; protocol adapters cannot bypass Agent
+  Readiness, routing, approval, workspace, evidence, or execution authorities.
+
 The new roadmap does not remove or implicitly complete existing work. Continue separately when
 sequenced:
 
@@ -517,8 +519,21 @@ CI remains sanitized and must not require live authenticated provider credential
 
 ## 14. Architecture-health cadence
 
-Continuous Implementation Guard applies to every executor change. In addition, after the first real
-restored-Ready Luna execution proof, run a bounded architecture-health review of:
+Continuous Implementation Guard applies to every executor change. The bounded architecture-health
+review after the first real restored-Ready Luna execution proof recorded generally healthy source
+architecture (approximately Level 0/1) and no systemic boundary degradation. Overall project drift
+was **LEVEL 2 — MODERATE DRIFT**, caused primarily by stale operational documentation/tracker
+authority. No broad refactor is authorized.
+
+Keep these as WATCH items only:
+
+- `ExecutionCoordinator` — broad orchestration responsibility and high collaborator count;
+- `ReadyExecutionRehydrator` — long durable-authority reconstruction path;
+- `BoundedExecutionService` — largest runtime complexity hotspot: concurrency, anti-replay,
+  checkpoints, authority validation, adapter invocation, timeout/cancellation/finalization;
+- repeated reference-equality helpers such as `SameContract`, `SameGraph`, and `SameRouting`.
+
+The reviewed runtime chain remains:
 
 ```text
 ExecutionCoordinator
@@ -542,7 +557,9 @@ Review for:
 - validation/review boundary drift;
 - duplicated provider checks or persistence concepts.
 
-Fix bounded drift incrementally. Do not convert the health check into a repository rewrite.
+Record the watch items without refactoring them in this documentation synchronization. Future
+correction must be evidence-driven during related implementation. Do not convert the health check
+into a repository rewrite.
 
 ---
 
@@ -551,7 +568,7 @@ Fix bounded drift incrementally. Do not convert the health check into a reposito
 The approved current sequence is:
 
 ```text
-APO-70 real restored-Ready Luna execution proof
+APO-70 backend cross-process proof (SOL-ACCEPTED / COMPLETE)
         ↓
 APO-70 fresh Desktop functional + visual owner acceptance
         ↓
@@ -561,13 +578,21 @@ APO-55 runtime/process/restart evidence
         ↓
 APO-71 local Agent Readiness
         ↓
+APO-75 HEAD-bound Project Intelligence Map
+        ↓
 APO-72 failure-classified retry/fallback
         ↓
 APO-52 / APO-54 workflow + evidence-history continuation
         ↓
+APO-76 shared-core Headless CLI
+        ↓
+APO-77 governed schedule/event triggers
+        ↓
 APO-73 isolated multi-model benchmarking
         ↓
 APO-74 transparent historical-performance routing
+        ↓
+APO-78 governed ACP / A2A / MCP interoperability
         ↓
 remaining Post-V1 items as separately authorized
 ```
@@ -606,8 +631,8 @@ The roadmap/planning reconciliation is complete for this external-reference harv
 
 Current gate status: **CLOSED**.
 
-No implementation prompt has been generated by this plan. APO-70 remains the next implementation
-boundary, and a future standalone lowercase `p` is required before Sol generates one executor or
-reviewer prompt.
+No implementation prompt has been generated by this plan. APO-70 remains the sole current gate, at
+the fresh owner-visible Desktop functional + visual acceptance boundary. A future standalone
+lowercase `p` is required before Sol generates one executor or reviewer prompt.
 
 No merge, `main` push, release, tag, deployment, or Issue #111 closure is authorized by this plan.

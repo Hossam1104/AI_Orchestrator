@@ -653,11 +653,15 @@ Current reference-derived/extended mappings are:
 |---|---:|---|
 | Runtime process ownership, restart reconciliation, environment evidence | P0/P1 | APO-55 / #93 under APO-12 |
 | Local Agent Readiness + executable provenance/version | P1 | APO-71 / #113 under APO-8 |
+| HEAD-bound Project Intelligence Map and Planner Context Pack | P1 | APO-75 / #117 under APO-5/APO-10 |
 | Failure-classified retry + policy fallback | P1 | APO-72 / #114 under APO-11 |
 | Composable workflow templates | P1 | APO-52 / #90 under APO-8 |
 | Decision ledger + owner-browsable execution evidence history | P1 | APO-54 / #92 under APO-16 |
+| Shared-core Headless APO CLI | P1/P2 | APO-76 / #118 across existing Application/Domain contracts |
+| Governed schedule and event triggers | P2 | APO-77 / #119 under APO-11 |
 | Isolated multi-model benchmarking | P2 | APO-73 / #115 under APO-9 |
 | Historical-performance routing signal | P2 | APO-74 / #116 under APO-9 |
+| Governed ACP/A2A/MCP interoperability | P2 | APO-78 / #120 under APO-8/APO-11 |
 
 APO-70 / #111 remains the sole current implementation gate and precedes this follow-on sequence.
 
@@ -757,7 +761,7 @@ reconcile, remediate, require human action, or stop.
 The approved current sequence is:
 
 ```text
-APO-70 real restored-Ready Luna execution proof
+APO-70 backend cross-process proof (SOL-ACCEPTED / COMPLETE)
   ↓
 APO-70 Desktop functional + visual owner acceptance
   ↓
@@ -767,13 +771,21 @@ APO-55 runtime/process/restart evidence
   ↓
 APO-71 local Agent Readiness
   ↓
+APO-75 HEAD-bound Project Intelligence Map
+  ↓
 APO-72 failure-classified retry/fallback
   ↓
 APO-52 / APO-54 workflow + evidence-history continuation
   ↓
+APO-76 shared-core Headless CLI
+  ↓
+APO-77 governed schedule/event triggers
+  ↓
 APO-73 isolated multi-model benchmarking
   ↓
 APO-74 transparent historical-performance routing
+  ↓
+APO-78 governed ACP / A2A / MCP interoperability
   ↓
 remaining Post-V1 capabilities as separately authorized
 ```
@@ -784,7 +796,8 @@ P2 optimization must not delay the owner-usable single-executor product loop.
 
 **Status: APPROVED PRODUCT BASELINE — STRATEGIC REBASELINE + LOCAL ORCHESTRATION EXTENSION**
 
-This BRD incorporates the 2026-09-16 external-reference harvest as an incremental APO extension.
+This BRD incorporates the 2026-09-16 and 2026-09-17 external-reference harvests as incremental APO
+extensions.
 It does not authorize implementation by itself. Current implementation/runtime truth is maintained
-in `.ai/CURRENT_STATE.md`, `.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md`, live Git/GitHub state, and
+in `.ai/CURRENT_STATE.md`, `.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md`, live Git/GitHub state, and
 canonical Issues/PRs. The current execution gate is recorded in `TASK.md`.

@@ -108,9 +108,13 @@ numbered provider Session 04 sequence is legacy/superseded and must not be execu
 Current reference-derived roadmap identities are:
 
 - APO-71 / #113 — Local Agent Readiness and executable provenance;
+- APO-75 / #117 — HEAD-bound Project Intelligence Map;
 - APO-72 / #114 — failure-classified retry and policy-driven fallback;
 - APO-73 / #115 — isolated multi-model benchmarking;
-- APO-74 / #116 — transparent historical-performance routing signals.
+- APO-74 / #116 — transparent historical-performance routing signals;
+- APO-76 / #118 — shared-core Headless APO CLI;
+- APO-77 / #119 — governed Schedule/Event Trigger Engine;
+- APO-78 / #120 — governed ACP/A2A/MCP interoperability.
 
 APO-52 / #90 and APO-54 / #92 remain the existing owners of workflow templates and decision/evidence
 history; APO-55 / #93 remains the runtime/process/restart evidence owner.

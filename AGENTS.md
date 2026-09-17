@@ -432,9 +432,13 @@ implementation with evidence.
 Reference-derived canonical roadmap identities currently include:
 
 - APO-71 / #113 — Local Agent Readiness and executable provenance;
+- APO-75 / #117 — HEAD-bound Project Intelligence Map;
 - APO-72 / #114 — failure-classified retry and policy-driven fallback;
 - APO-73 / #115 — controlled multi-model benchmarking in isolated workspaces;
-- APO-74 / #116 — transparent historical-performance routing signals.
+- APO-74 / #116 — transparent historical-performance routing signals;
+- APO-76 / #118 — shared-core Headless APO CLI;
+- APO-77 / #119 — governed Schedule/Event Trigger Engine;
+- APO-78 / #120 — governed ACP/A2A/MCP interoperability.
 
 Existing APO-52 / #90, APO-54 / #92, and APO-55 / #93 own workflow templates, historical evidence
 browsing/decision chronology, and live runtime/process/restart evidence respectively. Do not create
