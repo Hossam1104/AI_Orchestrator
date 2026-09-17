@@ -209,3 +209,58 @@ APO-70 remains the sole implementation gate.
 
 A planning document or tracker update does not authorize implementation. Generated executor/reviewer
 prompts remain governed by the standalone lowercase `p` rule in `.ai/AI_EXECUTION_POLICY.md`.
+
+## 11. Add Existing Project / onboarding render remediation
+
+Bounded Desktop defect remediation executed on head `2d18525507e7857cca0ef29e7b234ba0153fb79f`
+after the `FUNCTIONAL ACCEPTANCE FAILED - ADD EXISTING PROJECT` report.
+
+### Root cause
+
+`ProjectsViewModel.ShowEmptyRegistryState` was `ShowRegistrySurface && !HasProjects`. In
+`MainWindow.xaml` that state drives the whole registry surface, including the detail card
+(`Border`, column 2) that is the only host for the editor and the onboarding wizard
+(`ContentControl` bound to `Onboarding`). On a first run with zero registered projects the state
+was true, so the host card stayed `Visibility=Collapsed`. Starting onboarding therefore produced a
+truthful view-model state - `Onboarding` non-null, `CanAddExistingProject=false`,
+`AddExistingProjectStateText="Finish or cancel the current onboarding flow first."` - while the
+wizard itself could never reach the visual tree. The operator saw a disabled CTA citing an
+onboarding flow with no onboarding UI anywhere on screen.
+
+### Remediation
+
+- `ShowEmptyRegistryState` now also requires `!IsEditing && !IsOnboardingVisible`: an active
+  create/onboarding flow is no longer reported as an empty registry, so the host card renders.
+- `ProjectsViewModel.Onboarding` now assigns through `SetProperty`, so the host content binding
+  receives the change notification its contract requires.
+
+No XAML, navigation, command, or MVVM boundary change was needed.
+
+### Regression coverage
+
+- `ProjectOnboardingShellRenderTests` (new) starts onboarding *after* the shell bindings are live -
+  the chronology real operators use - and asserts the wizard reaches the visual tree, that cancel
+  restores the registry surface, and that Projects navigation never starts onboarding. The existing
+  visual acceptance coverage started onboarding before window construction and always used a
+  non-empty registry, which is why the defect was invisible.
+- `ProjectsWorkspace_EmptyRegistryYieldsToAnActiveCreateFlow` guards the state semantics directly.
+
+### Validation
+
+- Canonical suite: `1,414 passed / 0 failed / 0 skipped`
+  (`Domain 28`, `Connection 357`, `Provider 228`, `Desktop 122`, `Infrastructure 679`).
+- Release solution build: `0 warnings / 0 errors`; `git diff --check` clean.
+- Fresh win-x64 publish reproof with real UIA input on a restored (non-minimized) window: fresh
+  startup CTA enabled, Projects navigation renders the registry, Add Existing Project renders the
+  onboarding wizard and truthfully disables the CTA, cancel closes onboarding and re-enables it.
+
+### Acceptance-run note
+
+The earlier report also stated that a real click on Projects did not change the screen. The failed
+acceptance process (PID 3968) was still running and was `SW_SHOWMINIMIZED` with UI Automation
+bounding rectangles at approximately `-32000,-32000`, so clicks at those coordinates could not
+reach the window. That part of the report is an automation-harness condition, not a product defect,
+and is recorded separately from the proven render defect above.
+
+`PrepareAsync = 0`; `RestoreAsync = 0`; `StartAsync = 0`; `real Sol = 0`; `real Luna = 0`.
+No merge, release, deploy, or Issue #111 closure is authorized by this remediation.

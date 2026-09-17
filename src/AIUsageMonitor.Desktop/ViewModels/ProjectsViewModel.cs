@@ -294,8 +294,14 @@ public sealed class ProjectsViewModel : ObservableObject
     public bool ShowRegistrySurface =>
         !IsLoading && IsStorageAvailable && !HasLoadError;
 
+    /// <summary>
+    /// The empty-registry state owns the whole registry surface: it hides the project list and the
+    /// detail card that hosts the editor and the onboarding wizard. An active create/onboarding flow
+    /// is therefore not an empty registry any more — it is the flow that fills it — otherwise a first
+    /// run with no registered project collapses the only host the wizard can render into.
+    /// </summary>
     public bool ShowEmptyRegistryState =>
-        ShowRegistrySurface && !HasProjects;
+        ShowRegistrySurface && !HasProjects && !IsEditing && !IsOnboardingVisible;
 
     public bool ShowNoMatchState =>
         ShowRegistrySurface && HasProjects && !HasFilteredProjects;
@@ -305,7 +311,7 @@ public sealed class ProjectsViewModel : ObservableObject
     public ProjectOnboardingViewModel? Onboarding
     {
         get => _onboarding;
-        private set => _onboarding = value;
+        private set => SetProperty(ref _onboarding, value);
     }
 
     /// <summary>
