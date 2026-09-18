@@ -7,6 +7,33 @@ repository. Everything below that divider is retained evidence from a boundary t
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
 
+## CURRENT - APO-70 owner-blocker remediation: GitHub tracker and shell recovery
+
+**Last Updated:** 18 September 2026
+
+The bounded owner-blocker remediation is prepared on
+`feature/APO-70-v1-desktop-product-recovery` from starting head
+`dc6aa7929b210a20c418d7b3891d2e347fd3e66b`. Project onboarding now treats `GitHub` as a first-class
+tracker choice while preserving Jira, Azure Boards, manual reference, and skip. It stores the
+canonical tracker type plus the bounded owner/repository, repository/Project URL or reference, or
+Issue URL/reference as `ConfiguredUnverified`; onboarding performs no GitHub API, OAuth, browser,
+CLI, or network verification. The existing generic tracker/read-model path displays the saved
+state without adding a second integration subsystem.
+
+The shared WPF shell now uses the existing transparent `assets/runtime/apo-icon.ico` directly via
+an explicit pack URI and `BitmapImage`, with no XAML badge/container. Sidebar navigation uses
+accessible vector path icons and explicit selected-state chrome; onboarding step and disabled
+control styling remain truthful across themes and narrow layouts. No real model execution,
+provider call, tracker verification, or orchestration run was added.
+
+Local validation on this scope completed with 0 failures and 0 skips: focused onboarding/shell
+tests 16/16, directly affected connection tests 16/16, required light/dark visual render 1/1,
+full solution tests 1422/1422 (Domain 28, Connection 358, Provider 228, Desktop 129,
+Infrastructure 679), and Release x64 build 0 warnings/0 errors. `git diff --check` is clean.
+Exact-head CI, fresh-published desktop evidence, and owner visual/functional acceptance remain
+separate gates; they must not be inferred from this local validation. Issue #111 and PR #112 remain
+open/current-gate and Draft/Open/Unmerged respectively.
+
 ## CURRENT - APO-70 Desktop Prepare readiness/command-gating remediation
 
 **Last Updated:** 18 September 2026

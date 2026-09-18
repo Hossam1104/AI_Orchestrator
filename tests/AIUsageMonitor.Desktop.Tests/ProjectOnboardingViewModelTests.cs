@@ -66,6 +66,28 @@ public sealed class ProjectOnboardingViewModelTests
     }
 
     [Fact]
+    public void GitHubTrackerIsFirstClassAndRequiresItsBoundedReference()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+        SetProjectValues(onboarding);
+        onboarding.NextCommand.Execute(null);
+        onboarding.SkipRepositoryCommand.Execute(null);
+        onboarding.NextCommand.Execute(null);
+
+        Assert.Contains("GitHub", onboarding.TrackerOptions);
+        onboarding.SelectedTrackerOption = "GitHub";
+
+        Assert.False(onboarding.NextCommand.CanExecute(null));
+        Assert.Contains("GITHUB", onboarding.TrackerReferenceLabel, StringComparison.Ordinal);
+        Assert.Contains("owner/repository", onboarding.TrackerReferenceHelpText, StringComparison.Ordinal);
+        Assert.Contains("not tested", onboarding.TrackerStateText, StringComparison.OrdinalIgnoreCase);
+
+        onboarding.TrackerReference = "Hossam1104/AI_Orchestrator";
+
+        Assert.True(onboarding.NextCommand.CanExecute(null));
+    }
+
+    [Fact]
     public void BackPreservesInMemoryOnboardingValues()
     {
         var onboarding = CreateOnboarding(new FakeOnboardingService());

@@ -1,5 +1,6 @@
 using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.Time;
+using AIUsageMonitor.Application.Trackers;
 
 namespace AIUsageMonitor.Application.Projects;
 
@@ -338,6 +339,19 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
             (string.IsNullOrWhiteSpace(request.TrackerType) || string.IsNullOrWhiteSpace(request.TrackerReference)))
         {
             throw new ArgumentException("A configured tracker requires a bounded type and reference.", nameof(request));
+        }
+
+        if (!request.SkipTracker)
+        {
+            var trackerType = request.TrackerType!;
+            var trackerReference = request.TrackerReference!;
+            if (trackerType.Any(char.IsControl) ||
+                trackerReference.Any(char.IsControl) ||
+                trackerType.Length > TrackerLimits.MaxStringLength ||
+                trackerReference.Length > TrackerLimits.MaxStringLength)
+            {
+                throw new ArgumentException("A configured tracker type and reference must stay within the supported bound.", nameof(request));
+            }
         }
     }
 }

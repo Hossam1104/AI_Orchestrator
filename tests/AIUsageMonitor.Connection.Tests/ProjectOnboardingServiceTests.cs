@@ -91,6 +91,38 @@ public sealed class ProjectOnboardingServiceTests
     }
 
     [Fact]
+    public async Task GitHubTrackerPersistsCanonicalReferenceAndUnverifiedState()
+    {
+        var fixture = CreateFixture();
+
+        var result = await fixture.Service.CompleteAsync(new ProjectOnboardingRequest
+        {
+            Name = "GitHub project",
+            LocalPath = "C:\\github-project",
+            SkipRepository = true,
+            SkipTracker = false,
+            TrackerType = "GitHub",
+            TrackerReference = "Hossam1104/AI_Orchestrator"
+        });
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("GitHub", result.Project!.TrackerType);
+        Assert.Equal("Hossam1104/AI_Orchestrator", result.Project.TrackerId);
+        Assert.Equal("ConfiguredUnverified", result.Project.TrackerMetadata["integrationState"]);
+        Assert.Equal(TrackerReferenceState.ConfiguredUnverified, result.Context!.Tracker.State);
+        Assert.Equal("GitHub", result.Context.Tracker.Type);
+        Assert.Equal("Hossam1104/AI_Orchestrator", result.Context.Tracker.Reference);
+
+        var reloaded = await fixture.Projects.GetByIdAsync(result.Project.Id);
+        var context = await fixture.Contexts.GetAsync(result.Project.Id);
+        Assert.Equal("GitHub", reloaded!.TrackerType);
+        Assert.Equal("Hossam1104/AI_Orchestrator", reloaded.TrackerId);
+        Assert.Equal(TrackerReferenceState.ConfiguredUnverified, context.Context!.Tracker.State);
+        Assert.Equal("GitHub", context.Context.Tracker.Type);
+        Assert.Equal("Hossam1104/AI_Orchestrator", context.Context.Tracker.Reference);
+    }
+
+    [Fact]
     public async Task CanonicalDuplicateLocalRootIsRejectedBeforeAnyRegistrationSideEffects()
     {
         var fixture = CreateFixture();

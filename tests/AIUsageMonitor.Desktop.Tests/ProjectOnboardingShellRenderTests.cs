@@ -1,7 +1,9 @@
 using System.Threading;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.Projects;
 using AIUsageMonitor.Desktop.ViewModels;
@@ -131,6 +133,119 @@ public sealed class ProjectOnboardingShellRenderTests
                 Assert.Null(projects.Onboarding);
                 Assert.True(viewModel.CanAddExistingProject);
                 Assert.DoesNotContain(OnboardingHeading, VisibleText(window), StringComparison.OrdinalIgnoreCase);
+            }
+            finally
+            {
+                Close(window);
+            }
+        });
+    }
+
+    [Fact]
+    public void ShellUsesTransparentLogoAndExplicitAccessibleNavigationState()
+    {
+        _harness.Run(() =>
+        {
+            ThemeManager.Apply(ThemeVariant.Light);
+            var projects = CreateProjectsViewModel();
+            var viewModel = new MainWindowViewModel(new AiCapacityViewModel(), projects);
+            var window = CreateShellWindow(viewModel);
+
+            try
+            {
+                ShowAndLayout(window);
+
+                var logo = Assert.Single(FindVisualDescendants<Image>(window));
+                var logoSource = Assert.IsAssignableFrom<BitmapSource>(logo.Source);
+                var logoUri = logoSource switch
+                {
+                    BitmapImage bitmapImage => bitmapImage.UriSource?.ToString(),
+                    BitmapFrame bitmapFrame => bitmapFrame.BaseUri?.ToString(),
+                    _ => null,
+                };
+                Assert.True(logoUri?.Contains("apo-icon", StringComparison.OrdinalIgnoreCase) == true, $"Logo source URI was '{logoUri}'.");
+                Assert.Equal(Stretch.Uniform, logo.Stretch);
+                Assert.True(logo.ActualWidth > 0 && logo.ActualHeight > 0);
+                Assert.False(VisualTreeHelper.GetParent(logo) is Border);
+
+                var navigation = FindVisualDescendants<Button>(window)
+                    .Where(button => AutomationProperties.GetName(button) is "Mission Control" or "Projects" or "AI Providers" or "Execution")
+                    .ToArray();
+                Assert.Equal(4, navigation.Length);
+                Assert.Contains(navigation, button => button.Tag is true);
+
+                var selectedChrome = Assert.IsType<Border>(navigation.Single(button => AutomationProperties.GetName(button) == "Mission Control").Template.FindName("NavBorder", navigation.Single(button => AutomationProperties.GetName(button) == "Mission Control")));
+                Assert.NotNull(selectedChrome.Background);
+                Assert.NotNull(navigation.Single(button => AutomationProperties.GetName(button) == "Mission Control").GetBindingExpression(Button.TagProperty));
+            }
+            finally
+            {
+                Close(window);
+            }
+        });
+    }
+
+    [Fact]
+    public void GitHubTrackerRendersAsFirstClassOnboardingChoice()
+    {
+        _harness.Run(() =>
+        {
+            ThemeManager.Apply(ThemeVariant.Light);
+            var projects = CreateProjectsViewModel();
+            var viewModel = new MainWindowViewModel(new AiCapacityViewModel(), projects);
+            var window = CreateShellWindow(viewModel);
+
+            try
+            {
+                ShowAndLayout(window);
+                viewModel.AddExistingProjectCommand.Execute(null);
+                var onboarding = projects.Onboarding!;
+                onboarding.Name = "GitHub project";
+                onboarding.LocalPath = "C:\\github-project";
+                onboarding.NextCommand.Execute(null);
+                onboarding.SkipRepositoryCommand.Execute(null);
+                onboarding.NextCommand.Execute(null);
+                Layout(window);
+
+                var tracker = FindVisualDescendants<ComboBox>(window)
+                    .Single(combo => AutomationProperties.GetName(combo) == "Onboarding tracker option");
+                Assert.Contains("GitHub", tracker.Items.Cast<object>().Select(item => item.ToString()));
+
+                onboarding.SelectedTrackerOption = "GitHub";
+                Layout(window);
+
+                Assert.Contains("GITHUB REPOSITORY / PROJECT / ISSUE REFERENCE", VisibleText(window), StringComparison.Ordinal);
+                Assert.Contains("owner/repository", VisibleText(window), StringComparison.Ordinal);
+            }
+            finally
+            {
+                Close(window);
+            }
+        });
+    }
+
+    [Fact]
+    public void NarrowShellKeepsNavigationAndPrimaryScrollUsable()
+    {
+        _harness.Run(() =>
+        {
+            ThemeManager.Apply(ThemeVariant.Dark);
+            var projects = CreateProjectsViewModel();
+            var viewModel = new MainWindowViewModel(new AiCapacityViewModel(), projects);
+            var window = CreateShellWindow(viewModel);
+            window.Width = 980;
+            window.Height = 650;
+
+            try
+            {
+                ShowAndLayout(window);
+
+                var visibleText = VisibleText(window);
+                Assert.Contains("Mission Control", visibleText, StringComparison.Ordinal);
+                Assert.Contains("Projects", visibleText, StringComparison.Ordinal);
+                Assert.Contains("AI Providers", visibleText, StringComparison.Ordinal);
+                Assert.Contains("Execution", visibleText, StringComparison.Ordinal);
+                Assert.Contains(FindVisualDescendants<ScrollViewer>(window), scroll => scroll.IsVisible && scroll.ActualWidth > 0 && scroll.ActualHeight > 0);
             }
             finally
             {

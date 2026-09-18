@@ -65,7 +65,10 @@
                             <Setter TargetName="ButtonChrome" Property="BorderThickness" Value="2" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="ButtonChrome" Property="Opacity" Value="0.42" />
+                            <Setter TargetName="ButtonChrome" Property="Background" Value="{DynamicResource SurfaceDisabledBrush}" />
+                            <Setter TargetName="ButtonChrome" Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
+                            <Setter TargetName="ButtonChrome" Property="Opacity" Value="1" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

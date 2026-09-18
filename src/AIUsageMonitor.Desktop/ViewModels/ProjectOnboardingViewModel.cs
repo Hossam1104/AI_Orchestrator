@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.Projects;
+using AIUsageMonitor.Application.Trackers;
 
 namespace AIUsageMonitor.Desktop.ViewModels;
 
@@ -59,15 +60,19 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
     private string _name = string.Empty;
     private string _localPath = string.Empty;
     private string _repositoryDefaultBranch = string.Empty;
-    private string _selectedTrackerOption = TrackerOptionsList[0];
+    private string _selectedTrackerOption = NoTrackerOption;
     private string _trackerReference = string.Empty;
     private bool _isBusy;
     private bool _isCompletionTerminal;
     private string? _errorMessage;
     private Func<string?>? _pathPicker;
 
+    private const string NoTrackerOption = "No tracker / Skip";
+    private const string GitHubTrackerOption = "GitHub";
+    private const int MaxTrackerReferenceLength = TrackerLimits.MaxStringLength;
+
     private static readonly IReadOnlyList<string> TrackerOptionsList =
-        ["No tracker / Skip", "Jira", "Azure Boards", "Other / Manual reference"];
+        [NoTrackerOption, GitHubTrackerOption, "Jira", "Azure Boards", "Other / Manual reference"];
 
     public ProjectOnboardingViewModel(
         IProjectOnboardingService service,
@@ -301,13 +306,26 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             if (SetProperty(ref _selectedTrackerOption, value ?? TrackerOptionsList[0]))
             {
                 OnPropertyChanged(nameof(IsTrackerSkipped));
+                OnPropertyChanged(nameof(IsGitHubTracker));
+                OnPropertyChanged(nameof(TrackerReferenceLabel));
+                OnPropertyChanged(nameof(TrackerReferenceHelpText));
                 OnPropertyChanged(nameof(TrackerStateText));
                 NotifyCommands();
             }
         }
     }
 
-    public bool IsTrackerSkipped => string.Equals(SelectedTrackerOption, TrackerOptionsList[0], StringComparison.Ordinal);
+    public bool IsTrackerSkipped => string.Equals(SelectedTrackerOption, NoTrackerOption, StringComparison.Ordinal);
+
+    public bool IsGitHubTracker => string.Equals(SelectedTrackerOption, GitHubTrackerOption, StringComparison.Ordinal);
+
+    public string TrackerReferenceLabel => IsGitHubTracker
+        ? "GITHUB REPOSITORY / PROJECT / ISSUE REFERENCE"
+        : "REFERENCE / PROJECT KEY";
+
+    public string TrackerReferenceHelpText => IsGitHubTracker
+        ? "Accepts owner/repository, a GitHub repository or Project URL, or an Issue/work-item reference. APO stores it locally and does not verify GitHub connectivity here."
+        : "Enter a bounded project or reference ID. Connectivity is not checked during onboarding.";
 
     public string TrackerReference
     {
@@ -323,7 +341,8 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
 
     public string TrackerStateText => IsTrackerSkipped
         ? "Skipped — no tracker connectivity is checked."
-        : "Configured / connectivity not verified. Enter only a bounded project or reference ID.";
+        : "Configured / connectivity not verified."
+            + (IsGitHubTracker ? " GitHub access is not tested during onboarding." : "");
 
     public string? ErrorMessage
     {
@@ -402,10 +421,19 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             case ProjectOnboardingStep.Tracker when !IsTrackerSkipped && string.IsNullOrWhiteSpace(TrackerReference):
                 ErrorMessage = "A bounded tracker reference is required, or choose No tracker / Skip.";
                 return false;
+            case ProjectOnboardingStep.Tracker when !IsTrackerSkipped && TrackerReference.Length > MaxTrackerReferenceLength:
+                ErrorMessage = $"The tracker reference cannot exceed {MaxTrackerReferenceLength} characters.";
+                return false;
             default:
                 return true;
         }
     }
+
+    private static string CanonicalTrackerType(string option) => option switch
+    {
+        GitHubTrackerOption => GitHubTrackerOption,
+        _ => option
+    };
 
     private bool CanInspectRepository() =>
         !IsBusy && IsRepositoryStep && !string.IsNullOrWhiteSpace(LocalPath);
@@ -473,7 +501,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
                         RepositoryInspection = RepositoryInspection,
                         RepositoryDefaultBranch = RepositoryDefaultBranch,
                         SkipTracker = IsTrackerSkipped,
-                        TrackerType = IsTrackerSkipped ? null : SelectedTrackerOption,
+                        TrackerType = IsTrackerSkipped ? null : CanonicalTrackerType(SelectedTrackerOption),
                         TrackerReference = IsTrackerSkipped ? null : TrackerReference,
                         EnabledAgentIds = AgentOptions
                             .Where(static option => option.IsEnabled)
