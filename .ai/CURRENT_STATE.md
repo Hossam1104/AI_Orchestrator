@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 18 September 2026 (APO-70 Desktop Prepare readiness/command-gating remediation; local validation)
+**Last Updated:** 18 September 2026 (APO-70 Desktop Prepare readiness/command-gating remediation; fix pushed, exact-head CI green, real-proof attempt inconclusive, GitHub evidence posted)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
@@ -47,11 +47,28 @@ empty, `Prepare` is disabled and both its tooltip and the readiness text truthfu
 missing prerequisite; after populating Title/Objective/Acceptance Criteria through real keyboard
 input, `Prepare` becomes enabled and the readiness text clears.
 
-No real Sol, Luna, or Codex model was invoked and no real `PrepareAsync`/`StartAsync` ran during this
-diagnostic and remediation pass; all command-entry proof used a recording/fake coordinator in tests.
-The next boundary is Sol's independent review of this head, then a fresh authorization for one real
-Prepare-to-Ready proof from the live Desktop UI. Issue #111 remains Open/current-gate; PR #112 remains
-Draft/Open/Unmerged.
+The fix was committed (`81431a247277d081eff1d886ba33fb4015d6c50f`), pushed to
+`feature/APO-70-v1-desktop-product-recovery`, and exact-head CI (run `35331886325`) completed
+successfully. One production Prepare-to-Ready click was then authorized and attempted on a fresh
+`win-x64` publish of that head, using real keyboard input for all fields. The result is
+**inconclusive, not a reproduction of the original defect**: no file under
+`%LOCALAPPDATA%\AIUsageMonitor` (routing decisions, checkpoints, work graphs, handoffs, run
+authorities) was created or modified at or after the click timestamp, proving the click never
+reached the coordinator — zero real Sol/coordinator calls, zero real spend. At click time the
+target window had lost OS foreground focus to an unrelated process, and the Prepare button's
+`IsEnabled` and its live `PrepareBlockedReason` briefly read in a state inconsistent with the
+visible field contents, consistent with a UI-Automation/environment delivery failure for the click
+itself rather than a live reproduction of the silent-Prepare symptom. Per task instruction, the
+click was not retried. Real Prepare clicks: 1 attempted, 0 confirmed reaching the coordinator. Real
+Sol/coordinator calls: 0. Start clicks: 0. Luna invocations: 0.
+
+Factual evidence comments covering diagnosis, fix, regression tests, local validation, fresh UI
+reproof, and this inconclusive real-proof outcome were posted to Issue #111
+(https://github.com/Hossam1104/AI_Orchestrator/issues/111#issuecomment-5730321283) and PR #112
+(https://github.com/Hossam1104/AI_Orchestrator/pull/112#issuecomment-5730323723). Issue #111 remains
+Open/current-gate; PR #112 remains Draft/Open/Unmerged. The next boundary is Sol's independent
+review of this head, then a fresh authorization for a controlled real Prepare-to-Ready proof that
+first confirms the target window holds OS foreground focus before invoking.
 
 ## CURRENT - APO-70 canonical workspace authority remediation
 
