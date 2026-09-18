@@ -26,6 +26,7 @@ public sealed class ExecutionViewModel : ObservableObject
     private string _validationExpectations = string.Empty;
     private readonly SemaphoreSlim _restoreGate = new(1, 1);
     private long _restoreGeneration;
+    private bool _isRestoring;
 
     public ExecutionViewModel()
         : this(null, null)
@@ -185,6 +186,49 @@ public sealed class ExecutionViewModel : ObservableObject
 
     public string ErrorMessage => _errorMessage ?? (IsPersistenceAvailable ? string.Empty : "Execution is unavailable in degraded no-persistence mode.");
 
+    public string PrepareBlockedReason
+    {
+        get
+        {
+            if (PrepareCommand.CanExecute(null))
+            {
+                return string.Empty;
+            }
+
+            if (!IsPersistenceAvailable || _coordinator is null)
+            {
+                return "Execution persistence is unavailable.";
+            }
+
+            if (_isRestoring)
+            {
+                return "Wait for persisted execution recovery to finish.";
+            }
+
+            if (IsBusy)
+            {
+                return "Another execution operation is already in progress.";
+            }
+
+            if (SelectedProject is null)
+            {
+                return "Select a registered project.";
+            }
+
+            if (string.IsNullOrWhiteSpace(Title))
+            {
+                return "Enter a title.";
+            }
+
+            if (string.IsNullOrWhiteSpace(Objective))
+            {
+                return "Enter an objective.";
+            }
+
+            return "Add at least one acceptance criterion.";
+        }
+    }
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         if (_projects is null || _coordinator is null)
@@ -303,6 +347,7 @@ public sealed class ExecutionViewModel : ObservableObject
         }
 
         await _restoreGate.WaitAsync().ConfigureAwait(true);
+        var started = false;
         try
         {
             if (generation != _restoreGeneration || !ReferenceEquals(project, SelectedProject) || State is ExecutionCoordinatorState.Running or ExecutionCoordinatorState.Cancelling)
@@ -310,6 +355,8 @@ public sealed class ExecutionViewModel : ObservableObject
                 return;
             }
 
+            started = true;
+            _isRestoring = true;
             State = ExecutionCoordinatorState.Preparing;
             var result = await _coordinator.RestoreAsync(project.Id).ConfigureAwait(true);
             if (generation != _restoreGeneration || !ReferenceEquals(project, SelectedProject))
@@ -331,6 +378,11 @@ public sealed class ExecutionViewModel : ObservableObject
         }
         finally
         {
+            if (started)
+            {
+                _isRestoring = false;
+            }
+
             _restoreGate.Release();
             if (generation == _restoreGeneration && ReferenceEquals(project, SelectedProject))
             {
@@ -408,6 +460,7 @@ public sealed class ExecutionViewModel : ObservableObject
         PrepareCommand.NotifyCanExecuteChanged();
         StartCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(PrepareBlockedReason));
     }
 
     private static IReadOnlyList<string> ParseLines(string value) =>

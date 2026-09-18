@@ -1,11 +1,57 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 15 September 2026 (APO-70 planner output diagnostic and semantic-contract remediation; local validation)
+**Last Updated:** 18 September 2026 (APO-70 Desktop Prepare readiness/command-gating remediation; local validation)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 Desktop Prepare readiness/command-gating remediation
+
+**Last Updated:** 18 September 2026
+
+Starting head `05ad76c50cfddc0215dede59d26e094e5e76001b` (PR #112) was inspected after a functional
+acceptance failure reported that a Prepare click produced no `PREPARING` state, no error, and no
+routing/planner/workspace/checkpoint evidence. Read-only UIA inspection of the still-running
+acceptance PID confirmed its window had been left minimized off-screen, and that the previously
+entered Title/Objective/Acceptance Criteria were still present with `Prepare` showing enabled once
+the window was restored — consistent with the command gating itself being correct but transient.
+
+Full read of `ExecutionViewModel.cs` confirmed `CanPrepare`/`PrepareAsync`/`AsyncCommand` gating and
+notification wiring are logically correct: no binding defect, no stale `CanExecuteChanged`, and no
+downstream coordinator defect were found. The proven gap is that `TryRestoreAsync` (fired
+unawaited whenever a project is selected, including on initial auto-selection) sets the identical
+`Preparing`/`IsBusy` state used by a genuine new Prepare, with no way for an owner or an automated
+observer to tell "background recovery is disabling Prepare" apart from "your Prepare click is being
+processed" or from any other disabled-input reason — a silent, unexplained no-op exactly matching
+the acceptance report.
+
+Remediation is Desktop-only: `ExecutionViewModel` gained a `PrepareBlockedReason` property (truthful,
+priority-ordered: persistence unavailable, active restore, busy, no project, no title, no objective,
+no acceptance criteria) refreshed everywhere `NotifyCommands()` already runs, plus an `_isRestoring`
+flag so the restore window is distinguishable from a real prepare-in-flight. `ExecutionView.xaml`
+surfaces the reason as the Prepare button's tooltip and as inline muted text (with
+`AutomationProperties.HelpText` so it remains UIA-readable, since the pre-existing convention of a
+static `AutomationProperties.Name` on bound-text elements in this view masks live content from
+automation Name lookups). No planner, routing, provider, workspace, or checkpoint code changed.
+
+Three regression tests were added to `ExecutionViewModelTests.cs`: truthful blocked-reason text
+through each missing-input case, truthful blocking during an active restore that clears once restore
+settles, and command-entry proof (state enters `Preparing` before the coordinator call resolves,
+coordinator invoked exactly once, a second click while executing is a no-op). Desktop 125/125 (122
+canonical + 3 new); full canonical suite 1417/1417 (Domain 28, Connection 357, Provider 228, Desktop
+125, Infrastructure 679), 0 failed, 0 skipped. Release build: 0 warnings, 0 errors. `git diff --check`
+clean. Fresh-published UI reproof on the rebuilt candidate confirmed both cases live: with the form
+empty, `Prepare` is disabled and both its tooltip and the readiness text truthfully report the exact
+missing prerequisite; after populating Title/Objective/Acceptance Criteria through real keyboard
+input, `Prepare` becomes enabled and the readiness text clears.
+
+No real Sol, Luna, or Codex model was invoked and no real `PrepareAsync`/`StartAsync` ran during this
+diagnostic and remediation pass; all command-entry proof used a recording/fake coordinator in tests.
+The next boundary is Sol's independent review of this head, then a fresh authorization for one real
+Prepare-to-Ready proof from the live Desktop UI. Issue #111 remains Open/current-gate; PR #112 remains
+Draft/Open/Unmerged.
 
 ## CURRENT - APO-70 canonical workspace authority remediation
 

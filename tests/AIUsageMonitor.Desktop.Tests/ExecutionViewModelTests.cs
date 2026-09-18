@@ -28,6 +28,56 @@ public sealed class ExecutionViewModelTests
     }
 
     [Fact]
+    public async Task PrepareBlockedReasonExplainsEachMissingRequiredInputInPriorityOrder()
+    {
+        var viewModel = NewViewModel(new FakeExecutionCoordinator());
+        viewModel.SetPersistenceAvailability(true);
+
+        Assert.Equal("Select a registered project.", viewModel.PrepareBlockedReason);
+
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project()));
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+
+        Assert.Equal("Enter a title.", viewModel.PrepareBlockedReason);
+
+        viewModel.Title = "Bounded change";
+        Assert.Equal("Enter an objective.", viewModel.PrepareBlockedReason);
+
+        viewModel.Objective = "Make the requested bounded change.";
+        Assert.Equal("Add at least one acceptance criterion.", viewModel.PrepareBlockedReason);
+
+        viewModel.AcceptanceCriteria = "Verify the result.";
+        Assert.Equal(string.Empty, viewModel.PrepareBlockedReason);
+        Assert.True(viewModel.PrepareCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task PrepareIsTruthfullyBlockedWhileRestoreIsActiveAndReadinessRefreshesWhenItFinishes()
+    {
+        var coordinator = new FakeExecutionCoordinator { BlockFirstRestore = true };
+        var viewModel = NewViewModel(coordinator);
+        viewModel.SetPersistenceAvailability(true);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project()));
+        viewModel.Title = "Bounded change";
+        viewModel.Objective = "Make the requested bounded change.";
+        viewModel.AcceptanceCriteria = "Verify the result.";
+
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await coordinator.RestoreStarted.Task;
+
+        Assert.Equal(ExecutionCoordinatorState.Preparing, viewModel.State);
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal("Wait for persisted execution recovery to finish.", viewModel.PrepareBlockedReason);
+
+        coordinator.ReleaseRestore.TrySetResult(true);
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+
+        Assert.True(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal(string.Empty, viewModel.PrepareBlockedReason);
+    }
+
+    [Fact]
     public async Task PreparePublishesReadyAuthoritySummaryAndEnablesStart()
     {
         var coordinator = new FakeExecutionCoordinator { Preparation = new ExecutionPreparationResult(ExecutionPreparationStatus.Prepared, ExecutionPreparationStage.Execution, CreatePreparedExecution()) };
@@ -172,6 +222,28 @@ public sealed class ExecutionViewModelTests
         await WaitUntil(() => viewModel.IsReady);
     }
 
+    [Fact]
+    public async Task PrepareCommandEntersPreparingStateExactlyOnceAndCallsCoordinatorOnce()
+    {
+        var coordinator = new FakeExecutionCoordinator { BlockPrepare = true, Preparation = PreparedResult() };
+        var viewModel = ReadyInput(coordinator);
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+
+        viewModel.PrepareCommand.Execute(null);
+        await coordinator.PrepareRequested.Task;
+
+        Assert.Equal(ExecutionCoordinatorState.Preparing, viewModel.State);
+        Assert.True(viewModel.PrepareCommand.IsExecuting);
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+
+        viewModel.PrepareCommand.Execute(null);
+
+        coordinator.ReleasePrepare.TrySetResult(true);
+        await WaitUntil(() => viewModel.IsReady);
+
+        Assert.Equal(1, coordinator.PrepareCalls);
+    }
+
     private static async Task WaitUntil(Func<bool> predicate)
     {
         for (var i = 0; i < 100 && !predicate(); i++) await Task.Delay(10);
@@ -187,20 +259,25 @@ public sealed class ExecutionViewModelTests
         internal ExecutionPreparationResult Preparation { get; init; } = new(ExecutionPreparationStatus.Failed);
         internal ExecutionStartResult StartResult { get; init; } = new(ExecutionCoordinatorState.Completed);
         internal bool BlockStart { get; init; }
+        internal bool BlockPrepare { get; init; }
         internal bool BlockFirstRestore { get; init; }
         internal ExecutionRehydrationResult RestoreResult { get; init; } = new(ExecutionRehydrationStatus.NotResumable);
         internal readonly TaskCompletionSource<bool> PrepareRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<bool> StartRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<bool> CancelRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<bool> ReleaseStart = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal readonly TaskCompletionSource<bool> ReleasePrepare = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<bool> RestoreStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource<bool> ReleaseRestore = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal int RestoreCalls;
+        internal int PrepareCalls;
 
-        public Task<ExecutionPreparationResult> PrepareAsync(OrchestrationWorkRequest request, CancellationToken cancellationToken = default)
+        public async Task<ExecutionPreparationResult> PrepareAsync(OrchestrationWorkRequest request, CancellationToken cancellationToken = default)
         {
+            PrepareCalls++;
             PrepareRequested.TrySetResult(true);
-            return Task.FromResult(Preparation);
+            if (BlockPrepare) await ReleasePrepare.Task;
+            return Preparation;
         }
 
         public async Task<ExecutionStartResult> StartAsync(CancellationToken cancellationToken = default)
