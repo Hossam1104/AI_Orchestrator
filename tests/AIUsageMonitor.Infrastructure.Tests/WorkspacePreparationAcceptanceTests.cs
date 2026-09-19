@@ -637,7 +637,13 @@ public sealed class WorkspacePreparationAcceptanceTests : IDisposable
         var firstTask = first.PrepareAsync(firstPlan.Reference, new WorkspacePreparationApproval(Guid.NewGuid(), firstPlan.Reference, "owner:a", Now));
         await probe.FirstEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
         var secondTask = second.PrepareAsync(secondPlan.Reference, new WorkspacePreparationApproval(Guid.NewGuid(), secondPlan.Reference, "owner:b", Now));
-        await Task.Delay(100);
+
+        // A leaking critical section lets the second preparation enter while the first still holds
+        // it, which completes BothEntered immediately. Racing that signal rather than sleeping a
+        // fixed interval means a slow machine only makes the healthy path wait longer; it cannot
+        // turn a genuine lock failure into a green run.
+        var leaked = await Task.WhenAny(probe.BothEntered.Task, Task.Delay(TimeSpan.FromSeconds(1)));
+        Assert.NotSame(probe.BothEntered.Task, leaked);
         Assert.Equal(1, probe.MutationCount);
         Assert.Equal(1, probe.MaximumActive);
         probe.Release();

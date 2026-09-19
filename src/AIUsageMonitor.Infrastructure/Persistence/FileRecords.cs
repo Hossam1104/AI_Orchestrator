@@ -12,6 +12,55 @@ using AIUsageMonitor.Application.Routing;
 
 namespace AIUsageMonitor.Infrastructure.Persistence;
 
+internal sealed class ProviderDefinitionRecord
+{
+    public Guid Id { get; set; }
+    public ProviderCode? BuiltInCode { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public string? DisplayLabel { get; set; }
+    public ProviderKind Kind { get; set; }
+    public bool Enabled { get; set; }
+    public int SortOrder { get; set; }
+    public ProviderAuthenticationMode AuthenticationMode { get; set; }
+    public ProviderCapacityMode CapacityMode { get; set; }
+    public ProviderCapabilities Capabilities { get; set; }
+    public string? Description { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    public static ProviderDefinitionRecord FromDomain(ProviderDefinition value) => new()
+    {
+        Id = value.Id,
+        BuiltInCode = value.BuiltInCode,
+        DisplayName = value.DisplayName,
+        DisplayLabel = value.DisplayLabel,
+        Kind = value.Kind,
+        Enabled = value.Enabled,
+        SortOrder = value.SortOrder,
+        AuthenticationMode = value.AuthenticationMode,
+        CapacityMode = value.CapacityMode,
+        Capabilities = value.Capabilities,
+        Description = value.Description,
+        CreatedAt = value.CreatedAt,
+        UpdatedAt = value.UpdatedAt
+    };
+
+    public ProviderDefinition ToDomain() => new(
+        Id,
+        BuiltInCode,
+        DisplayName,
+        DisplayLabel,
+        Kind,
+        Enabled,
+        SortOrder,
+        AuthenticationMode,
+        CapacityMode,
+        Capabilities,
+        Description,
+        CreatedAt,
+        UpdatedAt);
+}
+
 internal sealed class ProviderRecord
 {
     public Guid Id { get; set; }
@@ -547,6 +596,8 @@ internal sealed class RoutingPolicyRecord
     public int? MaxRetries { get; set; }
     public int? MaxReviewRemediationCycles { get; set; }
     public Dictionary<string, string?> Rules { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public List<Guid>? PreferredAgentIds { get; set; }
+    public List<Guid>? ProhibitedAgentIds { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
     public static RoutingPolicyRecord FromApplication(RoutingPolicy value) => new()
@@ -558,6 +609,8 @@ internal sealed class RoutingPolicyRecord
         MaxRetries = value.MaxRetries,
         MaxReviewRemediationCycles = value.MaxReviewRemediationCycles,
         Rules = new Dictionary<string, string?>(value.Rules, StringComparer.OrdinalIgnoreCase),
+        PreferredAgentIds = value.PreferredAgentIds?.ToList(),
+        ProhibitedAgentIds = value.ProhibitedAgentIds?.ToList(),
         UpdatedAt = value.UpdatedAt
     };
 
@@ -569,7 +622,9 @@ internal sealed class RoutingPolicyRecord
         MaxRetries,
         MaxReviewRemediationCycles,
         UpdatedAt,
-        Rules);
+        Rules,
+        PreferredAgentIds,
+        ProhibitedAgentIds);
 }
 
 public sealed class ExecutionRunRecord

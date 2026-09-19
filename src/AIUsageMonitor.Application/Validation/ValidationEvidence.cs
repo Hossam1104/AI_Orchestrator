@@ -1671,7 +1671,7 @@ public sealed class ValidationGateService : IValidationGateService
         var write = await _decisions.CreateAsync(decision, cancellationToken).ConfigureAwait(false);
         if (!write.Succeeded) return new(decision, ErrorMessage: write.ErrorMessage ?? "Validation-decision persistence failed.");
 
-        var recovery = await _recovery.CreateAsync(new RecoveryCheckpointCreationRequest(plan.ProjectId, Guid.NewGuid(), lifecycle, plan.PlanningContractReference, refs, gates, blockers, action, decision.Explanation, _clock.UtcNow, plan.WorkGraphReference, plan.WorkGraphNodeId, plan.HandoffPackageReference, checkpoint.Checkpoint.Reference, checkpoint.Checkpoint.SelectedAgentRoleReferences), cancellationToken).ConfigureAwait(false);
+        var recovery = await _recovery.CreateAsync(new RecoveryCheckpointCreationRequest(plan.ProjectId, Guid.NewGuid(), lifecycle, plan.PlanningContractReference, refs, gates, blockers, action, decision.Explanation, _clock.UtcNow, plan.WorkGraphReference, plan.WorkGraphNodeId, plan.HandoffPackageReference, previousCheckpointReference: checkpoint.Checkpoint.Reference, selectedAgentRoleReferences: checkpoint.Checkpoint.SelectedAgentRoleReferences), cancellationToken).ConfigureAwait(false);
         return new(decision, recovery, recovery.Succeeded ? null : recovery.ErrorMessage);
     }
 

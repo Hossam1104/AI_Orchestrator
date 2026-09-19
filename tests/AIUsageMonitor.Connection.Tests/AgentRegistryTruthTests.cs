@@ -106,6 +106,8 @@ public sealed class AgentRegistryTruthTests
         Assert.Equal(
             [AgentRole.Planner, AgentRole.Architect, AgentRole.AcceptanceAuthority],
             sol.RoleCapabilities);
+        Assert.Equal("gpt-5.6-sol", sol.ModelIdentifier);
+        Assert.Equal("gpt-5.6-luna", defaults.Single(value => value.Name == "GPT-5.6 Luna xHigh").ModelIdentifier);
         Assert.All(defaults, value =>
         {
             Assert.Equal(AgentAvailability.Unknown, value.Availability);
@@ -113,8 +115,11 @@ public sealed class AgentRegistryTruthTests
             Assert.Equal(AgentEntitlementState.Unknown, value.EntitlementState);
             Assert.Equal(AgentConnectionMode.Unknown, value.ConnectionMode);
             Assert.Empty(value.SupportedConnectionModes);
-            Assert.Null(value.ModelIdentifier);
         });
+        Assert.Null(defaults.Single(value => value.Name == "Claude Sonnet 5").ModelIdentifier);
+        Assert.Null(defaults.Single(value => value.Name == "Claude Opus 5").ModelIdentifier);
+        Assert.Null(defaults.Single(value => value.Name == "GPT-5.6 Terra HIGH").ModelIdentifier);
+        Assert.Null(defaults.Single(value => value.Name == "Gemini 3.7").ModelIdentifier);
     }
 
     [Fact]

@@ -21,6 +21,18 @@ public sealed class MissionControlProjectOption
     public string StatusText => Project.Status.ToString();
 
     public string DisplayText => $"{Name} · {StatusText}";
+
+    public string RepositoryContextText => Project.RepositoryProvider is { Length: > 0 } provider
+        ? $"{provider} · {Project.DefaultBranch ?? "branch unknown"}"
+        : "No repository context configured";
+
+    public string TrackerContextText => Project.TrackerType is { Length: > 0 } type && Project.TrackerId is { Length: > 0 } id
+        ? $"{type} · {id}"
+        : "No tracker context configured";
+
+    public string GovernanceContextText => Project.GovernanceReferences.Count > 0
+        ? string.Join(", ", Project.GovernanceReferences)
+        : "No governance reference configured";
 }
 
 /// <summary>
@@ -390,8 +402,10 @@ public sealed class MissionControlViewModel : ObservableObject
         long generation,
         CancellationToken cancellationToken = default)
     {
+        // Cancel only. The superseded refresh still owns that source and disposes it in its own
+        // finally; disposing it here races an in-flight operation that may still register on its
+        // token, which surfaces as an ObjectDisposedException instead of a clean cancellation.
         _selectionRefreshCancellation?.Cancel();
-        _selectionRefreshCancellation?.Dispose();
         var selectionCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _selectionRefreshCancellation = selectionCancellation;
         try

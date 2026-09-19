@@ -193,7 +193,8 @@ public sealed class GitLocalRepositoryInspector : ILocalRepositoryInspector
             changes.Truncated,
             remoteEntries,
             CompareRegisteredRemote(registeredRepositoryUrl, remoteEntries),
-            capturedAt);
+            capturedAt,
+            workspace: WorkspaceDiscovery.Inspect(registeredLocalPath, remoteEntries));
     }
 
     private async Task<GitCommandResult> RunAsync(
@@ -233,7 +234,7 @@ public sealed class GitLocalRepositoryInspector : ILocalRepositoryInspector
         RepositoryVerificationStatus status,
         string path,
         DateTimeOffset capturedAt) =>
-        new(status, path, capturedAt: capturedAt);
+        new(status, path, capturedAt: capturedAt, workspace: WorkspaceDiscovery.Inspect(path));
 
     private static LocalRepositoryInspection CreateFailure(
         string path,
@@ -243,7 +244,8 @@ public sealed class GitLocalRepositoryInspector : ILocalRepositoryInspector
             RepositoryVerificationStatus.Failed,
             path,
             capturedAt: capturedAt,
-            safeErrorMessage: message);
+            safeErrorMessage: message,
+            workspace: WorkspaceDiscovery.Inspect(path));
 
     private static void ThrowIfCancelled(GitCommandResult result, CancellationToken cancellationToken)
     {

@@ -1,6 +1,8 @@
 using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Planning;
+using AIUsageMonitor.Application.Routing;
+using AIUsageMonitor.Application.Workspaces;
 
 namespace AIUsageMonitor.Infrastructure.Persistence;
 
@@ -24,6 +26,13 @@ internal sealed class RecoveryCheckpointRecord
     public Guid? HandoffPackageId { get; set; }
     public int? HandoffPackageSchemaVersion { get; set; }
     public string? HandoffPackageContentHash { get; set; }
+    public Guid? RoutingDecisionId { get; set; }
+    public int? RoutingDecisionSchemaVersion { get; set; }
+    public string? RoutingDecisionContentHash { get; set; }
+    public Guid? WorkspacePreparationPlanProjectId { get; set; }
+    public Guid? WorkspacePreparationPlanId { get; set; }
+    public int? WorkspacePreparationPlanSchemaVersion { get; set; }
+    public string? WorkspacePreparationPlanContentHash { get; set; }
     public RecoveryCheckpointReferenceRecord? PreviousCheckpointReference { get; set; }
     public List<RecoveryAgentRoleReferenceRecord> SelectedAgentRoleReferences { get; set; } = [];
     public List<RecoveryEvidenceReferenceRecord> EvidenceReferences { get; set; } = [];
@@ -53,6 +62,13 @@ internal sealed class RecoveryCheckpointRecord
         HandoffPackageId = value.HandoffPackageReference?.PackageId,
         HandoffPackageSchemaVersion = value.HandoffPackageReference?.SchemaVersion,
         HandoffPackageContentHash = value.HandoffPackageReference?.ContentHash,
+        RoutingDecisionId = value.RoutingDecisionReference?.DecisionId,
+        RoutingDecisionSchemaVersion = value.RoutingDecisionReference?.SchemaVersion,
+        RoutingDecisionContentHash = value.RoutingDecisionReference?.ContentHash,
+        WorkspacePreparationPlanProjectId = value.WorkspacePreparationPlanReference?.ProjectId,
+        WorkspacePreparationPlanId = value.WorkspacePreparationPlanReference?.PlanId,
+        WorkspacePreparationPlanSchemaVersion = value.WorkspacePreparationPlanReference?.SchemaVersion,
+        WorkspacePreparationPlanContentHash = value.WorkspacePreparationPlanReference?.ContentHash,
         PreviousCheckpointReference = value.PreviousCheckpointReference is null
             ? null
             : RecoveryCheckpointReferenceRecord.FromApplication(value.PreviousCheckpointReference),
@@ -94,6 +110,19 @@ internal sealed class RecoveryCheckpointRecord
                 HandoffPackageId.Value,
                 HandoffPackageSchemaVersion ?? 0,
                 HandoffPackageContentHash ?? string.Empty),
+        RoutingDecisionId is null
+            ? null
+            : new RoutingDecisionReference(
+                RoutingDecisionId.Value,
+                RoutingDecisionSchemaVersion ?? 0,
+                RoutingDecisionContentHash ?? string.Empty),
+        WorkspacePreparationPlanId is null
+            ? null
+            : new WorkspacePreparationPlanReference(
+                WorkspacePreparationPlanId.Value,
+                WorkspacePreparationPlanSchemaVersion ?? 0,
+                WorkspacePreparationPlanContentHash ?? string.Empty,
+                WorkspacePreparationPlanProjectId ?? Guid.Empty),
         PreviousCheckpointReference?.ToApplication(),
         (SelectedAgentRoleReferences ?? []).Select(static value => value.ToApplication()).ToArray(),
         (EvidenceReferences ?? []).Select(static value => value.ToApplication()).ToArray(),

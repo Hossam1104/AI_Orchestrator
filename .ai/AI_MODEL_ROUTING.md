@@ -17,16 +17,19 @@ repository executor.
 
 ## 2. Active Execution Providers
 
-Only two providers are active for AI-assisted execution in this repository and this development
-environment:
+Only two providers are active as the default APO repository-execution providers in this repository
+and development environment:
 
 - **OpenAI / Codex**
 - **Anthropic / Claude**
 
-No other provider (Gemini, Z.ai, GLM, OpenCode, Kimi, or any other) is an active execution
-provider unless the repository owner explicitly changes this policy. This does not remove or
-weaken APO's own product-domain support for monitoring other AI providers — that is separate
-product functionality, not orchestration-executor policy.
+Gemini may be used only as an explicitly owner-authorized auxiliary resource for low-risk or
+mechanical cross-project work when appropriate. It is not part of APO's default executor portfolio,
+does not change the routing share targets below, and does not authorize a Gemini APO V1 runtime
+adapter or executable-provider implementation. Z.ai, GLM, OpenCode, Kimi, and other external
+providers remain inactive unless the repository owner explicitly changes this policy. This does not
+remove or weaken APO's own product-domain support for monitoring other AI providers — that is
+separate product functionality, not orchestration-executor policy.
 
 ---
 
@@ -35,34 +38,57 @@ product functionality, not orchestration-executor policy.
 | Model | Provider pool | Default role |
 |---|---|---|
 | GPT-5.6 Sol High | OpenAI/Codex | Planner / Architect / Model Router / Quota Governor / Acceptance Authority / Executor Prompt Authority (chat only) |
-| GPT-5.6 Luna xHigh | OpenAI/Codex | Primary bounded implementation executor unless Sol explicitly routes elsewhere |
-| Claude Sonnet 5 Medium | Anthropic/Claude | Fallback / special-need bounded implementation |
-| Claude Sonnet 5 High | Anthropic/Claude | Fallback / special-need difficult bounded implementation |
+| GPT-5.6 Luna xHigh | OpenAI/Codex | Default substantial implementation executor and workhorse unless Sol explicitly routes elsewhere |
+| Claude Sonnet 5 Medium | Anthropic/Claude | Bounded bug-fix specialist when Sol explicitly selects it |
+| Claude Sonnet 5 High | Anthropic/Claude | Bounded bug-fix specialist for difficult isolated defects when Sol explicitly selects it |
 | GPT-5.6 Luna Max | OpenAI/Codex | Exceptional implementation escalation only |
 | Claude Opus 5 Medium/High | Anthropic/Claude | Independent critical reviewer (not routine executor) |
-| GPT-5.6 Terra Medium/High | OpenAI/Codex | Specialist security/concurrency/data-integrity assurance |
+| GPT-5.6 Terra Medium/High | OpenAI/Codex | Protected recovery / difficult surgical finalization resource |
 | Claude Haiku 4.5 High | Anthropic/Claude | Disabled from active routing |
 
 ### Role detail
 
 - **Haiku** - disabled from active routing. Historical references may describe its former
   reconnaissance/mechanical role, but Sol must not route work to it under the current policy.
-- **Sonnet Medium** - fallback/special-need implementation when Sol explicitly selects it for a
-  bounded task, including ordinary bugs, mappings, validators, API/UI/WPF work, tests, and bounded
-  refactors.
-- **Sonnet High** - fallback/special-need difficult bounded debugging, substantial isolated
-  implementation, integration behavior, or non-trivial regressions when Sol explicitly selects it.
-- **Luna xHigh** - the normal primary executor for bounded repository work, including routine,
-  architecture-sensitive, cross-cutting, persistence/state, concurrency-sensitive, integration,
-  and high-blast-radius implementation. Sol may explicitly route a task elsewhere when justified.
+- **Sonnet Medium/High** - bounded bug-fix specialists for isolated defects, narrow regressions,
+  and localized implementation errors when Sol explicitly selects them. Preferred flow: reproduce
+  -> root cause -> minimal coherent fix -> regression test -> report. Sonnet is not the default
+  broad feature or architecture executor.
+- **Luna xHigh** - the default substantial implementation executor and workhorse for feature,
+  multi-file, refactoring, integration, automation, test, CI/CD, architecture, and directly related
+  documentation work. First-pass completion is preferred; Sol may explicitly route a task elsewhere
+  when justified.
 - **Luna Max** — exceptional escalation only; never the default executor.
-- **Opus** - independent critical review only, roughly every fifth substantial implementation prompt
-  where review adds meaningful value, or at genuinely critical checkpoints. Not for routine coding
-  and not a fallback implementation model.
-- **Terra** - specialist assurance for security, trust boundaries, concurrency, authorization, data
-  integrity, credential boundaries, destructive operations. Not a general executor.
+- **Opus** - independent critical review only, roughly every seventh substantial implementation
+  prompt where review adds meaningful value, or at genuinely critical checkpoints. Not for routine
+  coding and not a fallback implementation model. Any Opus execution session is an explicitly
+  authorized exception granted by the owner for a named scope, and does not change this default.
+- **Terra** - protected recovery, difficult surgical correction, and finalization capacity when Luna
+  work is incomplete, a stubborn cross-cutting failure remains, or another Luna correction is not
+  quota-efficient. Sol asks whether Luna can reasonably finish with a better bounded correction
+  prompt before routing Terra. Security, trust-boundary, concurrency, authorization, data-integrity,
+  credential-boundary, and destructive-operation assurance can still justify Terra when recovery or
+  assurance complexity warrants it. Terra is not the normal executor.
 
 One assigned canonical GitHub APO Issue remains the maximum active scope for one executor.
+
+### Execution share targets
+
+These are the owner's current targets for how routed execution work is distributed. They are
+planning guidance for Sol, not a quota to be spent: an under-used ceiling is never a reason to
+route work to a model, and §6's priority order still decides every individual route.
+
+| Model | Target share of routed execution |
+|---|---|
+| GPT-5.6 Sol | ~0% — control plane only; chat mode, no repository execution |
+| GPT-5.6 Luna xHigh | ~60% — the default substantial implementation executor and workhorse |
+| GPT-5.6 Terra High | up to ~20% — protected recovery / difficult surgical finalization |
+| Claude Sonnet 5 | up to ~10% — Sol-selected bounded bug fixes |
+| Claude Opus 5 | up to ~10% — independent review, roughly every seventh substantial prompt or at a critical checkpoint |
+
+Opus is review-only by default. An Opus session that changes repository files requires an explicit,
+named, owner-granted authorization for that scope; such an authorization is a one-off exception and
+must not be treated as establishing a new default route.
 
 ---
 
@@ -110,15 +136,15 @@ in either file. Never overwrite valid existing operational history.
 | Tier | Description | Executor |
 |---|---|---|
 | 0 | Sol planning only: architecture, decomposition, acceptance criteria, route selection, review, discussion, Jira reasoning, executor-prompt preparation after the `p` gate | GPT-5.6 Sol High, chat mode only — no repository execution |
-| 1 | Mechanical/reconnaissance: repository reconnaissance, file discovery, deterministic documentation, evidence formatting, diff/log triage, low-risk repetitive edits | GPT-5.6 Luna xHigh primary; Sol-selected Claude Sonnet 5 Medium fallback/special need; Haiku disabled |
-| 2 | Normal bounded implementation: ordinary bugs, CRUD, DTOs, mappings, validators, routine API/UI/WPF work, routine tests, CI fixes, bounded refactors | GPT-5.6 Luna xHigh primary; Sol-selected Claude Sonnet 5 Medium fallback/special need |
-| 3 | Difficult/substantial bounded execution with dynamic task fit | GPT-5.6 Luna xHigh primary; Sol-selected Claude Sonnet 5 High fallback/special need |
-| 4 | High-risk authority/security/integrity execution: credentials, authorization, trust boundaries, tenant isolation, financial integrity, concurrency correctness, destructive operations, remote execution, execution authority, immutable authority/persistence, replay protection, dangerous workspace/Git mutation, data-loss risk, autonomous execution boundaries | GPT-5.6 Luna xHigh primary, with Terra Medium/High and/or Opus Medium/High assurance as Sol requires |
+| 1 | Mechanical/reconnaissance: repository reconnaissance, file discovery, deterministic documentation, evidence formatting, diff/log triage, low-risk repetitive edits | GPT-5.6 Luna xHigh primary; Sol-selected Claude Sonnet 5 bounded bug-fix specialist; Haiku disabled |
+| 2 | Normal bounded implementation: ordinary bugs, CRUD, DTOs, mappings, validators, routine API/UI/WPF work, routine tests, CI fixes, bounded refactors | GPT-5.6 Luna xHigh primary; Sol-selected Claude Sonnet 5 bounded bug-fix specialist |
+| 3 | Difficult/substantial bounded execution with dynamic task fit | GPT-5.6 Luna xHigh primary; Sol-selected Claude Sonnet 5 bounded bug-fix specialist for isolated defects |
+| 4 | High-risk authority/security/integrity execution: credentials, authorization, trust boundaries, tenant isolation, financial integrity, concurrency correctness, destructive operations, remote execution, execution authority, immutable authority/persistence, replay protection, dangerous workspace/Git mutation, data-loss risk, autonomous execution boundaries | GPT-5.6 Luna xHigh primary, with Terra Medium/High protected recovery/finalization and/or Opus Medium/High review as Sol requires |
 
-Luna xHigh is the normal primary executor baseline for Tiers 1–4. Sonnet is never an automatic
-primary route; it is used only when Sol explicitly selects it for fallback, quota balancing, task
-fit, or another special need. Haiku is disabled and has no active tier default. Luna Max remains
-exceptional escalation only.
+Luna xHigh is the default substantial implementation executor baseline for Tiers 1–4. Sonnet is
+never an automatic primary route; it is used only when Sol explicitly selects it for bounded bug
+fixes. Haiku is disabled and has no active tier default. Luna Max remains exceptional escalation
+only.
 
 ### Tier 3 selection rule
 
@@ -130,8 +156,8 @@ sensitivity; integration complexity; regression blast radius; provider quota sta
 expected model capability for the specific task. Luna Max remains an exceptional escalation beyond
 Tier 3/4, never a default.
 
-Independent review (Opus) and specialist assurance (Terra) are applied on top of the tier, not in
-place of it, per the criteria in §3.
+Independent review (Opus) and protected recovery/finalization (Terra) are applied on top of the
+tier, not in place of it, per the criteria in §3.
 
 ### Routing priority order and provider balancing rule
 
@@ -200,3 +226,54 @@ justification.
 Sol remains the final acceptance authority for all routed work, regardless of which executor
 performed it. Executor self-declaration is not final acceptance (see
 `.ai/AI_EXECUTION_POLICY.md`).
+
+---
+
+## 10. Retry, Benchmarking, and Historical-Performance Routing
+
+The external-reference reconciliation adds future routing behaviors without changing the current
+model portfolio or priority policy.
+
+### 10.1 Failure-classified fallback
+
+A failed executor does **not** automatically imply "try another model". Any future fallback must be
+derived from typed failure classification, the latest verified checkpoint, observed side effects,
+remaining execution budget, current agent readiness, routing policy, owner policy, and quota/capacity
+truth.
+
+Eligible fallback candidates must pass the same normal routing requirements as an initial route.
+A model switch must never bypass source/workspace reconciliation, authentication, security,
+approval, validation, anti-replay, or destructive-action boundaries.
+
+This behavior is tracked by APO-72 / GitHub Issue #114.
+
+### 10.2 Controlled benchmarking
+
+Future parallel model comparison is an explicit benchmark mode, not ordinary production routing.
+Each write-capable candidate receives a separate isolated workspace and execution authority. No
+benchmark candidate may affect another candidate's workspace, protected delivery, or production
+state by default.
+
+Benchmark results are evidence only. They do not automatically change the production routing policy.
+This behavior is tracked by APO-73 / GitHub Issue #115.
+
+### 10.3 Historical performance signal
+
+After APO has sufficient durable execution/validation/review/acceptance evidence, Automatic routing
+may use transparent historical performance as an additional advisory signal. The first version must
+be deterministic and explainable, not opaque ML.
+
+Historical evidence can only operate **after** correctness, security, required capability/risk, and
+explicit project/owner policy have established eligibility. It cannot activate prohibited models,
+weaken assurance, or override current authentication/entitlement/capacity truth.
+
+Each historical metric must expose cohort, sample size, freshness, provenance, and limitations.
+Sparse/stale evidence remains unavailable rather than being invented into a score.
+
+This behavior is tracked by APO-74 / GitHub Issue #116.
+
+### 10.4 Product roadmap vs current execution policy
+
+APO-71 through APO-74 are product-roadmap capabilities. They do not authorize changing the owner's
+current development-time model allocation or the standalone `p` prompt gate. The approved roadmap
+integration is recorded in `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`.

@@ -1,5 +1,6 @@
 using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.Time;
+using AIUsageMonitor.Application.Trackers;
 
 namespace AIUsageMonitor.Application.Projects;
 
@@ -13,6 +14,7 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
     private readonly IAgentRegistryService _agentRegistry;
     private readonly IProjectContextReferenceRepository _contexts;
     private readonly IClock _clock;
+    private readonly IProjectFolderPreferenceService? _folderPreferences;
 
     public ProjectOnboardingService(
         IProjectRegistryService projects,
@@ -22,8 +24,10 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
         IAgentProjectOverrideRepository overrides,
         IAgentRegistryService agentRegistry,
         IProjectContextReferenceRepository contexts,
-        IClock clock)
+        IClock clock,
+        IProjectFolderPreferenceService? folderPreferences = null)
     {
+        _folderPreferences = folderPreferences;
         _projects = projects ?? throw new ArgumentNullException(nameof(projects));
         _inspector = inspector ?? throw new ArgumentNullException(nameof(inspector));
         _agents = agents ?? throw new ArgumentNullException(nameof(agents));
@@ -56,6 +60,13 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
         try
         {
             ValidateRequest(request);
+            var existing = (await _projects.GetProjectsAsync(cancellationToken).ConfigureAwait(false))
+                .FirstOrDefault(project => ProjectPathComparer.EqualsCanonical(project.LocalPath, request.LocalPath));
+            if (existing is not null)
+            {
+                return ProjectOnboardingResult.AlreadyRegistered(existing);
+            }
+
             var defaults = _catalog.GetDefaults();
             var enabledAgentIds = (request.EnabledAgentIds ?? defaults.Select(agent => agent.Id)).ToHashSet();
 
@@ -84,6 +95,10 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
                     cancellationToken)
                 .ConfigureAwait(false);
             await _contexts.UpsertAsync(context, cancellationToken).ConfigureAwait(false);
+
+            // Only a fully completed registration counts as a successful use of a folder. An
+            // already-registered, partial, or failed onboarding must not move the picker default.
+            await RecordSuccessfulFolderAsync(createdProject.LocalPath, cancellationToken).ConfigureAwait(false);
             return ProjectOnboardingResult.Success(createdProject, context);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -105,6 +120,26 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
             return createdProject is null
                 ? ProjectOnboardingResult.FailedBeforeProjectCreation(message)
                 : ProjectOnboardingResult.PartialProjectCreated(createdProject, message);
+        }
+    }
+
+    private async Task RecordSuccessfulFolderAsync(string localPath, CancellationToken cancellationToken)
+    {
+        if (_folderPreferences is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _folderPreferences
+                .RecordSuccessfulProjectFolderAsync(localPath, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // The project is registered and its context is written; a picker convenience
+            // preference must never downgrade that proven outcome to a partial result.
         }
     }
 
@@ -192,7 +227,8 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
                 TrackerMetadata = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["integrationState"] = request.SkipTracker ? "Skipped" : "ConfiguredUnverified"
-                }
+                },
+                GovernanceReferences = request.RepositoryInspection?.Workspace?.PresentGovernanceFiles
             };
         }
 
@@ -209,6 +245,15 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
             ["branchCapturedAt"] = inspection.CapturedAt.ToString("O")
         };
 
+        if (inspection.Workspace is { } workspace)
+        {
+            metadata["workspaceDisplayName"] = workspace.DisplayName;
+            metadata["workspaceReadable"] = workspace.IsReadable.ToString();
+            metadata["workspaceRemoteProvider"] = workspace.RemoteProvider;
+            metadata["workspaceGovernanceFiles"] = string.Join(", ", workspace.PresentGovernanceFiles);
+            metadata["workspaceProjectFiles"] = string.Join(", ", workspace.ProjectFiles);
+        }
+
         for (var index = 0; index < inspection.Remotes.Count; index++)
         {
             var remote = inspection.Remotes[index];
@@ -220,11 +265,12 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
             Name = request.Name,
             LocalPath = request.LocalPath,
             Status = ProjectStatus.Active,
-            RepositoryProvider = "Git",
+            RepositoryProvider = InferRepositoryProvider(inspection.Remotes),
             RepositoryUrl = inspection.Remotes.FirstOrDefault(remote =>
                 string.Equals(remote.Name, "origin", StringComparison.OrdinalIgnoreCase))?.SanitizedUrl,
             DefaultBranch = defaultBranch,
             RepositoryMetadata = metadata,
+            GovernanceReferences = inspection.Workspace?.PresentGovernanceFiles,
             TrackerType = request.SkipTracker ? null : request.TrackerType,
             TrackerId = request.SkipTracker ? null : request.TrackerReference,
             TrackerMetadata = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
@@ -232,6 +278,25 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
                 ["integrationState"] = request.SkipTracker ? "Skipped" : "ConfiguredUnverified"
             }
         };
+    }
+
+    private static string InferRepositoryProvider(IReadOnlyList<RepositoryRemote> remotes)
+    {
+        var urls = remotes.Select(remote => remote.SanitizedUrl).ToArray();
+        if (urls.Any(url => url.Contains("github.com", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "GitHub";
+        }
+
+        if (urls.Any(url =>
+                url.Contains("dev.azure.com", StringComparison.OrdinalIgnoreCase) ||
+                url.Contains("visualstudio.com", StringComparison.OrdinalIgnoreCase) ||
+                url.Contains("ssh.dev.azure.com", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "Azure Repos";
+        }
+
+        return urls.Length == 0 ? "Local Git" : "Other / Unknown";
     }
 
     private static void ValidateRequest(ProjectOnboardingRequest request)
@@ -274,6 +339,19 @@ public sealed class ProjectOnboardingService : IProjectOnboardingService
             (string.IsNullOrWhiteSpace(request.TrackerType) || string.IsNullOrWhiteSpace(request.TrackerReference)))
         {
             throw new ArgumentException("A configured tracker requires a bounded type and reference.", nameof(request));
+        }
+
+        if (!request.SkipTracker)
+        {
+            var trackerType = request.TrackerType!;
+            var trackerReference = request.TrackerReference!;
+            if (trackerType.Any(char.IsControl) ||
+                trackerReference.Any(char.IsControl) ||
+                trackerType.Length > TrackerLimits.MaxStringLength ||
+                trackerReference.Length > TrackerLimits.MaxStringLength)
+            {
+                throw new ArgumentException("A configured tracker type and reference must stay within the supported bound.", nameof(request));
+            }
         }
     }
 }

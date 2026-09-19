@@ -4,8 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="clr-namespace:AIUsageMonitor.Desktop.ViewModels"
     xmlns:provider="clr-namespace:AIUsageMonitor.Providers.Copilot;assembly=AIUsageMonitor.Providers"
-    Title="Provider connection"
-    Width="540"
+    Title="Provider settings"
+    Width="600"
     SizeToContent="Height"
     ResizeMode="NoResize"
     WindowStartupLocation="CenterOwner"
@@ -26,47 +26,78 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock Text="CONNECTION SETTINGS" Style="{StaticResource EyebrowTextStyle}" />
+            <TextBlock Text="PROVIDER SETTINGS" Style="{StaticResource EyebrowTextStyle}" />
             <TextBlock Grid.Row="1" Text="{Binding Title}" Margin="0,7,0,0" Style="{StaticResource SectionHeadingStyle}" />
             <TextBlock Grid.Row="2" Text="{Binding ChannelLabel}" Margin="0,5,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
 
-            <StackPanel Grid.Row="3" Margin="0,20,0,0" Visibility="{Binding IsCopilot, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="Billing scope" Style="{StaticResource CaptionTextStyle}" />
-                <ComboBox SelectedValue="{Binding CopilotScope}" SelectedValuePath="Tag" Margin="0,6,0,0" AutomationProperties.Name="Copilot billing scope">
-                    <ComboBoxItem Content="Personal user" Tag="{x:Static provider:CopilotBillingScope.PersonalUser}" />
-                    <ComboBoxItem Content="Organization" Tag="{x:Static provider:CopilotBillingScope.Organization}" />
-                </ComboBox>
-                <TextBlock Text="Username (optional for personal scope)" Margin="0,12,0,0" Style="{StaticResource CaptionTextStyle}" />
-                <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" AutomationProperties.Name="Copilot username" />
-                <TextBlock Text="Organization (required for organization scope)" Margin="0,12,0,0" Style="{StaticResource CaptionTextStyle}" />
-                <TextBox Text="{Binding Organization, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" AutomationProperties.Name="Copilot organization" />
+            <StackPanel Grid.Row="3" Margin="0,20,0,0" Visibility="{Binding IsCustom, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="Provider name" Style="{StaticResource CaptionTextStyle}" />
+                <TextBox Text="{Binding ProviderName, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" AutomationProperties.Name="Provider name" />
+                <TextBlock Text="Display label (optional)" Margin="0,12,0,0" Style="{StaticResource CaptionTextStyle}" />
+                <TextBox Text="{Binding DisplayLabel, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" AutomationProperties.Name="Provider display label" />
+                <TextBlock Text="Description (optional)" Margin="0,12,0,0" Style="{StaticResource CaptionTextStyle}" />
+                <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" TextWrapping="Wrap" AutomationProperties.Name="Provider description" />
             </StackPanel>
 
-            <StackPanel Grid.Row="3" Margin="0,20,0,0" Visibility="{Binding IsKimi, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="Server address" Style="{StaticResource CaptionTextStyle}" />
-                <TextBox Text="{Binding ServerAddress, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" AutomationProperties.Name="Kimi server address" />
-                <TextBlock Text="Only loopback HTTP or HTTPS addresses are accepted." Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
+            <Grid Grid.Row="4" Margin="0,18,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Authentication mode" Style="{StaticResource CaptionTextStyle}" />
+                    <ComboBox ItemsSource="{Binding AuthenticationModeOptions}" SelectedItem="{Binding AuthenticationMode}" Margin="0,6,0,0" AutomationProperties.Name="Provider authentication mode" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Capacity mode" Style="{StaticResource CaptionTextStyle}" />
+                    <ComboBox ItemsSource="{Binding CapacityModeOptions}" SelectedItem="{Binding CapacityMode}" Margin="0,6,0,0" AutomationProperties.Name="Provider capacity mode" />
+                    <TextBlock Text="{Binding CapacityModeReason}" Margin="0,6,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                </StackPanel>
+            </Grid>
+
+            <CheckBox Grid.Row="5" Content="Enabled" IsChecked="{Binding Enabled}" Margin="0,14,0,0" Visibility="{Binding IsCustom, Converter={StaticResource BoolToVisibilityConverter}}" AutomationProperties.Name="Provider enabled" />
+
+            <StackPanel Grid.Row="6" Margin="0,18,0,0">
+                <StackPanel Visibility="{Binding IsCopilot, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Billing scope" Style="{StaticResource CaptionTextStyle}" />
+                    <ComboBox SelectedValue="{Binding CopilotScope}" SelectedValuePath="Tag" Margin="0,6,0,0" AutomationProperties.Name="Copilot billing scope">
+                        <ComboBoxItem Content="Personal user" Tag="{x:Static provider:CopilotBillingScope.PersonalUser}" />
+                        <ComboBoxItem Content="Organization" Tag="{x:Static provider:CopilotBillingScope.Organization}" />
+                    </ComboBox>
+                    <TextBlock Text="Username (optional for personal scope)" Margin="0,12,0,0" Style="{StaticResource CaptionTextStyle}" />
+                    <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" AutomationProperties.Name="Copilot username" />
+                    <TextBlock Text="Organization (required for organization scope)" Margin="0,12,0,0" Style="{StaticResource CaptionTextStyle}" />
+                    <TextBox Text="{Binding Organization, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" AutomationProperties.Name="Copilot organization" />
+                </StackPanel>
+                <StackPanel Visibility="{Binding IsKimi, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Server address" Style="{StaticResource CaptionTextStyle}" />
+                    <TextBox Text="{Binding ServerAddress, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" AutomationProperties.Name="Kimi server address" />
+                    <TextBlock Text="Only loopback HTTP or HTTPS addresses are accepted." Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Visibility="{Binding IsClaude, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock Text="Organization API fallback" Style="{StaticResource CaptionTextStyle}" />
+                    <TextBlock Text="This is separate from the local Claude session and is used only when API-key mode is selected." Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
+                </StackPanel>
             </StackPanel>
 
-            <StackPanel Grid.Row="3" Margin="0,20,0,0" Visibility="{Binding IsClaude, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Text="Anthropic Admin API key" Style="{StaticResource CaptionTextStyle}" />
-                <TextBlock Text="This is organization usage, not Claude Pro or Claude Max consumer capacity." Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
-            </StackPanel>
-
-            <StackPanel Grid.Row="4" Margin="0,18,0,0">
+            <StackPanel Grid.Row="7" Margin="0,18,0,0">
                 <TextBlock Text="Credential" Style="{StaticResource CaptionTextStyle}" />
-                <PasswordBox x:Name="SecretBox" Margin="0,6,0,0" AutomationProperties.Name="New provider credential" />
+                <PasswordBox x:Name="SecretBox" Margin="0,6,0,0" AutomationProperties.Name="Provider API key" />
                 <TextBlock Text="{Binding CredentialStateText}" Margin="0,7,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
             </StackPanel>
 
-            <TextBlock Grid.Row="5" Text="{Binding ValidationMessage}" Margin="0,16,0,0" Foreground="{StaticResource BrandWarningBrush}" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="8" Text="{Binding ValidationMessage}" Margin="0,16,0,0" Foreground="{StaticResource BrandWarningBrush}" TextWrapping="Wrap" />
 
-            <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                <Button Content="Remove credential" Click="RemoveCredential_Click" AutomationProperties.Name="Remove credential" Style="{StaticResource GhostButtonStyle}" Visibility="{Binding CredentialSaved, Converter={StaticResource BoolToVisibilityConverter}}" />
+            <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                <Button Content="Remove credential" Click="RemoveCredential_Click" AutomationProperties.Name="Remove provider credential" Style="{StaticResource GhostButtonStyle}" Visibility="{Binding CredentialSaved, Converter={StaticResource BoolToVisibilityConverter}}" />
                 <Button Content="Cancel" Click="Cancel_Click" AutomationProperties.Name="Cancel" Margin="8,0,0,0" Style="{StaticResource SecondaryButtonStyle}" />
-                <Button Content="Save" Click="Save_Click" AutomationProperties.Name="Save provider connection" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
+                <Button Content="Save" Click="Save_Click" AutomationProperties.Name="Save provider settings" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
             </StackPanel>
         </Grid>
     </Border>

@@ -22,7 +22,8 @@ public sealed class LocalRepositoryInspection
         IReadOnlyList<RepositoryRemote>? remotes = null,
         RepositoryRemoteComparison remoteComparison = RepositoryRemoteComparison.NotConfigured,
         DateTimeOffset? capturedAt = null,
-        string? safeErrorMessage = null)
+        string? safeErrorMessage = null,
+        ProjectWorkspaceDiscovery? workspace = null)
     {
         if (string.IsNullOrWhiteSpace(registeredLocalPath))
         {
@@ -58,6 +59,7 @@ public sealed class LocalRepositoryInspection
         RemoteComparison = remoteComparison;
         CapturedAt = capturedAt ?? DateTimeOffset.UtcNow;
         SafeErrorMessage = safeErrorMessage;
+        Workspace = workspace;
     }
 
     public RepositoryVerificationStatus Status { get; }
@@ -93,4 +95,6 @@ public sealed class LocalRepositoryInspection
     public DateTimeOffset CapturedAt { get; }
 
     public string? SafeErrorMessage { get; }
+
+    public ProjectWorkspaceDiscovery? Workspace { get; }
 }

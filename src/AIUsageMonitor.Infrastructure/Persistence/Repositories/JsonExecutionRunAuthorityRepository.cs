@@ -29,15 +29,13 @@ public sealed class JsonExecutionRunAuthorityRepository : IExecutionRunAuthority
         ArgumentNullException.ThrowIfNull(authority);
         ValidateForWrite(authority);
 
-        var directory = _paths.GetExecutionRunAuthorityDirectory(authority.ProjectId, authority.RunId);
+        var inputPath = _paths.GetExecutionRunAuthorityInputCheckpointFile(authority.ProjectId, authority.InputRecoveryCheckpointReference);
         var path = _paths.GetExecutionRunAuthorityFile(authority.ProjectId, authority.RunId);
         try
         {
             await _paths.EnsureProjectDirectoriesAsync(authority.ProjectId, cancellationToken).ConfigureAwait(false);
-            Directory.CreateDirectory(directory);
-            await _files.CreateNewAsync(path, ExecutionRunAuthorityRecord.FromApplication(authority), cancellationToken)
+            await _files.CreateNewAsync(inputPath, ExecutionRunAuthorityRecord.FromApplication(authority), cancellationToken)
                 .ConfigureAwait(false);
-            return new(ExecutionRunAuthorityRepositoryWriteStatus.Created);
         }
         catch (OperationCanceledException)
         {
@@ -48,14 +46,34 @@ public sealed class JsonExecutionRunAuthorityRepository : IExecutionRunAuthority
             _logger.LogWarning(exception, "Permission denied while creating execution-run authority {RunId}", authority.RunId);
             return new(ExecutionRunAuthorityRepositoryWriteStatus.Unavailable, "Run-authority persistence is unavailable.");
         }
-        catch (IOException) when (File.Exists(path))
+        catch (IOException) when (File.Exists(inputPath))
         {
-            _logger.LogInformation("Rejected immutable execution-run authority overwrite for {RunId}", authority.RunId);
-            return new(ExecutionRunAuthorityRepositoryWriteStatus.RunConflict, "The immutable run authority already exists.");
+            _logger.LogInformation("Rejected duplicate execution claim for Ready checkpoint {CheckpointId}", authority.InputRecoveryCheckpointReference.CheckpointId);
+            return new(ExecutionRunAuthorityRepositoryWriteStatus.InputCheckpointConflict, "The immutable Ready checkpoint already has an execution claim.");
         }
         catch (IOException exception)
         {
             _logger.LogWarning(exception, "I/O failure while creating execution-run authority {RunId}", authority.RunId);
+            return new(ExecutionRunAuthorityRepositoryWriteStatus.Unavailable, "Run-authority persistence is unavailable.");
+        }
+
+        try
+        {
+            await _files.CreateNewAsync(path, ExecutionRunAuthorityRecord.FromApplication(authority), cancellationToken)
+                .ConfigureAwait(false);
+            return new(ExecutionRunAuthorityRepositoryWriteStatus.Created);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (IOException) when (File.Exists(path))
+        {
+            return new(ExecutionRunAuthorityRepositoryWriteStatus.RunConflict, "The immutable run authority already exists.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(exception, "The durable Ready claim was created but its RunId index could not be persisted for {RunId}", authority.RunId);
             return new(ExecutionRunAuthorityRepositoryWriteStatus.Unavailable, "Run-authority persistence is unavailable.");
         }
     }
@@ -81,6 +99,30 @@ public sealed class JsonExecutionRunAuthorityRepository : IExecutionRunAuthority
             FileReadStatus.Valid => MapValid(projectId, runId, path, result.Value),
             _ => new(ExecutionRunAuthorityReadState.Invalid, ErrorMessage: "Run authority is invalid.")
         };
+    }
+
+    public async Task<ExecutionRunAuthorityReadResult> GetByInputCheckpointAsync(
+        Guid projectId,
+        RecoveryCheckpointReference inputCheckpointReference,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateGuid(projectId, nameof(projectId));
+        ArgumentNullException.ThrowIfNull(inputCheckpointReference);
+        var path = _paths.GetExecutionRunAuthorityInputCheckpointFile(projectId, inputCheckpointReference);
+        var result = await _files.ReadPreservingAsync<ExecutionRunAuthorityRecord>(path, cancellationToken).ConfigureAwait(false);
+        var mapped = result.Status switch
+        {
+            FileReadStatus.Missing => new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Missing, ErrorMessage: "Ready checkpoint execution claim is missing."),
+            FileReadStatus.Empty => new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Invalid, ErrorMessage: "Ready checkpoint execution claim is empty."),
+            FileReadStatus.IoFailure or FileReadStatus.PermissionFailure => new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Unavailable, ErrorMessage: "Run-authority persistence is unavailable."),
+            FileReadStatus.UnsupportedSchema => new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.UnsupportedFutureVersion, ErrorMessage: "Run-authority storage schema is newer than supported."),
+            FileReadStatus.Corrupt => new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Invalid, ErrorMessage: "Ready checkpoint execution claim is invalid."),
+            FileReadStatus.Valid => MapValid(projectId, result.Value?.RunId ?? Guid.Empty, path, result.Value),
+            _ => new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Invalid, ErrorMessage: "Ready checkpoint execution claim is invalid.")
+        };
+        return mapped.IsValid && !SameCheckpoint(mapped.Authority!.InputRecoveryCheckpointReference, inputCheckpointReference)
+            ? new(ExecutionRunAuthorityReadState.IntegrityFailure, ErrorMessage: "Ready checkpoint execution claim does not match its immutable input authority.")
+            : mapped;
     }
 
     private ExecutionRunAuthorityReadResult MapValid(
@@ -168,4 +210,8 @@ public sealed class JsonExecutionRunAuthorityRepository : IExecutionRunAuthority
             throw new ArgumentException("Identifier cannot be empty.", parameterName);
         }
     }
+
+    private static bool SameCheckpoint(RecoveryCheckpointReference left, RecoveryCheckpointReference right) =>
+        left.CheckpointId == right.CheckpointId && left.SchemaVersion == right.SchemaVersion &&
+        string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase);
 }

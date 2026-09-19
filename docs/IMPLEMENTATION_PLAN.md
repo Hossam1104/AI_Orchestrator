@@ -1,577 +1,638 @@
-# AI_Orchestrator - Implementation Plan
+# AI_Orchestrator — Implementation Plan
 
-**Version:** 1.4
-**Date:** 30 August 2026
+**Version:** 1.5
+**Date:** 16 September 2026
 **Product:** AI_Orchestrator (APO)
 **Primary Requirements:** `docs/BRD.md`
+**Strategic Roadmap:** `docs/STRATEGIC_ROADMAP.md`
+**Reference-Derived Roadmap Delta:** `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`
 **Active Work Tracker:** GitHub Issues in `Hossam1104/AI_Orchestrator`
 **Historical Jira Project:** `APO` at `hossamsqa.atlassian.net`
 **Repository:** `https://github.com/Hossam1104/AI_Orchestrator`
 **Default Branch:** `main`
 **Planner / Architect / Acceptance / Prompt Authority:** GPT-5.6 Sol (chat mode only)
-**Primary Executor:** GPT-5.6 Luna xHigh for bounded work unless Sol explicitly routes elsewhere
-**Fallback / Special-Need Executors:** Claude Sonnet 5 Medium / Claude Sonnet 5 High, only when explicitly selected by Sol
-**Disabled from Active Routing:** Claude Haiku 4.5
-**Exceptional Escalation:** GPT-5.6 Luna Max
-**Independent Reviewer:** Claude Opus 5
-**Specialist Assurance:** GPT-5.6 Terra Medium/High
+**Primary Executor:** GPT-5.6 Luna xHigh unless Sol explicitly routes elsewhere
+**Independent Reviewer:** Claude Opus 5 at configured/critical checkpoints
+**Specialist Assurance:** GPT-5.6 Terra Medium/High for risk-triggered security/concurrency/data-integrity assurance
 
-Canonical routing, quota, and execution-policy detail lives in `.ai/AI_MODEL_ROUTING.md` and
-`.ai/AI_EXECUTION_POLICY.md`; this header summarizes only the roles relevant to this plan and does
-not override those canonical files.
+Canonical model routing and execution governance live in `.ai/AI_MODEL_ROUTING.md` and
+`.ai/AI_EXECUTION_POLICY.md`. This plan does not override them.
 
 ---
 
-## 1. Purpose and Authority
+## 1. Purpose and authority
 
-This plan explains how APO will be delivered from the existing repository. It is subordinate to
-`docs/BRD.md` and does not create product scope by itself. GitHub Issues carrying stable APO keys
-are the active work-tracking system; repository documentation and evidence remain the
-architecture/governance source of truth. Jira `APO` is historical provenance for migrated records.
+This plan explains how APO proceeds from the current repository state to an owner-accepted
+local-first orchestration product. It supersedes stale sequencing statements in older versions of
+this plan while preserving historical delivery evidence in `.ai/CURRENT_STATE.md`,
+`.ai/history/`, Git history, merged PRs, and canonical GitHub Issues.
 
-Authority order for execution is:
+Authority order remains the one defined by `AGENTS.md`. The current dated planning delta is
+`.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md`.
 
-1. `docs/BRD.md`;
-2. `AGENTS.md`;
-3. planner-approved architecture decisions and `.ai/CURRENT_STATE.md`;
-4. assigned canonical GitHub APO Issue acceptance scope;
-5. this plan;
-6. root `TASK.md`; and
-7. executor preference.
+A plan item is never implementation permission. Generated executor/reviewer prompts require the
+owner's standalone lowercase `p` message exactly as defined in `.ai/AI_EXECUTION_POLICY.md`.
 
-The active execution flow is:
+---
+
+## 2. Active architecture
+
+APO remains:
+
+- C# / .NET 10;
+- WPF / MVVM;
+- modular Clean Architecture;
+- `System.Text.Json`;
+- versioned JSON for bounded state/configuration;
+- monthly JSONL for append-oriented history/events;
+- dependency injection and Serilog;
+- Windows Credential Manager / approved secure external credential storage;
+- Git/GitHub/GitHub Actions;
+- focused xUnit tests;
+- self-contained Windows publishing.
+
+Dependency direction:
 
 ```text
-GitHub APO Epic -> canonical GitHub Story/Task -> Sol planning/architecture
--> TASK.md execution contract -> assigned executor -> validation
--> independent review where required -> Sol acceptance -> GitHub Issue/repository synchronization
+Desktop / WPF -> Application -> Domain
+Infrastructure -> Application / Domain contracts
+Providers / integrations -> Application / Domain contracts
 ```
 
-Only one bounded assigned work item is active at a time. Detailed Stories/Tasks are progressively
-decomposed by Sol after repository evidence and acceptance dependencies are understood. The
-strategic rebaseline now records the approved bounded backlog in canonical GitHub Issues APO-38
-through APO-63; their presence does not authorize implementation. Jira remains historical
-provenance for the migrated keys.
+No reference-derived work may introduce a second agent registry, runner, router, orchestration
+state machine, project registry, workspace authority, evidence store, configuration system, or
+provider-specific business policy in WPF.
+
+V1 still has no mandatory EF Core, SQL Server, LocalDB, SQLite, Angular, Electron, Tauri, Node/npm,
+embedded Chromium, or APO-owned cloud backend.
 
 ---
 
-## 2. APO Epic Capability Structure
+## 3. Current authoritative delivery state
 
-The approved initial Jira capability map is:
+### 3.1 Preserved accepted foundation
 
-| Epic | Capability | Primary dependency |
-|---|---|---|
-| APO-1 | APO Product Rebrand & Governance Rebaseline | None; current checkpoint |
-| APO-2 | Windows Platform & Application Foundation | APO-1 |
-| APO-3 | Local Persistence, Resilience & Security Foundation | APO-1, APO-2 |
-| APO-4 | AI Usage, Subscription & Capacity Monitoring | APO-3 |
-| APO-5 | Project Registry & Workspace Management | APO-2, APO-3 |
-| APO-6 | Git & GitHub Integration | APO-2, APO-5 |
-| APO-7 | Jira & Azure DevOps Work-Item Integration | APO-5, APO-6 |
-| APO-8 | AI Agent / Model Registry & Connectivity | APO-3, APO-4 |
-| APO-9 | Intelligent Model Routing & Quota-Aware Decisioning | APO-4, APO-8 |
-| APO-10 | Planning & Execution Contracts | APO-5, APO-8, APO-9 |
-| APO-11 | Autonomous Execution Runtime | APO-6, APO-7, APO-8, APO-10 |
-| APO-12 | Validation & Evidence Engine | APO-6, APO-10, APO-11 |
-| APO-13 | Independent Review & Remediation Engine | APO-8, APO-11, APO-12 |
-| APO-14 | Acceptance & Human Approval Gates | APO-7, APO-12, APO-13 |
-| APO-15 | Command Center & Project UX | APO-4, APO-5, APO-11, APO-14 |
-| APO-16 | Activity, Audit, History & Notifications | APO-3, APO-4, APO-11, APO-14 |
-| APO-17 | Packaging, Compatibility, CI & Release Quality | Cross-cutting; evidence from all Epics |
+The repository already contains accepted/delivered foundations for:
 
-The Epic list is approved. Sol may refine names, dependencies, and Story ordering only within the
-BRD and owner-approved scope. APO-18 established the governance baseline, APO-19 produced the
-legacy implementation inventory, and APO-20 completed the repository identity rename, including
-the physical local-root move. The next work item remains planner-controlled and is represented by
-the safe planner checkpoint in the root `TASK.md`; it does not authorize any unrelated Epic or
+- WPF/.NET/JSON/JSONL platform and persistence;
+- provider/capacity domain foundations;
+- project registry and durable local project state;
+- read-only local Git evidence;
+- agent/model registry truth;
+- progressive onboarding/context;
+- planning/execution contracts;
+- WorkGraph/dependency handling;
+- role handoffs;
+- Smart Continue / recovery checkpoint foundations;
+- explainable quality-first routing;
+- isolated workspace preparation;
+- bounded cancellable execution;
+- tracker synchronization foundation;
+- remote SCM/CI evidence;
+- independent validation evidence and QA gates;
+- Review Inbox / bounded remediation;
+- human approval policies;
+- controlled remote delivery;
+- Mission Control/read-model foundation;
+- GitHub Actions CI and multi-RID packaging.
+
+Historical exact SHAs, test counts, merges, and review evidence remain recorded in current-state and
+Issue/PR history and are not recopied here as mutable plan truth.
+
+### 3.2 Sole current gate — APO-70 / #111
+
+APO-70 remains **OPEN / IN PROGRESS / SOLE CURRENT GATE** on Draft PR #112.
+
+The accepted backend proof source head was `a2719257e6dc2b276152f35aa34ad945a912a20a`, with
+PR CI run `35162849445` succeeding on that exact head:
+
+- feature SHA `a2719257e6dc2b276152f35aa34ad945a912a20a`;
+- base `main` `d7c1231df9ea1a4d008aa473210d0ccc735c0302`;
+- PR CI run `35162849445`: SUCCESS;
+- 1,410 passed / 0 failed / 0 skipped;
+- Release build 0 warnings / 0 errors;
+- win-x86, win-x64, win-arm64 self-contained publish validation PASS.
+
+On that head, the production-composed backend cross-process proof reached `Ready`, restored it in a
+fresh process, performed exactly one real `gpt-5.6-luna` `StartAsync` workspace mutation, and passed
+fresh-process anti-replay. Sol accepted the proof. It does not constitute Desktop owner functional
+or visual acceptance, final APO-70 acceptance, merge authority, or release authority.
+
+The current integrated documentation head is `9b7d7c3bc7d70d35f1448b5ae67ac48e3ad3d542`; future
+exact-head validation must use the live branch HEAD rather than carrying forward the accepted proof
+or CI SHA.
+
+---
+
+## 4. Current execution boundary — APO-70 Desktop acceptance
+
+### Phase 4A — backend cross-process proof complete
+
+The backend proof is **SOL-ACCEPTED / COMPLETE**. It proved the following bounded sequence on source
+head `a2719257e6dc2b276152f35aa34ad945a912a20a` for ProjectId
+`c743e0da-24a6-4ad3-b309-aeb72658013c`:
+
+```text
+Process A
+  PrepareAsync = 1
+  real Sol = 1
+  state = Ready
+  Process A exited
+
+Process B
+  RestoreAsync = 1 -> Restored / Ready
+  StartAsync = 1 -> real Luna = 1 -> Succeeded / Completed
+  prepared workspace: STATE=before -> STATE=after
+  Process B exited
+
+Process C
+  RestoreAsync = 1
+  consumed old Ready executable = NO
+  second StartAsync = 0
+  second Luna = 0
+  anti-replay = PASS
+```
+
+The original disposable source remained on the same HEAD, clean, without remotes, and with
+`STATE=before`. Totals were `PrepareAsync=1`, `RestoreAsync=2`, `StartAsync=1`, real Sol `=1`, real
+Luna `=1`, fallback `=0`, and model retry `=0`. Authority continuity was preserved: no replan,
+reroute, workspace reprepare, or executor replacement.
+
+### Phase 4B — APO-70 Desktop owner workflow
+
+The current implementation/product gate is **FRESH OWNER-VISIBLE DESKTOP FUNCTIONAL + VISUAL
+ACCEPTANCE**. After the accepted backend proof:
+
+1. fresh-publish the current exact tree;
+2. register/reload a real existing project;
+3. prove Mission Control uses durable project truth;
+4. prove supported local provider/session states are truthful;
+5. start one actual bounded orchestration workflow from Desktop;
+6. expose real runtime/result/cancellation/validation evidence;
+7. complete the already-recorded UX recovery requirements;
+8. obtain explicit owner functional + visual acceptance;
+9. run final exact-head validation/CI/publish checks;
+10. obtain final Sol acceptance.
+
+Only a separate finalization authorization may merge/release after those gates. No backend proof,
+documentation update, or CI result substitutes for owner acceptance.
+
+---
+
+## 5. Reference-derived reliability extension — APO-55 / #93
+
+After APO-70 reaches Desktop and final Sol acceptance, continue the existing APO-55 runtime-evidence
 Story.
 
+### Product behavior
+
+When APO starts local work, it must be able to tell the owner what process it owns, whether that
+process/process tree ended, what checkpoint/run authority is current, and what is safe after an APO
+or Windows restart.
+
+### Implementation areas
+
+**Application / Domain contracts**
+
+- provider-independent execution process/runtime evidence;
+- typed restart-reconciliation result;
+- freshness/stale/partial/unavailable semantics;
+- environment-fingerprint contract;
+- Mission Control/read-model projection.
+
+**Infrastructure**
+
+- Windows process/PID inspection where safe;
+- process-tree reality checks;
+- non-secret environment/tool fingerprint probes;
+- persistence/rehydration implementation.
+
+**Providers**
+
+- expose provider invocation/process facts through existing adapter boundaries where appropriate.
+
+**Desktop**
+
+- presentation only; no direct process probing.
+
+### Acceptance themes
+
+- process identity and termination truth;
+- termination-unconfirmed keeps workspace guarded;
+- restart reconciliation before any automatic resume;
+- missing PID never equals success;
+- checkpoint/run/workspace/Git truth reconciled together;
+- allowlisted fingerprint only;
+- secret-safe persistence;
+- regression coverage around crash/restart/process absence.
+
+Priority: **P0/P1 reliability**.
+
 ---
 
-## 3. Legacy Backfill and Reuse Classification
+## 6. P1 local Agent Readiness — APO-71 / #113
 
-The repository contains completed work from the former AI Usage Monitor scope. That work is not
-discarded and is not automatically accepted as APO-complete. Sol will backfill meaningful work into
-Jira with links to code, commits, tests, and historical validation, then classify each significant
-area as:
+Extend APO-8/APO-38 instead of creating a new registry.
 
-- **Reuse As-Is**;
-- **Reuse With Extension**;
-- **Refactor**;
-- **Superseded**; or
-- **Remove**.
+### Product behavior
 
-Backfilled work may be marked Done only after the requirement mapping, code mapping, architecture
-check, and relevant validation evidence are explicit. Historical work must retain its original
-truth even when the architecture later changed.
+Before routing/execution, APO can explain whether an exact local agent path is usable and why.
 
-Known historical implementation and initial interpretation:
-
-| Historical implementation | Current interpretation | Initial treatment |
-|---|---|---|
-| Repository/solution foundation | APO-2 platform foundation | Reuse / verify |
-| Domain/Application foundation | APO-2/APO-3 contracts | Reuse With Extension |
-| Domain integrity remediation | APO-3 correctness | Reuse / verify |
-| EF Core + SQL Server LocalDB | Earlier persistence baseline | Superseded; history only |
-| WinUI / Windows App SDK shell | Earlier desktop baseline | Superseded; history only |
-| Portable WPF migration | APO-2 desktop foundation | Reuse / revalidate |
-| JSON/JSONL stores | APO-3 and APO-16 persistence | Reuse With Extension |
-| Atomic writes/corruption recovery | APO-3 resilience | Reuse / revalidate |
-| Startup/storage resilience | APO-2/APO-3 reliability | Reuse / revalidate |
-| Latest/range JSONL optimization | APO-16 history | Reuse / revalidate |
-| Interrupted-tail handling | APO-3/APO-16 resilience | Reuse / revalidate |
-| x86/x64/ARM64 solution targets | APO-2/APO-17 compatibility | Reuse / revalidate |
-| Self-contained publish profiles | APO-17 release foundation | Reuse / revalidate |
-| Provider-independent quota concepts | APO-4 capacity domain | Reuse With Extension |
-| Provider-only feasibility sequence | APO-4 discovery | Superseded; replan |
-
-The current source is a reusable, partially delivered APO foundation rather than a finished product.
-APO-38 through APO-47 and APO-68 have delivered the documented control-plane, routing, workspace,
-bounded-execution, workspace-preparation, and bounded Jira tracker slices. Source naming and
-LocalAppData migration remain separately planner-controlled; remaining remote evidence, QA,
-approval, controlled delivery, and command-center capabilities remain in the Jira roadmap.
-
----
-
-## 4. Existing Foundation and Active Architecture
-
-The active target is WPF + .NET 10 + MVVM + modular clean architecture with JSON/JSONL persistence,
-secure external credentials, and self-contained Windows artifacts. V1 has no database engine or
-ORM. The intended dependency direction is:
+Target evidence:
 
 ```text
-Desktop/WPF -> Application -> Domain
-Infrastructure -> Application/Domain contracts
-Providers/integrations -> Application/Domain contracts
+identity
++ executable path/provenance
++ CLI version
++ connection mode / supported invocation modes
++ authentication
++ entitlement when independently verifiable
++ capabilities / limitations
++ tested-at / freshness
+= readiness
 ```
 
-The current source already contains a WPF desktop foundation, provider-independent Domain and
-Application contracts, JSON/JSONL Infrastructure stores, resilience behavior, control-plane
-services, routing, isolated workspace preparation, bounded cancellable execution, focused tests,
-target configuration, and publish profiles. Existing `AIUsageMonitor` project/namespace names and
-the minimal shell are retained until a future approved mapping/refactor item.
+### Implementation rules
 
-The historical EF/LocalDB and WinUI/Windows App SDK implementations are preserved in Git history
-and current-state evidence only. They are not active APO runtime dependencies and must not be
-revived without an explicit architecture decision.
+- provider-specific probes remain in Providers;
+- executable/OS probing remains outside WPF;
+- Application composes normalized readiness;
+- stale results are re-evaluated rather than blindly trusted after restart;
+- installation != authentication != entitlement/subscription != capacity;
+- no unrestricted environment capture;
+- no shell-interpolated discovery architecture.
 
----
-
-## 5. Delivery Approach and Dependencies
-
-Delivery proceeds in capability families, but actual work is always driven by one assigned
-canonical GitHub Story/Task and its Sol-authored `TASK.md` contract.
-
-### Phase A - Governance and accepted foundation
-
-APO-18 through APO-37 establish the governed WPF/.NET/JSON/JSONL foundation, capacity surfaces,
-project workspace, and the first local read-only Git evidence slice. APO-38 through APO-46 and
-APO-68 extend that foundation with the control plane, routing, isolated workspace, bounded
-execution, and workspace-preparation safeguards. APO-33 remains the existing CI/release Story and
-is not duplicated.
-
-### Phase B - Inputs and control-plane contracts (P0)
-
-APO-38 (agent/model registry truth), APO-39 (progressive onboarding and canonical context
-resolution), APO-40 (versioned planning contracts), APO-41 (dependency-aware work graphs), APO-42
-(compact role handoffs), and APO-43 (durable recovery checkpoints) are delivered. These slices
-remain provider-independent, project-isolated, and free of chat-history or secret persistence.
-
-### Phase C - Quality-first decision, bounded execution, and evidence inputs (P0)
-
-APO-44 delivered explainable routing; APO-46 delivered safe isolated workspaces; APO-45 delivered
-bounded cancellable execution; and APO-47 delivered the bounded Jira-first/Azure-optional tracker
-input. Tracker awareness is an independent input, not a model-CLI side effect. Add provider-independent, read-only
-remote SCM/CI evidence (APO-62) after the local/work-item evidence inputs are defined. APO-62 is
-distinct from APO-37 local Git verification and APO-33 repository-owned CI. The ordering is
-deliberate: capability and contract truth precede quota-aware selection, safe repository/worktree
-preparation, process execution, and independently captured evidence.
-
-### Phase D - Evidence, review, controlled delivery, and command center (P0)
-
-Build independent evidence/QA gates (APO-48) and human approval policy (APO-49). Then implement
-controlled remote source-control delivery (APO-63) only against exact immutable targets and
-current evidence. Read-only remote evidence must exist before controlled remote writes so delivery
-cannot rely on a model claim, stale branch state, or missing CI/review proof. Finish this P0 band
-with the Mission Control read model/surface (APO-50). Evidence remains the progression authority;
-the owner remains the authority for protected delivery and high-risk changes.
-
-### Phase E - Workflow acceleration (P1)
-
-Add the Review Inbox/remediation state (APO-51), composable skills/workflows (APO-52), explainable
-project health (APO-53), the AI Decision Ledger and activity timeline (APO-54), truthful runtime
-evidence (APO-55), and context-budget management (APO-56). These capabilities reduce manual
-handoffs without becoming an opaque plugin or prompt framework.
-
-### Phase F - Controlled optional automation (P2)
-
-Only after the P0/P1 evidence and approval boundaries are sound, consider bounded background
-automation/housekeeping (APO-57) and a separately designed optional remote/mobile approval boundary
-(APO-58). Neither makes an APO-owned cloud backend mandatory for V1.
-
-### Phase G - APO-37 hardening debt (P3)
-
-APO-59 covers remote/output evidence bounds and conservative normalization (OPUS-01/02/03/09).
-APO-60 covers aggregate verification bounds and truthful path-state UX (OPUS-04/05). APO-61 covers
-explicit unavailable/skipped semantics for real-Git integration evidence (OPUS-07). Rejected
-OPUS-06 and OPUS-08 are not backlog work.
-
-No family is considered complete merely because code exists. Acceptance requires the canonical
-GitHub Issue scope, BRD requirements, validation, review, and Sol decision to align.
+Priority: **P1 / Post-V1 follow-on**.
 
 ---
 
-## 6. Technical Guardrails
+## 7. P1 failure-classified retry/fallback — APO-72 / #114
 
-### Persistence and security
+### Product behavior
 
-Use per-user LocalAppData; JSON for small documents; monthly JSONL for append-oriented records;
-schema/record metadata; atomic temporary-file replacement; synchronized writes; streaming/range
-history; material-change duplicate suppression; explicit missing/empty/corrupt/unsupported/I/O/
-permission handling; safe quarantine; and last-known-good retention. Never write secrets to files
-or logs; use opaque references to secure storage.
+A failure produces an explainable retry disposition, not a generic automatic provider switch.
+
+Inputs:
+
+- typed failure;
+- latest verified checkpoint;
+- observed side effects;
+- task requirements;
+- current source/workspace truth;
+- eligible/ready agents and capabilities;
+- routing/owner policy;
+- quota/capacity truth;
+- remaining execution budget;
+- validation/security/approval state.
+
+Outputs may include:
+
+- retry same executor;
+- route eligible fallback;
+- wait for authentication/capacity;
+- reconcile source/workspace;
+- run bounded remediation;
+- require owner approval;
+- stop/not retryable.
+
+### Architecture
+
+Implement in Application orchestration/recovery policy by composing existing authorities. Do not
+put fallback selection in provider adapters or WPF. Existing routing remains the only candidate
+eligibility/selection authority.
+
+### Safety
+
+Prevent:
+
+- replay of consumed Ready authority;
+- duplicate commits/external actions;
+- automatic continuation across source/workspace conflict;
+- model-switch bypass of security/approval gates;
+- unbounded retry loops;
+- loss/overwrite of prior evidence.
+
+Priority: **P1 / Post-V1** after stable runtime evidence.
+
+---
+
+## 8. P1 workflow and evidence usability — APO-52 / #90 and APO-54 / #92
+
+### APO-52 — workflow templates
+
+Create provider-independent, versioned templates that instantiate existing APO authorities.
+
+Representative patterns:
+
+```text
+Implementation: Planner -> Executor -> Verifier -> Reviewer -> Remediator -> Acceptance
+Recovery: Diagnostician -> Fixer -> Verifier
+Architecture: Analyzer -> Independent Reviewer -> Architecture Decision
+Security: Implementer -> Security Reviewer -> Remediation -> Verification
+```
+
+Templates may define roles, dependency shape, evidence requirements, loop limits, stop conditions,
+and gates. Routing still chooses actual eligible models dynamically.
+
+### APO-54 — decision/evidence history
+
+Build an owner-browsable timeline and evidence manifest that references existing canonical evidence
+instead of duplicating it. A run may reference:
+
+- request/work item;
+- contract;
+- WorkGraph;
+- routing decision;
+- agent/readiness evidence;
+- handoff;
+- workspace receipt;
+- checkpoint chain;
+- run authority/execution outcome;
+- APO-55 runtime/process/environment evidence;
+- local/remote Git evidence;
+- validation;
+- review/remediation;
+- acceptance/owner gate;
+- final disposition and next safe checkpoint.
+
+Do not persist private chain-of-thought, unrestricted environments, or raw provider transcripts as
+a completeness requirement.
+
+Priority: **P1 / Post-V1**.
+
+---
+
+## 9. P2 controlled benchmarking — APO-73 / #115
+
+### Product behavior
+
+The owner explicitly starts a benchmark for one immutable bounded task. Each eligible candidate gets
+its own disposable workspace, run authority, checkpoint chain, and evidence set.
+
+### Candidate comparison
+
+Use comparable independent evidence where available:
+
+- typed execution outcome;
+- first-attempt completion;
+- build/test/validation result;
+- reviewer disposition;
+- scope/architecture compliance;
+- changed files/lines;
+- retry count;
+- duration;
+- provider-truthful usage/cost signals;
+- regression findings;
+- final acceptance disposition.
+
+### Safety
+
+- no shared writable workspace;
+- no merge/push/deploy/destructive external action by default;
+- cancellation of one candidate must not damage another;
+- results survive restart;
+- no automatic production-routing change from benchmark result.
+
+Priority: **P2 / Post-V1**.
+
+---
+
+## 10. P2 historical-performance routing — APO-74 / #116
+
+Only after sufficient trustworthy history exists, extend the existing router with a deterministic,
+versioned, explainable historical-performance input.
+
+Potential evidence dimensions:
+
+- task cohort/classification;
+- first-attempt success;
+- validation pass rate;
+- reviewer rejection/remediation rate;
+- scope/architecture compliance;
+- retries;
+- duration;
+- provider-truthful resource/cost metrics;
+- regression rate;
+- final acceptance.
+
+Every statistic must include sample size, freshness, provenance, and limitations. Sparse/stale data
+is unavailable/low-confidence rather than fabricated.
+
+Historical performance cannot make an ineligible agent eligible and cannot override correctness,
+security, required capability/risk, explicit owner/project policy, current authentication,
+entitlement, or required approval/review.
+
+The first version is rules/scoring based — no opaque ML routing.
+
+Priority: **P2 / Post-V1**.
+
+---
+
+## 11. Existing strategic work retained
+
+The approved 2026-09-17 planning extension adds these bounded follow-ons:
+
+- APO-75 / #117 — HEAD-bound, read-only Project Intelligence Map and Planner Context Pack; it is
+  advisory and never a second repository authority.
+- APO-76 / #118 — Headless APO CLI over the same Application/Domain orchestration core; it is not a
+  second router, runner, registry, checkpoint, evidence, or permission system.
+- APO-77 / #119 — governed schedules and event triggers; triggers request work but never bypass the
+  normal policy, approval, workspace, evidence, validation, or delivery pipeline.
+- APO-78 / #120 — governed ACP/A2A/MCP interoperability; protocol adapters cannot bypass Agent
+  Readiness, routing, approval, workspace, evidence, or execution authorities.
+
+The new roadmap does not remove or implicitly complete existing work. Continue separately when
+sequenced:
+
+- APO-53 — explainable project health / owner attention;
+- APO-56 — context budgets and handoff compression;
+- APO-57 — bounded background automation and housekeeping;
+- APO-58 — optional remote/mobile approval security design;
+- APO-59..61 — accepted APO-37 hardening debt;
+- capacity/provider monitoring and remaining Epic responsibilities;
+- accessibility, Windows compatibility, packaging, CI, release quality.
+
+No low-priority item may displace APO-70 or the reliability sequence above.
+
+---
+
+## 12. Technical guardrails for all phases
+
+### Local-PC-first
+
+Persistent registered projects, APO LocalAppData, local Git repositories, APO-managed workspaces,
+local AI CLIs, local SDK/test/browser/toolchain access, and durable evidence form the normal local
+development environment. Remote/sandbox targets are optional future execution targets, not the
+foundation.
+
+### Process safety
+
+Use structured no-shell execution, concurrent bounded stdout/stderr consumption, explicit timeout,
+process-tree cancellation, termination confirmation, and secret-safe diagnostics. Do not copy broad
+permission bypasses or shell command composition from external references.
+
+### Persistence
+
+Keep versioned/atomic/project-isolated state. Existing immutable authorities/evidence remain
+canonical; new manifests/read models reference rather than duplicate them.
 
 ### Provider truth
 
-Prefer official APIs, account surfaces, OAuth/device auth, optional official CLIs, safe verified
-local metadata, and manual fallback in that order. Prove used versus remaining semantics, preserve
-`DateTimeOffset`, support arbitrary quota windows, and never fabricate plan, reset, subscription,
-or credit information.
+Installation, version, authentication, entitlement/subscription, availability, capabilities,
+capacity, and freshness are separate evidence dimensions.
 
-### Compatibility and consumer release
+### Recovery
 
-Target Windows 10 1809/build 17763 and Windows 11 with x86/x64/ARM64 consideration, x64 primary,
-guarded modern APIs, graceful WPF fallback, no modern hardware prerequisite, low idle resource use,
-and self-contained release artifacts. Do not claim a clean-machine or architecture validation not
-actually performed.
+Resume/retry only from the latest verified authoritative checkpoint after reconciling side effects.
+No stage-number-only retry.
 
-### Testing
+### Benchmark isolation
 
-Prioritize quota normalization, reset/timezone math, provider parsing, subscription semantics,
-JSON/schema round trips, JSONL ordering/range/duplicates, atomic writes, corrupt-file recovery,
-credential-reference safety, routing/recommendation, gate/state behavior, WPF view-model behavior,
-and self-contained publish smoke checks. CI uses sanitized fixtures and no live authenticated calls.
+Every write-capable candidate uses a separate workspace and authority.
+
+### Evidence privacy
+
+Never persist credentials, unrestricted environment variables, unrelated source content, raw
+conversations, or hidden/private chain-of-thought as execution artifacts.
 
 ---
 
-## 7. Review, Security, and Release Gates
+## 13. Validation strategy
 
-Every applicable implementation Story defines its validation and review requirements in its
-canonical GitHub Issue and `TASK.md`. At minimum:
+Each implementation item runs proportional targeted validation first and broader regression where
+its risk requires it. High-risk coverage now explicitly includes:
 
-1. Sol confirms scope, dependencies, and acceptance criteria before execution.
-2. The executor validates the change and records evidence.
-3. Opus independently reviews high-value or high-risk implementation.
-4. Findings are classified BLOCKER/HIGH/MEDIUM/LOW, fixed in a bounded loop, and revalidated.
-5. Sol accepts or rejects the result against the BRD, GitHub Issue scope, diff, validation, and review.
-6. Human approval is required for protected-branch merges and other high-risk actions unless the
-   explicit owner-approved execution contract provides the applicable authorization.
-7. The GitHub Issue and repository are synchronized only after the required gate; configured
-   external trackers follow their own explicit integration policy.
+- Agent Readiness executable provenance/version/auth/freshness;
+- process-tree termination and termination-unconfirmed behavior;
+- restart reconciliation with stale/missing PID;
+- checkpoint/run-authority anti-replay across retry/restart;
+- differentiated retry dispositions;
+- source/workspace/security/approval stop paths;
+- isolated benchmark candidate workspaces;
+- deterministic historical-routing replay and sparse/stale evidence;
+- secret-safe environment fingerprinting;
+- evidence-manifest restart/reopen and missing referenced evidence.
 
-Release review must explicitly check zero-prerequisite deployment, active WPF/JSON/JSONL
-architecture, no hidden database/runtime prerequisites, credential safety, project isolation,
-provider truthfulness, remaining-capacity semantics, file integrity, Windows compatibility, and
-actual packaging evidence.
+CI remains sanitized and must not require live authenticated provider credentials.
 
 ---
 
-## 8. Definition of Done
+## 14. Architecture-health cadence
 
-A Story/Task is complete only when:
+Continuous Implementation Guard applies to every executor change. The bounded architecture-health
+review after the first real restored-Ready Luna execution proof recorded generally healthy source
+architecture (approximately Level 0/1) and no systemic boundary degradation. Overall project drift
+was **LEVEL 2 — MODERATE DRIFT**, caused primarily by stale operational documentation/tracker
+authority. No broad refactor is authorized.
 
-- its assigned scope is implemented without future scope;
-- relevant build/tests/manual checks actually ran;
+Keep these as WATCH items only:
+
+- `ExecutionCoordinator` — broad orchestration responsibility and high collaborator count;
+- `ReadyExecutionRehydrator` — long durable-authority reconstruction path;
+- `BoundedExecutionService` — largest runtime complexity hotspot: concurrency, anti-replay,
+  checkpoints, authority validation, adapter invocation, timeout/cancellation/finalization;
+- repeated reference-equality helpers such as `SameContract`, `SameGraph`, and `SameRouting`.
+
+The reviewed runtime chain remains:
+
+```text
+ExecutionCoordinator
+    -> RecoveryCheckpoint
+    -> ExecutionRunAuthority
+    -> BoundedExecutionService
+    -> provider execution adapter
+    -> BoundedProcessHost
+    -> runtime evidence
+```
+
+Review for:
+
+- duplicate lifecycle truth;
+- God-service/ViewModel drift;
+- process ownership gaps;
+- stale evidence semantics;
+- restart reconciliation ownership;
+- retry/fallback ownership;
+- workspace/authority anti-replay correctness;
+- validation/review boundary drift;
+- duplicated provider checks or persistence concepts.
+
+Record the watch items without refactoring them in this documentation synchronization. Future
+correction must be evidence-driven during related implementation. Do not convert the health check
+into a repository rewrite.
+
+---
+
+## 15. Delivery sequence
+
+The approved current sequence is:
+
+```text
+APO-70 backend cross-process proof (SOL-ACCEPTED / COMPLETE)
+        ↓
+APO-70 fresh Desktop functional + visual owner acceptance
+        ↓
+APO-70 final exact-head Sol acceptance
+        ↓
+APO-55 runtime/process/restart evidence
+        ↓
+APO-71 local Agent Readiness
+        ↓
+APO-75 HEAD-bound Project Intelligence Map
+        ↓
+APO-72 failure-classified retry/fallback
+        ↓
+APO-52 / APO-54 workflow + evidence-history continuation
+        ↓
+APO-76 shared-core Headless CLI
+        ↓
+APO-77 governed schedule/event triggers
+        ↓
+APO-73 isolated multi-model benchmarking
+        ↓
+APO-74 transparent historical-performance routing
+        ↓
+APO-78 governed ACP / A2A / MCP interoperability
+        ↓
+remaining Post-V1 items as separately authorized
+```
+
+Hard `Blocks` dependencies should be added only when a future implementation contract proves an
+architectural prerequisite. Planning order alone is not a hard dependency.
+
+---
+
+## 16. Definition of Done
+
+A work item is complete only when:
+
+- exact assigned scope is implemented;
+- architecture boundaries remain sound;
+- acceptance criteria are met;
+- required targeted/full validation actually ran;
 - warnings/errors are explained;
-- secrets/debug artifacts are absent;
-- the diff and changed-file list are reviewed;
-- `.ai/CURRENT_STATE.md` is updated;
-- GitHub Issue status/evidence is synchronized by the authorized workflow;
-- the branch is committed and pushed;
-- one Draft PR is opened or updated against `main`;
-- the exact branch head and unchanged `origin/main` base are recorded;
-- merge is left to a separate, explicitly authorized finalization action;
-- the tree is clean; and
-- limitations, blockers, and the next planner boundary are explicit.
+- secrets/debug/temp production artifacts are absent;
+- diff/changed files are reviewed;
+- current state is updated truthfully;
+- tracker evidence is synchronized;
+- branch/PR state is recorded;
+- independent review occurs when required;
+- Sol accepts the exact implementation state;
+- protected delivery remains behind the configured owner gate;
+- limitations and next boundary are explicit.
 
-For documentation or repository-hygiene work, validation is document consistency, stale-reference
-review, source-scope confirmation, and proportionate restore/build/test checks requested by the
-Story. A Draft PR is not Sol acceptance or a merge.
+Documentation-only planning work must not claim source/runtime validation it did not run.
 
 ---
 
-## 9. Current Planning Boundary
+## 17. Current planning boundary
 
-APO-20 completed the repository identity rename under APO-1, including the physical local-root
-move. APO-27, APO-35, APO-36, and APO-37 are historical accepted deliveries. APO-38 through
-APO-47 and APO-68 are implemented and marked Done in Jira. APO-69 is also Done. APO-62 (remote
-SCM and CI evidence) is Done. The current `origin/main` baseline is
-`98cb8e86bad0729aa07d33ec6f93b86a49a668bf`. APO-48 is In Progress and not yet accepted; its Phase B
-remediation is executor-complete with local validation at 1,130 passed / 0 failed / 0 skipped,
-pending independent review and Sol acceptance. APO-49,
-APO-63, and APO-50 remain To Do and are not started. No executor may start another Story from
-this document or `TASK.md` until Sol authorizes it with a fresh contract.
+The roadmap/planning reconciliation is complete for this external-reference harvest.
 
-Sections 10-17 below are retained historical delivery records and planning snapshots. They do not
-override this current boundary or the latest evidence in `.ai/CURRENT_STATE.md`.
+Current gate status: **CLOSED**.
 
-## 10. APO-35 Delivery Boundary
+No implementation prompt has been generated by this plan. APO-70 remains the sole current gate, at
+the fresh owner-visible Desktop functional + visual acceptance boundary. A future standalone
+lowercase `p` is required before Sol generates one executor or reviewer prompt.
 
-APO-35 implements the first usable Projects workspace over the accepted APO-27 project registry
-foundation. The bounded delivery includes an Application `ProjectRegistryService`, testable clock
-semantics through the existing `IClock`, DI-backed `ProjectsViewModel`, enabled Projects shell
-navigation, project list/detail/editor UX, in-memory search/status filtering, lifecycle state
-editing including archive/restore, hidden metadata preservation, truthful empty/loading/error and
-degraded-storage states, and focused regression coverage.
-
-Repository and tracker fields remain metadata-only. APO-35 does not inspect local paths, invoke Git,
-call Jira/Azure DevOps, read credentials, scan repository contents, implement routing, or start the
-orchestration runtime. Delivery state is **IMPLEMENTATION COMPLETE / AWAITING SOL ACCEPTANCE** on
-`feat/APO-35-projects-workspace` from main base
-`34569abee50bdb708770e134e9db7db18752a80d`. The next planner boundary is GPT-5.6 Sol acceptance.
-See section 11 for the SOL-35-01/SOL-35-02 bounded delta remediation applied on top of this delivery.
-
-## 11. APO-35 Delta Remediation (SOL-35-01 / SOL-35-02)
-
-Sol's review of the APO-35 draft identified one confirmed defect (SOL-35-01: `ProjectsViewModel`
-resolved its save target from live selection instead of an immutable edit-target captured at
-edit-start, allowing a save to redirect to the wrong project if selection changed mid-edit) and
-requested sanitized runtime visual evidence (SOL-35-02). The bounded remediation, executed by
-Claude Sonnet 5 as executor under the same Story/PR, is:
-
-- `ProjectsViewModel` now captures `_editingProjectId` when editing starts and uses it exclusively
-  as the save/update target, independent of later selection or filter changes; save fails closed
-  with a truthful error if the edit target becomes unavailable; the edit target and editor contents
-  are preserved on a failed save so retry targets the original project; the edit target clears only
-  on successful save or cancel.
-- A new `IsRegistryInteractionEnabled` property disables the project list, search box, and status
-  filter while editing, and the existing `New project`/`Refresh` command predicates were extended
-  to stay disabled while editing, so the registry cannot be mutated out from under an in-progress
-  edit through the UI.
-- Six new focused regression tests were added covering selection-change isolation, filter-driven
-  selection loss, failed-save retry targeting, command disablement while editing, and edit-target
-  clearing on cancel/successful save. Full-suite validation is 214/214 passing (Desktop 44, up from
-  38).
-- SOL-35-02 visual evidence was attempted using Windows-native UI Automation and GDI screen capture
-  against the real published `win-x64` self-contained executable. Capture revealed that the
-  published shell starts in a fully degraded, no-persistence fallback mode on every launch, for both
-  the Projects and AI Capacity workspaces, because of an unrelated, pre-existing DI constructor
-  ambiguity in `AiCapacityViewModel` (two applicable public constructors) that makes
-  `_host.Services.GetService<MainWindow>()` throw during startup and fall back to a null-backed
-  shell. This defect was introduced in the APO-34 delivery commit and is unrelated to
-  `ProjectsViewModel`/SOL-35-01; per the bounded remediation's no-scope-expansion constraint it was
-  not fixed here. Because no privacy-safe, functionally real screenshot of the Projects workspace
-  could be captured, no image was added to `docs/evidence/`, and this limitation is reported
-  truthfully rather than substituting degraded-mode captures. Fixing the `AiCapacityViewModel`
-  constructor ambiguity is recommended as a follow-up Jira item under Epic APO-5 before SOL-35-02
-  evidence can be captured or before the workspace is considered release-qualified.
-
-## 12. APO-36 Blocking Startup Regression (Prompt 4 continuation)
-
-APO-36 fixed the pre-existing `AiCapacityViewModel` DI constructor ambiguity identified while
-attempting SOL-35-02 evidence capture in section 11 above. The regression predated APO-35 (it was
-introduced in the already-merged APO-34 delivery) but blocked runtime acceptance evidence for the
-APO-35 merge candidate, so Sol authorized the fix on the same branch/PR as a bounded continuation of
-the same Prompt-4 delta, without advancing to Prompt 5 or invoking Claude Opus.
-
-**Root cause:** `AiCapacityViewModel` exposes both a normal provider-backed constructor
-`(IProviderRegistry, IProviderConnectionService)` and a degraded/manual fallback constructor
-`(IExecutableLocator)`. An implicit `services.AddSingleton<AiCapacityViewModel>()` left
-Microsoft.Extensions.DependencyInjection unable to disambiguate them, so `App.OnStartup` threw while
-resolving `MainWindow` and the existing outer `catch` silently fell back to the degraded,
-no-persistence shell on every normal launch.
-
-**Fix:** a new `DesktopServiceCollectionExtensions.AddDesktopWorkspaceServices()` extension method
-registers `AiCapacityViewModel` via an explicit factory that resolves the normal provider-backed
-constructor directly, alongside `IProjectRegistryService`, `ProjectsViewModel`, `MainWindowViewModel`,
-and `MainWindow`. `App.OnStartup` now composes the container as `AddInfrastructure` → `AddProviders`
-→ `AddDesktopWorkspaceServices` — the same three calls a new `ProductionCompositionTests.cs` suite
-exercises against the real Microsoft DI container to prove `AiCapacityViewModel`,
-`MainWindowViewModel`, and `ProjectsViewModel` all resolve normally (non-degraded). The degraded
-fallback constructor and `App.OnStartup`'s outer `catch` are unchanged.
-
-With the fix in place, SOL-35-02 sanitized visual evidence (blocked in section 11) was captured
-successfully from the real, non-degraded published `win-x64` shell and committed at
-`docs/evidence/APO-35-projects-workspace.png`. A subsequent Claude Opus 5 independent review
-(Prompt 5/5) returned `CHANGES REQUIRED` against four Projects UI findings (`OPUS-01`..`OPUS-04`);
-GPT-5.6 Sol adjudicated the review in Jira comment `11838` and authorized a bounded Claude Sonnet 5
-remediation (Prompt 1/5 of a new Opus cadence), which fixed all four findings plus a related
-`ListBox` rendering regression the `OPUS-01` fix exposed. Full-suite validation is 225/225 passing
-(Desktop 55, up from 219/49). See `TASK.md` and `.ai/CURRENT_STATE.md` for exact SHAs and evidence
-details.
-
-## 13. APO-35 + APO-36 Final Delivery and Merge
-
-APO-35 and APO-36 were finalized, Sol-accepted, and squash-merged into `main` via PR #6 at merge
-commit `beab8072551a84aad60df7744135c74c75e51acb`. Full-suite validation is 225/225 tests passing
-(Domain 28, Provider 46, Infrastructure 86, Connection 10, Desktop 55). OPUS-01..OPUS-04 findings
-are closed; OPUS-05..OPUS-08 are deferred as P3. APO-35 and APO-36 are transitioned to Done in Jira;
-parent Epics APO-5 and APO-4 remain In Progress.
-
-## 14. APO-37 Read-Only Local Git Repository Verification
-
-APO-37 is the first bounded APO-6 vertical slice, implemented from exact main base
-`8a81017b25fe0cfd8efcd4febafd66a1bee6c41e` on `feat/APO-37-local-git-verification`. The slice
-adds provider-independent Application repository-state contracts and a project-aware verification
-service, plus an Infrastructure-only Git process runner and inspector. Desktop/WPF owns explicit
-Verify repository and Refresh repository state commands; selection changes cancel and obsolete the
-previous request, and a generation/identity check prevents a late result for Project A from being
-published into Project B.
-
-Production inspection is local-only and uses only `git --version`, `git -C <path> rev-parse
---show-toplevel`, `symbolic-ref --quiet --short HEAD`, `rev-parse --verify HEAD`, upstream
-resolution, `status --porcelain=v1 -z --untracked-files=all`, and `remote -v`. Process execution
-uses `UseShellExecute=false`, argument-list transport, `GIT_TERMINAL_PROMPT=0`,
-`GIT_OPTIONAL_LOCKS=0`, asynchronous cancellation, and a ten-second per-command timeout. Remote
-URLs are sanitized before entering application state; changed-file evidence is capped at 100
-repository-relative entries and exposes total/truncation truthfully. No remote request, file
-content read, diff, patch, or Git mutation is part of APO-37.
-
-The accepted project lifecycle is Active, Paused, Blocked, Archived, with status filters All,
-Active, Paused, Blocked, Archived. Draft and Completed are not ProjectStatus values.
-
----
-
-## 15. Strategic Rebaseline Capability Map
-
-The owner-requested Compare-AI-Orchestrators direction is incorporated as a capability map over
-the existing Epic structure. Competitor names are not product boundaries, and no duplicate Epic is
-introduced.
-
-| Band | Capability slices | Jira Stories |
-|---|---|---|
-| P0 | Agent/model truth and progressive onboarding | APO-38, APO-39 |
-| P0 | Contracts, dependency graph, handoffs, and recovery context | APO-40, APO-41, APO-42, APO-43 |
-| P0 | Quality-first routing, bounded execution, workspaces, and tracker evidence | APO-44, APO-46, APO-45, APO-47 |
-| P0 | Remote SCM / CI evidence | APO-62 |
-| P0 | Independent QA gates, human gates, controlled delivery, and Mission Control | APO-48, APO-49, APO-63, APO-50 |
-| P1 | Review Inbox, skills, health, decision ledger, runtime evidence, and context budgets | APO-51 through APO-56 |
-| P2 | Bounded background automation/housekeeping and optional remote approval design | APO-57, APO-58 |
-| P3 | APO-37 hardening debt (findings accepted into backlog; Jira: To Do) | APO-59, APO-60, APO-61 |
-
-Existing work reused rather than recreated includes APO-27 project/orchestration storage, APO-35/36
-the Projects workspace and normal composition, APO-37 local Git evidence, and APO-33 CI/release
-workflow. Existing Epic dependencies remain the architectural ownership map. Jira issue links record
-the critical predecessor relationships among APO-38 through APO-63.
-
-## 16. Canonical Hard Dependency DAG
-
-Jira `Blocks` records only a real architectural prerequisite. The repaired strategic graph contains
-exactly the following 18 hard dependencies; the planner ordering in the next section is separate
-and does not turn every adjacent planning step into a `Blocks` link.
-
-```text
-APO-38 -> APO-39                 APO-38 -> APO-44
-APO-40 -> APO-41                 APO-40 -> APO-42
-APO-40 -> APO-43                 APO-40 -> APO-45
-APO-39 -> APO-43
-APO-41 -> APO-45                 APO-42 -> APO-45
-APO-43 -> APO-45                 APO-44 -> APO-45
-APO-46 -> APO-45
-APO-45 -> APO-48
-APO-48 -> APO-63                 APO-49 -> APO-63
-APO-62 -> APO-63
-APO-45 -> APO-57                 APO-49 -> APO-58
-```
-
-The arrows mean the left Story blocks the right Story. APO-46 intentionally precedes APO-45 so
-project-isolated repository/worktree safety is established before autonomous implementation. The
-accepted APO-37 links to APO-59/60/61 remain `Relates`, not hard dependencies. Other useful
-sequencing relationships remain planner guidance unless a future contract proves a real
-architectural prerequisite.
-
-## 17. Recommended Planner Ordering
-
-The explicit planner sequence is:
-
-```text
-Accepted APO foundation / APO-37
-        v
-APO-38
-        v
-APO-39
-        v
-APO-40
-        v
-APO-41
-        v
-APO-42
-        v
-APO-43
-        v
-APO-44
-        v
-APO-46 - isolated workspace safety
-        v
-APO-45 - bounded autonomous execution
-        v
-APO-47 + APO-62 evidence integrations
-        v
-APO-48
-        v
-APO-49
-        v
-APO-63
-        v
-APO-50
-        v
-P1
-        v
-P2
-```
-
-The compact capability map below remains a visual summary of that sequence:
-
-```text
-APO-3/APO-4 foundations
-        ↓
-APO-38 agent/model truth → APO-39 onboarding/context resolution
-        ↓
-APO-40 contracts → APO-41 dependency graph → APO-42 role handoffs
-        ↓                         ↘
-APO-43 recovery context       APO-44 quality-first routing
-        ↓                         ↓
-APO-46 isolated workspaces → APO-45 bounded execution
-                                      + APO-47/APO-62 evidence integrations
-                                      ↓
-                         APO-48 independent QA evidence
-                                      ↓
-                          APO-49 approval policy
-                                       ↓
-                         APO-63 controlled remote delivery
-                                       ↓
-                               APO-50 Mission Control
-                                       ↓
-                  APO-51..56 workflow acceleration
-                                      ↓
-                         APO-57..58 optional P2 work
-```
-
-The remote-evidence/delivery ordering is explicitly:
-
-```text
-APO-47 tracker evidence + APO-62 read-only remote SCM/CI evidence
-                              |
-                              v
-                         APO-48 QA evidence
-                              |
-                              v
-                         APO-49 approval policy
-                              |
-                              v
-                         APO-63 controlled remote delivery
-```
-
-Read-only remote evidence must exist before controlled remote writes so an operation cannot rely on
-a model claim, stale branch state, or missing CI/review proof. This ordering intentionally places
-capability truth, persistence, contracts, evidence, and human authority before broad autonomous
-behavior or consolidated UX. APO-17/33 CI remains a cross-cutting
-release prerequisite and may be sequenced by Sol when the release risk warrants it.
-
-## 18. Strategic Acceptance Boundary
-
-This document is a roadmap and architecture rebaseline, not implementation authorization. APO-69 is
-complete and APO-47 is merged, Sol-accepted, post-merge verified, and Jira Done. The current planner
-boundary is the post-merge state reconciliation recorded in `.ai/CURRENT_STATE.md` and `TASK.md`.
-Sol must replace `TASK.md` with one self-contained contract for a selected remaining Story; no
-executor may start APO-62, APO-48, or any other Story from roadmap presence alone.
+No merge, `main` push, release, tag, deployment, or Issue #111 closure is authorized by this plan.
