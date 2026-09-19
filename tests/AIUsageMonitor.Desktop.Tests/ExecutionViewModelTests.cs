@@ -39,17 +39,81 @@ public sealed class ExecutionViewModelTests
         viewModel.SelectedProject = viewModel.ProjectOptions[0];
         await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
 
-        Assert.Equal("Enter a title.", viewModel.PrepareBlockedReason);
+        Assert.Equal("Enter a work request.", viewModel.PrepareBlockedReason);
 
         viewModel.Title = "Bounded change";
-        Assert.Equal("Enter an objective.", viewModel.PrepareBlockedReason);
+        Assert.Equal("Enter a work request.", viewModel.PrepareBlockedReason);
 
         viewModel.Objective = "Make the requested bounded change.";
-        Assert.Equal("Add at least one acceptance criterion.", viewModel.PrepareBlockedReason);
+        Assert.Equal("Add acceptance criteria in Owner Mode.", viewModel.PrepareBlockedReason);
 
         viewModel.AcceptanceCriteria = "Verify the result.";
         Assert.Equal(string.Empty, viewModel.PrepareBlockedReason);
         Assert.True(viewModel.PrepareCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task CompleteAuthoritativePrefillMakesPrepareReadyWithoutAdvancedEntry()
+    {
+        var coordinator = new FakeExecutionCoordinator { Preparation = PreparedResult() };
+        var viewModel = NewViewModel(coordinator);
+        viewModel.SetPersistenceAvailability(true);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project()));
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+
+        viewModel.ApplyContextPrefill(new ExecutionContextPrefill(
+            "Persisted planning contract",
+            "Known work",
+            "Use the stored bounded request.",
+            "APO-70",
+            ["The stored acceptance criterion is preserved."],
+            ["Keep the existing coordinator."],
+            ["Run focused tests."]));
+
+        Assert.True(viewModel.PrepareCommand.CanExecute(null));
+        viewModel.PrepareCommand.Execute(null);
+        await coordinator.PrepareRequested.Task;
+        await WaitUntil(() => viewModel.IsReady);
+
+        Assert.NotNull(coordinator.LastRequest);
+        Assert.Equal("Known work", coordinator.LastRequest!.Title);
+        Assert.Equal("APO-70", coordinator.LastRequest.WorkItemReference);
+        Assert.Equal(["The stored acceptance criterion is preserved."], coordinator.LastRequest.AcceptanceCriteria);
+    }
+
+    [Fact]
+    public void PartialAuthoritativeContextExposesTheOnlyMissingRequirementInOwnerMode()
+    {
+        var viewModel = NewViewModel(new FakeExecutionCoordinator());
+        viewModel.SetPersistenceAvailability(true);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project()));
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        viewModel.ApplyContextPrefill(new ExecutionContextPrefill(
+            "Mission Control current-work read model",
+            "Known work",
+            "The current request is known."));
+
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal("Missing before Prepare: acceptance criteria. APO will not invent them.", viewModel.MissingContextText);
+        Assert.Equal("Add acceptance criteria in Owner Mode.", viewModel.PrepareBlockedReason);
+    }
+
+    [Fact]
+    public async Task OwnerRequestDerivesTitleWithoutDuplicatingTheRequest()
+    {
+        var coordinator = new FakeExecutionCoordinator { Preparation = PreparedResult() };
+        var viewModel = NewViewModel(coordinator);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project()));
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        viewModel.SetPersistenceAvailability(true);
+        viewModel.Objective = "  Make the owner request work.\r\nAdd no invented scope. ";
+        viewModel.AcceptanceCriteria = "Verify the request.";
+
+        viewModel.PrepareCommand.Execute(null);
+        await coordinator.PrepareRequested.Task;
+
+        Assert.Equal("Make the owner request work.", coordinator.LastRequest!.Title);
+        Assert.Equal("Make the owner request work.\r\nAdd no invented scope.", coordinator.LastRequest.Objective);
     }
 
     [Fact]
@@ -179,6 +243,8 @@ public sealed class ExecutionViewModelTests
         await WaitUntil(() => viewModel.IsReady);
 
         Assert.Equal("Persisted lineage", viewModel.PlannerText);
+        Assert.Equal("Bounded execution", viewModel.Title);
+        Assert.Equal("done", viewModel.AcceptanceCriteria);
         Assert.True(viewModel.StartCommand.CanExecute(null));
     }
 
@@ -271,10 +337,12 @@ public sealed class ExecutionViewModelTests
         internal readonly TaskCompletionSource<bool> ReleaseRestore = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal int RestoreCalls;
         internal int PrepareCalls;
+        internal OrchestrationWorkRequest? LastRequest;
 
         public async Task<ExecutionPreparationResult> PrepareAsync(OrchestrationWorkRequest request, CancellationToken cancellationToken = default)
         {
             PrepareCalls++;
+            LastRequest = request;
             PrepareRequested.TrySetResult(true);
             if (BlockPrepare) await ReleasePrepare.Task;
             return Preparation;

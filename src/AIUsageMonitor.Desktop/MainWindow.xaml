@@ -69,11 +69,12 @@
                             Padding="{TemplateBinding Padding}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="4" />
+                                    <ColumnDefinition Width="5" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <Border x:Name="NavIndicator" Width="4" Background="Transparent" CornerRadius="2" />
+                                <Border x:Name="NavIndicator" Width="5" Background="Transparent" CornerRadius="3" />
                                 <ContentPresenter
+                                    x:Name="NavContent"
                                     Grid.Column="1"
                                     Margin="12,0,0,0"
                                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
@@ -90,10 +91,11 @@
                                 <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
                             </Trigger>
                             <Trigger Property="Tag" Value="True">
-                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource NavigationSelectedGradientBrush}" />
+                                <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource NavigationSelectedBrush}" />
                                 <Setter TargetName="NavBorder" Property="BorderBrush" Value="{DynamicResource AccentVioletBrush}" />
                                 <Setter TargetName="NavBorder" Property="BorderThickness" Value="1" />
                                 <Setter TargetName="NavIndicator" Property="Background" Value="{DynamicResource AccentVioletBrush}" />
+                                <Setter TargetName="NavContent" Property="TextElement.FontWeight" Value="SemiBold" />
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">

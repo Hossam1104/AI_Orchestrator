@@ -2,6 +2,7 @@ using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -114,6 +115,13 @@ public sealed class VisualRenderAcceptanceTests
                 CreateShell(CreateMissionControlViewModel(CreateProject())),
             "light-combobox-open",
             evidenceDirectory);
+            var lightExecution = RenderShell(
+                CreateShell(CreateExecutionViewModel()),
+                "light-execution-owner-mode",
+                evidenceDirectory,
+                "OWNER MODE",
+                "ACCEPTANCE CRITERIA",
+                "NO REGISTERED PROJECTS");
 
             ThemeManager.Apply(ThemeVariant.Dark);
             var darkMissionControl = RenderShell(
@@ -146,12 +154,20 @@ public sealed class VisualRenderAcceptanceTests
                 "dark-friendly-error",
                 evidenceDirectory,
                 "Projects could not be loaded.");
+            var darkExecution = RenderShell(
+                CreateShell(CreateExecutionViewModel()),
+                "dark-execution-owner-mode",
+                evidenceDirectory,
+                "OWNER MODE",
+                "ACCEPTANCE CRITERIA",
+                "NO REGISTERED PROJECTS");
 
             AssertMateriallyDifferent(lightMissionControl, darkMissionControl);
             AssertMateriallyDifferent(lightProjectsPopulated, darkProjects);
             AssertMateriallyDifferent(lightCapacity, darkCapacity);
             AssertMateriallyDifferent(lightAddExistingProject, darkAddExistingProject);
             AssertMateriallyDifferent(lightFriendlyError, darkFriendlyError);
+            AssertMateriallyDifferent(lightExecution, darkExecution);
 
             File.WriteAllLines(
                 Path.Combine(evidenceDirectory, "render-manifest.txt"),
@@ -170,15 +186,17 @@ public sealed class VisualRenderAcceptanceTests
                     lightProviderDialog.Path,
                     lightFriendlyError.Path,
                     lightComboBoxOpen.Path,
+                    lightExecution.Path,
                     "Dark renders:",
                     darkMissionControl.Path,
                     darkProjects.Path,
                     darkCapacity.Path,
                     darkAddExistingProject.Path,
-                    darkFriendlyError.Path
+                    darkFriendlyError.Path,
+                    darkExecution.Path
                 ]);
 
-            Assert.Equal(15, Directory.EnumerateFiles(evidenceDirectory, "*.png").Count());
+            Assert.Equal(17, Directory.EnumerateFiles(evidenceDirectory, "*.png").Count());
             Assert.True(File.Exists(Path.Combine(evidenceDirectory, "render-manifest.txt")));
         });
     }
@@ -202,6 +220,11 @@ public sealed class VisualRenderAcceptanceTests
                 CreateMissionControlViewModel(),
                 capacity,
                 CreateProjectsViewModel()),
+            ExecutionViewModel execution => new MainWindowViewModel(
+                CreateMissionControlViewModel(),
+                CreateCapacityViewModel(),
+                CreateProjectsViewModel(),
+                execution),
             _ => throw new ArgumentException("Unsupported visual workspace.", nameof(activeWorkspace))
         };
 
@@ -213,6 +236,10 @@ public sealed class VisualRenderAcceptanceTests
         else if (activeWorkspace is AiCapacityViewModel)
         {
             viewModel.ShowAiCapacityCommand.Execute(null);
+        }
+        else if (activeWorkspace is ExecutionViewModel)
+        {
+            viewModel.ShowExecutionCommand.Execute(null);
         }
 
         var window = new MainWindow(viewModel)
@@ -298,6 +325,8 @@ public sealed class VisualRenderAcceptanceTests
                 "Manual registration; no automatic capacity adapter is installed.")));
         return viewModel;
     }
+
+    private static ExecutionViewModel CreateExecutionViewModel() => new();
 
     private static Project CreateProject() => new(
         ProjectId,
@@ -528,6 +557,11 @@ public sealed class VisualRenderAcceptanceTests
             Assert.Contains(FindVisualDescendants<Border>(window), border => border.ActualWidth > 0 && border.ActualHeight > 0);
             Assert.Contains(FindVisualDescendants<Button>(window), button => button.ActualWidth > 0 && button.ActualHeight > 0);
             Assert.DoesNotContain("CAPACITY READY", text, StringComparison.OrdinalIgnoreCase);
+
+            if (name.Contains("execution", StringComparison.OrdinalIgnoreCase))
+            {
+                Assert.Contains(FindVisualDescendants<ScrollBar>(window), scrollBar => scrollBar.ActualWidth > 0 || scrollBar.ActualHeight > 0);
+            }
 
             var pixelWidth = (int)Math.Ceiling(root.ActualWidth);
             var pixelHeight = (int)Math.Ceiling(root.ActualHeight);

@@ -1,11 +1,37 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 19 September 2026 (APO-70 owner-rejected desktop product/UX recovery; owner gates pending)
+**Last Updated:** 19 September 2026 (APO-70 bounded owner-facing desktop UX correction; owner gates pending)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 bounded owner-facing desktop UX correction
+
+**Last Updated:** 19 September 2026
+
+The bounded correction is implemented on
+`feature/APO-70-v1-desktop-product-recovery` from verified starting head
+`0f72724ba364c779ebdf2a832734273a93a9d990`. Owner Mode now reuses authoritative prepared or
+Mission Control context, derives a truthful title from the owner request when needed, exposes the
+single missing acceptance-criteria requirement visibly, and preserves the canonical
+`IExecutionCoordinator.PrepareAsync`, `StartAsync`, and `CancelAsync` lifecycle. Selected shell
+navigation has stronger persistent chrome, and the shared scrollbar has a visible rail, pill thumb,
+hover/drag states, and preserved page commands in both themes. No provider/model calls or new
+orchestration subsystem were added.
+
+Behavior-level coverage now proves authoritative prefill, partial-context blocking, title derivation,
+real navigation selection, scrollbar structure, and light/dark rendered surfaces. Local validation is
+`1,440 passed / 0 failed / 0 skipped` across the five canonical Release test projects; the Release
+solution build is `0 warnings / 0 errors`; and `git diff --check` is clean. The canonical fresh
+self-contained `win-x64` publish validator passed and its responding-window smoke test passed; the
+smoke process was stopped with `APO PROCESS COUNT = 0`.
+
+Exact-head CI after push, explicit owner visual acceptance, and owner-assisted Prepare -> Ready ->
+Start -> result/validation functional proof remain separate gates. Issue #111 remains Open with
+`status:in-progress` and `current-gate`; PR #112 remains Draft/Open/Unmerged. No release, merge,
+deployment, or real provider/model execution was performed.
 
 ## CURRENT - APO-70 owner-rejected desktop product/UX recovery
 

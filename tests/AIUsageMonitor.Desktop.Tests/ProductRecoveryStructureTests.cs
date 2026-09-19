@@ -34,6 +34,39 @@ public sealed class ProductRecoveryStructureTests
         Assert.Contains("IsExpanded=\"False\"", xaml, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void SelectedNavigationUsesDistinctSurfaceRailBorderAndWeight()
+    {
+        var xaml = File.ReadAllText(SourcePath("src", "AIUsageMonitor.Desktop", "MainWindow.xaml"));
+
+        Assert.Contains("<ColumnDefinition Width=\"5\" />", xaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"NavIndicator\" Width=\"5\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("NavigationSelectedBrush", xaml, StringComparison.Ordinal);
+        Assert.Contains("AccentVioletBrush", xaml, StringComparison.Ordinal);
+        Assert.Contains("TextElement.FontWeight\" Value=\"SemiBold\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("<Trigger Property=\"Tag\" Value=\"True\">", xaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ScrollBarsUseCompactPillThumbsWithHoverDragAndBothOrientations()
+    {
+        var xaml = File.ReadAllText(SourcePath("src", "AIUsageMonitor.Desktop", "Resources", "Controls.xaml"));
+        var brushes = File.ReadAllText(SourcePath("src", "AIUsageMonitor.Desktop", "Resources", "Brushes.xaml"));
+        var darkTheme = File.ReadAllText(SourcePath("src", "AIUsageMonitor.Desktop", "Resources", "Theme.Dark.xaml"));
+
+        Assert.Contains("ApoScrollBarThumbTemplate", xaml, StringComparison.Ordinal);
+        Assert.Contains("CornerRadius=\"999\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("ScrollBarThumbHoverBrush", xaml, StringComparison.Ordinal);
+        Assert.Contains("ScrollBarThumbDragBrush", xaml, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"Width\" Value=\"8\" />", xaml, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"Height\" Value=\"8\" />", xaml, StringComparison.Ordinal);
+        Assert.Contains("ApoHorizontalScrollBarThumbStyle", xaml, StringComparison.Ordinal);
+        Assert.Contains("ApoVerticalScrollBarTemplate", xaml, StringComparison.Ordinal);
+        Assert.Contains("ApoHorizontalScrollBarTemplate", xaml, StringComparison.Ordinal);
+        Assert.Contains("ScrollBarThumbDragBrush", brushes, StringComparison.Ordinal);
+        Assert.Contains("ScrollBarThumbDragBrush", darkTheme, StringComparison.Ordinal);
+    }
+
     private static string SourcePath(params string[] segments)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

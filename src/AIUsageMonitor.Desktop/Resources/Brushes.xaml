@@ -45,6 +45,8 @@
     <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="{DynamicResource ScrollBarTrackColor}" />
     <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="{DynamicResource TextMutedColor}" />
     <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="{DynamicResource AccentBlueColor}" />
+    <SolidColorBrush x:Key="ScrollBarThumbDragBrush" Color="{DynamicResource AccentPressedColor}" />
+    <SolidColorBrush x:Key="NavigationSelectedBrush" Color="{DynamicResource SurfaceSelectedColor}" />
 
     <!-- Existing APO aliases retained for view compatibility. They now follow the
          RMS semantic palette instead of hard-coded dark-only values. -->

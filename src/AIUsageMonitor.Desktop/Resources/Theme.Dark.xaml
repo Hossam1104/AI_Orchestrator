@@ -92,6 +92,8 @@
     <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="{StaticResource ScrollBarTrackColor}" />
     <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="{StaticResource TextMutedColor}" />
     <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="{StaticResource AccentBlueColor}" />
+    <SolidColorBrush x:Key="ScrollBarThumbDragBrush" Color="{StaticResource AccentPressedColor}" />
+    <SolidColorBrush x:Key="NavigationSelectedBrush" Color="{StaticResource SurfaceSelectedColor}" />
 
     <SolidColorBrush x:Key="BrandDeepNavyBrush" Color="{StaticResource ShellColor}" />
     <SolidColorBrush x:Key="BrandNavyBlueBrush" Color="{StaticResource SurfaceMutedColor}" />

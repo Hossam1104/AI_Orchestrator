@@ -40,7 +40,8 @@ public static class DesktopServiceCollectionExtensions
             provider.GetRequiredService<IMissionControlReadModelService>()));
         services.AddSingleton<ExecutionViewModel>(provider => new ExecutionViewModel(
             provider.GetRequiredService<IProjectRegistryService>(),
-            provider.GetRequiredService<IExecutionCoordinator>()));
+            provider.GetRequiredService<IExecutionCoordinator>(),
+            provider.GetRequiredService<IMissionControlReadModelService>()));
         services.AddSingleton<MainWindowViewModel>(provider => new MainWindowViewModel(
             provider.GetRequiredService<MissionControlViewModel>(),
             provider.GetRequiredService<AiCapacityViewModel>(),

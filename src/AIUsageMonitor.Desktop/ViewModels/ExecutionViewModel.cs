@@ -1,17 +1,19 @@
 using System.Collections.ObjectModel;
+using AIUsageMonitor.Application.MissionControl;
 using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Projects;
 
 namespace AIUsageMonitor.Desktop.ViewModels;
 
 /// <summary>
-/// Owner-facing bounded execution surface. It knows only the coordinator and project registry;
-/// all durable authority and runtime truth comes from Application services.
+/// Owner-facing bounded execution surface. It composes application read models into the existing
+/// coordinator request without becoming a second execution authority.
 /// </summary>
 public sealed class ExecutionViewModel : ObservableObject
 {
     private readonly IProjectRegistryService? _projects;
     private readonly IExecutionCoordinator? _coordinator;
+    private readonly IMissionControlReadModelService? _missionControl;
     private MissionControlProjectOption? _selectedProject;
     private ExecutionCoordinatorState _state = ExecutionCoordinatorState.Draft;
     private PreparedExecution? _prepared;
@@ -24,21 +26,26 @@ public sealed class ExecutionViewModel : ObservableObject
     private string _acceptanceCriteria = string.Empty;
     private string _constraints = string.Empty;
     private string _validationExpectations = string.Empty;
+    private string _contextSourceText = "No authoritative current work context is available.";
+    private string _currentWorkText = "No current work selected.";
+    private string? _titleSourceText;
     private readonly SemaphoreSlim _restoreGate = new(1, 1);
     private long _restoreGeneration;
     private bool _isRestoring;
 
     public ExecutionViewModel()
-        : this(null, null)
+        : this(null, null, null)
     {
     }
 
     public ExecutionViewModel(
         IProjectRegistryService? projects,
-        IExecutionCoordinator? coordinator)
+        IExecutionCoordinator? coordinator,
+        IMissionControlReadModelService? missionControl = null)
     {
         _projects = projects;
         _coordinator = coordinator;
+        _missionControl = missionControl;
         _persistenceAvailable = projects is not null && coordinator is not null;
         PrepareCommand = new AsyncCommand(PrepareAsync, CanPrepare);
         StartCommand = new AsyncCommand(StartAsync, CanStart);
@@ -64,6 +71,10 @@ public sealed class ExecutionViewModel : ObservableObject
             }
 
             ResetPreparationForSelection();
+            _contextSourceText = "Project registry metadata is available; no authoritative current work is selected yet.";
+            _currentWorkText = "No current work selected.";
+            OnPropertyChanged(nameof(ContextSourceText));
+            OnPropertyChanged(nameof(CurrentWorkText));
             OnPropertyChanged(nameof(SelectedProjectText));
             NotifyCommands();
             _ = TryRestoreAsync(value, ++_restoreGeneration);
@@ -75,7 +86,12 @@ public sealed class ExecutionViewModel : ObservableObject
         get => _title;
         set
         {
-            if (SetProperty(ref _title, value)) NotifyCommands();
+            if (SetProperty(ref _title, value))
+            {
+                _titleSourceText = string.IsNullOrWhiteSpace(value) ? null : "Owner override in Advanced details.";
+                OnPropertyChanged(nameof(TitleSourceText));
+                NotifyCommands();
+            }
         }
     }
 
@@ -84,7 +100,11 @@ public sealed class ExecutionViewModel : ObservableObject
         get => _objective;
         set
         {
-            if (SetProperty(ref _objective, value)) NotifyCommands();
+            if (SetProperty(ref _objective, value))
+            {
+                OnPropertyChanged(nameof(TitleSourceText));
+                NotifyCommands();
+            }
         }
     }
 
@@ -158,6 +178,34 @@ public sealed class ExecutionViewModel : ObservableObject
 
     public string SelectedProjectText => SelectedProject?.Name ?? "Select a registered project";
 
+    public string ContextSourceText => _contextSourceText;
+
+    public string CurrentWorkText => _currentWorkText;
+
+    public string TitleSourceText => string.IsNullOrWhiteSpace(Title)
+        ? "Title is derived from the owner request when Prepare runs."
+        : _titleSourceText ?? "Owner-provided title.";
+
+    public string MissingContextText
+    {
+        get
+        {
+            if (SelectedProject is null)
+            {
+                return "Missing before Prepare: registered project.";
+            }
+
+            if (string.IsNullOrWhiteSpace(Objective))
+            {
+                return "Missing before Prepare: owner work request.";
+            }
+
+            return ParseLines(AcceptanceCriteria).Count == 0
+                ? "Missing before Prepare: acceptance criteria. APO will not invent them."
+                : string.Empty;
+        }
+    }
+
     public string PlannerText => _prepared is null ? "Not resolved" : _prepared.Planner?.Name ?? "Persisted lineage";
 
     public string ExecutorText => _prepared?.Executor.Name ?? "Not resolved";
@@ -215,17 +263,12 @@ public sealed class ExecutionViewModel : ObservableObject
                 return "Select a registered project.";
             }
 
-            if (string.IsNullOrWhiteSpace(Title))
-            {
-                return "Enter a title.";
-            }
-
             if (string.IsNullOrWhiteSpace(Objective))
             {
-                return "Enter an objective.";
+                return "Enter a work request.";
             }
 
-            return "Add at least one acceptance criterion.";
+            return "Add acceptance criteria in Owner Mode.";
         }
     }
 
@@ -270,7 +313,6 @@ public sealed class ExecutionViewModel : ObservableObject
         _coordinator is not null &&
         !IsBusy &&
         SelectedProject is not null &&
-        !string.IsNullOrWhiteSpace(Title) &&
         !string.IsNullOrWhiteSpace(Objective) &&
         ParseLines(AcceptanceCriteria).Count > 0;
 
@@ -293,7 +335,7 @@ public sealed class ExecutionViewModel : ObservableObject
             var result = await _coordinator.PrepareAsync(new OrchestrationWorkRequest(
                 SelectedProject.Id,
                 Environment.UserName,
-                Title,
+                string.IsNullOrWhiteSpace(Title) ? ExecutionContextPrefillPolicy.DeriveTitle(Objective) : Title,
                 Objective,
                 string.IsNullOrWhiteSpace(WorkItemReference) ? null : WorkItemReference,
                 ParseLines(AcceptanceCriteria),
@@ -365,6 +407,15 @@ public sealed class ExecutionViewModel : ObservableObject
             }
 
             _prepared = result.PreparedExecution;
+            if (result.Succeeded && result.PreparedExecution is not null)
+            {
+                ApplyContextPrefill(ExecutionContextPrefillPolicy.FromPreparedExecution(result.PreparedExecution));
+            }
+            else
+            {
+                await TryPrefillFromMissionControlAsync(project.Id, generation).ConfigureAwait(true);
+            }
+
             State = result.Succeeded ? ExecutionCoordinatorState.Ready : ExecutionCoordinatorState.Draft;
             _errorMessage = result.Succeeded || result.Status == ExecutionRehydrationStatus.NotResumable ? null : result.ErrorMessage;
         }
@@ -389,6 +440,81 @@ public sealed class ExecutionViewModel : ObservableObject
                 PublishPreparedState();
             }
         }
+    }
+
+    public void ApplyContextPrefill(ExecutionContextPrefill prefill)
+    {
+        ArgumentNullException.ThrowIfNull(prefill);
+        if (!prefill.IsAuthoritative)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(prefill.Title))
+        {
+            _title = prefill.Title;
+            _titleSourceText = $"Reused from {prefill.Source}.";
+            OnPropertyChanged(nameof(Title));
+            OnPropertyChanged(nameof(TitleSourceText));
+        }
+
+        if (!string.IsNullOrWhiteSpace(prefill.Objective))
+        {
+            _objective = prefill.Objective;
+            OnPropertyChanged(nameof(Objective));
+        }
+
+        if (!string.IsNullOrWhiteSpace(prefill.WorkItemReference))
+        {
+            _workItemReference = prefill.WorkItemReference;
+            OnPropertyChanged(nameof(WorkItemReference));
+        }
+
+        SetPrefilledLines(prefill.AcceptanceCriteria, ref _acceptanceCriteria, nameof(AcceptanceCriteria));
+        SetPrefilledLines(prefill.Constraints, ref _constraints, nameof(Constraints));
+        SetPrefilledLines(prefill.ValidationExpectations, ref _validationExpectations, nameof(ValidationExpectations));
+
+        _contextSourceText = prefill.Source;
+        _currentWorkText = string.IsNullOrWhiteSpace(prefill.Title)
+            ? "Current work title is unavailable."
+            : string.IsNullOrWhiteSpace(prefill.WorkItemReference)
+                ? prefill.Title
+                : $"{prefill.WorkItemReference} · {prefill.Title}";
+        OnPropertyChanged(nameof(ContextSourceText));
+        OnPropertyChanged(nameof(CurrentWorkText));
+        NotifyCommands();
+    }
+
+    private async Task TryPrefillFromMissionControlAsync(Guid projectId, long generation)
+    {
+        if (_missionControl is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var snapshot = await _missionControl.ReadAsync(projectId).ConfigureAwait(true);
+            if (generation == _restoreGeneration && SelectedProject?.Id == projectId)
+            {
+                ApplyContextPrefill(ExecutionContextPrefillPolicy.FromMissionControl(snapshot));
+            }
+        }
+        catch
+        {
+            // Missing read-model evidence must leave the owner-visible request fields empty.
+        }
+    }
+
+    private void SetPrefilledLines(IReadOnlyList<string> values, ref string target, string propertyName)
+    {
+        if (values.Count == 0)
+        {
+            return;
+        }
+
+        target = string.Join(Environment.NewLine, values);
+        OnPropertyChanged(propertyName);
     }
 
     private async Task CancelAsync()
@@ -461,6 +587,8 @@ public sealed class ExecutionViewModel : ObservableObject
         StartCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(PrepareBlockedReason));
+        OnPropertyChanged(nameof(MissingContextText));
+        OnPropertyChanged(nameof(TitleSourceText));
     }
 
     private static IReadOnlyList<string> ParseLines(string value) =>

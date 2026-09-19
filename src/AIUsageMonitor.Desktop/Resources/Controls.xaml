@@ -249,30 +249,35 @@
         </Setter>
     </Style>
 
-    <!-- RMS-style compact scrollbars keep long evidence surfaces usable without
-         competing visually with the content. -->
+    <!-- Compact pill scrollbars keep long evidence surfaces usable while leaving a visible rail. -->
+    <ControlTemplate x:Key="ApoScrollBarThumbTemplate" TargetType="{x:Type Thumb}">
+        <Border
+            x:Name="ThumbSurface"
+            Margin="1,2"
+            Background="{TemplateBinding Background}"
+            CornerRadius="999" />
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="ThumbSurface" Property="Background" Value="{DynamicResource ScrollBarThumbHoverBrush}" />
+            </Trigger>
+            <Trigger Property="IsDragging" Value="True">
+                <Setter TargetName="ThumbSurface" Property="Background" Value="{DynamicResource ScrollBarThumbDragBrush}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
     <Style x:Key="ApoScrollBarThumbStyle" TargetType="{x:Type Thumb}">
         <Setter Property="Background" Value="{DynamicResource ScrollBarThumbBrush}" />
         <Setter Property="MinHeight" Value="28" />
+        <Setter Property="MinWidth" Value="6" />
+        <Setter Property="Template" Value="{StaticResource ApoScrollBarThumbTemplate}" />
+    </Style>
+
+    <Style x:Key="ApoHorizontalScrollBarThumbStyle" TargetType="{x:Type Thumb}">
+        <Setter Property="Background" Value="{DynamicResource ScrollBarThumbBrush}" />
+        <Setter Property="MinHeight" Value="6" />
         <Setter Property="MinWidth" Value="28" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="{x:Type Thumb}">
-                    <Border
-                        Margin="1"
-                        Background="{DynamicResource ScrollBarThumbBrush}"
-                        CornerRadius="{DynamicResource ControlCornerRadius}" />
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource ScrollBarThumbHoverBrush}" />
-            </Trigger>
-            <Trigger Property="IsDragging" Value="True">
-                <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}" />
-            </Trigger>
-        </Style.Triggers>
+        <Setter Property="Template" Value="{StaticResource ApoScrollBarThumbTemplate}" />
     </Style>
 
     <Style x:Key="TechnicalDetailsExpanderStyle" TargetType="{x:Type Expander}">
@@ -341,7 +346,8 @@
     </Style>
 
     <ControlTemplate x:Key="ApoVerticalScrollBarTemplate" TargetType="{x:Type ScrollBar}">
-        <Grid Width="{TemplateBinding Width}" Background="{TemplateBinding Background}">
+        <Grid Width="{TemplateBinding Width}" Background="Transparent">
+            <Border x:Name="VerticalRail" Width="4" HorizontalAlignment="Center" Background="{DynamicResource ScrollBarTrackBrush}" CornerRadius="2" Opacity="0.8" />
             <Track x:Name="PART_Track" IsDirectionReversed="True">
                 <Track.DecreaseRepeatButton>
                     <RepeatButton Command="ScrollBar.PageUpCommand" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Opacity="0" />
@@ -354,33 +360,44 @@
                 </Track.IncreaseRepeatButton>
             </Track>
         </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="VerticalRail" Property="Opacity" Value="1" />
+            </Trigger>
+        </ControlTemplate.Triggers>
     </ControlTemplate>
 
     <ControlTemplate x:Key="ApoHorizontalScrollBarTemplate" TargetType="{x:Type ScrollBar}">
-        <Grid Height="{TemplateBinding Height}" Background="{TemplateBinding Background}">
+        <Grid Height="{TemplateBinding Height}" Background="Transparent">
+            <Border x:Name="HorizontalRail" Height="4" VerticalAlignment="Center" Background="{DynamicResource ScrollBarTrackBrush}" CornerRadius="2" Opacity="0.8" />
             <Track x:Name="PART_Track">
                 <Track.DecreaseRepeatButton>
                     <RepeatButton Command="ScrollBar.PageLeftCommand" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Opacity="0" />
                 </Track.DecreaseRepeatButton>
                 <Track.Thumb>
-                    <Thumb Style="{StaticResource ApoScrollBarThumbStyle}" />
+                    <Thumb Style="{StaticResource ApoHorizontalScrollBarThumbStyle}" />
                 </Track.Thumb>
                 <Track.IncreaseRepeatButton>
                     <RepeatButton Command="ScrollBar.PageRightCommand" CommandTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" Opacity="0" />
                 </Track.IncreaseRepeatButton>
             </Track>
         </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="HorizontalRail" Property="Opacity" Value="1" />
+            </Trigger>
+        </ControlTemplate.Triggers>
     </ControlTemplate>
 
     <Style TargetType="{x:Type ScrollBar}">
         <Setter Property="Background" Value="{DynamicResource ScrollBarTrackBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource SurfaceRaisedBrush}" />
-        <Setter Property="Width" Value="12" />
+        <Setter Property="Width" Value="8" />
         <Setter Property="Template" Value="{StaticResource ApoVerticalScrollBarTemplate}" />
         <Style.Triggers>
             <Trigger Property="Orientation" Value="Horizontal">
                 <Setter Property="Width" Value="Auto" />
-                <Setter Property="Height" Value="12" />
+                <Setter Property="Height" Value="8" />
                 <Setter Property="Template" Value="{StaticResource ApoHorizontalScrollBarTemplate}" />
             </Trigger>
         </Style.Triggers>

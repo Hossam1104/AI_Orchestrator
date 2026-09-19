@@ -26,14 +26,30 @@ public sealed class ShellRecoveryTests
         viewModel.ShowProjectsCommand.Execute(null);
         Assert.Same(viewModel.Projects, viewModel.ActiveWorkspace);
         Assert.True(viewModel.IsProjectsSelected);
+        Assert.False(viewModel.IsMissionControlSelected);
+        Assert.False(viewModel.IsAiCapacitySelected);
+        Assert.False(viewModel.IsExecutionSelected);
 
         viewModel.ShowAiCapacityCommand.Execute(null);
         Assert.Same(viewModel.AiCapacity, viewModel.ActiveWorkspace);
         Assert.True(viewModel.IsAiCapacitySelected);
+        Assert.False(viewModel.IsMissionControlSelected);
+        Assert.False(viewModel.IsProjectsSelected);
+        Assert.False(viewModel.IsExecutionSelected);
+
+        viewModel.ShowExecutionCommand.Execute(null);
+        Assert.Same(viewModel.Execution, viewModel.ActiveWorkspace);
+        Assert.True(viewModel.IsExecutionSelected);
+        Assert.False(viewModel.IsMissionControlSelected);
+        Assert.False(viewModel.IsProjectsSelected);
+        Assert.False(viewModel.IsAiCapacitySelected);
 
         viewModel.ShowMissionControlCommand.Execute(null);
         Assert.Same(viewModel.MissionControl, viewModel.ActiveWorkspace);
         Assert.True(viewModel.IsMissionControlSelected);
+        Assert.False(viewModel.IsProjectsSelected);
+        Assert.False(viewModel.IsAiCapacitySelected);
+        Assert.False(viewModel.IsExecutionSelected);
     }
 
     [Fact]

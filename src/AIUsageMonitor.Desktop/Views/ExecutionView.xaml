@@ -50,20 +50,23 @@
                                 <TextBlock Text="{Binding SelectedProject.RepositoryContextText, TargetNullValue=Repository context unavailable}" Margin="0,8,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding SelectedProject.TrackerContextText, TargetNullValue=Tracker context unavailable}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding SelectedProject.GovernanceContextText, TargetNullValue=Governance context unavailable}" Margin="0,3,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
-                                <TextBlock Text="Current work is not selected in the stored project context; add only the missing request details below." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                <TextBlock Text="{Binding ContextSourceText}" Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                                <TextBlock Text="{Binding CurrentWorkText}" Margin="0,4,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                             </StackPanel>
                         </Border>
                         <TextBlock Text="WORK / REQUEST" Margin="0,16,0,5" Style="{StaticResource EyebrowTextStyle}" />
                         <TextBox Text="{Binding Objective, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Owner work request" />
-                        <TextBlock Text="One concise intent is enough when the current context is known. Contract details remain available below." Margin="0,6,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="One concise request is enough when the current context supplies the rest. APO derives a title from this request unless you override it below." Margin="0,6,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="{Binding TitleSourceText}" Margin="0,4,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="ACCEPTANCE CRITERIA (REQUIRED, ONE PER LINE)" Margin="0,16,0,5" Style="{StaticResource EyebrowTextStyle}" />
+                        <TextBox Text="{Binding AcceptanceCriteria, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="86" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Bounded request acceptance criteria" />
+                        <TextBlock Text="{Binding MissingContextText}" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{DynamicResource BrandWarningBrush}" Style="{StaticResource CaptionTextStyle}" AutomationProperties.Name="Missing execution context" />
                         <Expander Header="Advanced details" IsExpanded="False" Margin="0,16,0,0" Style="{StaticResource TechnicalDetailsExpanderStyle}" AutomationProperties.Name="Advanced execution contract details">
                             <StackPanel Margin="12,0,12,14">
                                 <TextBlock Text="TITLE" Margin="0,2,0,5" Style="{StaticResource EyebrowTextStyle}" />
                                 <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AutomationProperties.Name="Bounded request title" />
                                 <TextBlock Text="WORK ITEM REFERENCE (OPTIONAL)" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
                                 <TextBox Text="{Binding WorkItemReference, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AutomationProperties.Name="Optional work item reference" />
-                                <TextBlock Text="ACCEPTANCE CRITERIA (ONE PER LINE)" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
-                                <TextBox Text="{Binding AcceptanceCriteria, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="86" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Bounded request acceptance criteria" />
                                 <TextBlock Text="CONSTRAINTS (OPTIONAL, ONE PER LINE)" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
                                 <TextBox Text="{Binding Constraints, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ExecutionInputTextBoxStyle}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="64" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Bounded request constraints" />
                                 <TextBlock Text="VALIDATION EXPECTATIONS (OPTIONAL, ONE PER LINE)" Margin="0,14,0,5" Style="{StaticResource EyebrowTextStyle}" />
