@@ -21,6 +21,18 @@ public sealed class MissionControlProjectOption
     public string StatusText => Project.Status.ToString();
 
     public string DisplayText => $"{Name} · {StatusText}";
+
+    public string RepositoryContextText => Project.RepositoryProvider is { Length: > 0 } provider
+        ? $"{provider} · {Project.DefaultBranch ?? "branch unknown"}"
+        : "No repository context configured";
+
+    public string TrackerContextText => Project.TrackerType is { Length: > 0 } type && Project.TrackerId is { Length: > 0 } id
+        ? $"{type} · {id}"
+        : "No tracker context configured";
+
+    public string GovernanceContextText => Project.GovernanceReferences.Count > 0
+        ? string.Join(", ", Project.GovernanceReferences)
+        : "No governance reference configured";
 }
 
 /// <summary>

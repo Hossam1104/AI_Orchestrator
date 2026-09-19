@@ -1,11 +1,40 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 19 September 2026 (APO-70 provider-policy acceptance and governance synchronization; owner gates pending)
+**Last Updated:** 19 September 2026 (APO-70 owner-rejected desktop product/UX recovery; owner gates pending)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 owner-rejected desktop product/UX recovery
+
+**Last Updated:** 19 September 2026
+
+The bounded Desktop recovery is implemented on
+`feature/APO-70-v1-desktop-product-recovery` from starting head
+`28f6a1f27bdfb22f75ef1a28d34a71df685e3fab`. The existing backend lifecycle, execution coordinator,
+provider registry, and read-model contracts were preserved. The WPF shell now has a clear sidebar
+brand/navigation rail, a separate command header, larger reference-aligned desktop dimensions,
+shared control sizing, selected-navigation chrome, a visible delivery-lifecycle strip, and reduced
+default evidence density. Mission Control details are collapsed by default and provider cards use a
+two-column responsive surface.
+
+Execution now opens in an owner-oriented mode that reuses the selected registered project's
+repository, tracker, and governance metadata. It keeps the existing durable Prepare/Ready/Start
+contract and exposes the request contract, acceptance criteria, constraints, and validation
+expectations under a collapsed Advanced details surface. When current work is not authoritative in
+stored project context, the UI states that fact instead of fabricating a task or acceptance value.
+Provider status now places authentication and capacity semantics together without implying that a
+connected session proves capacity. No provider calls, model calls, new persistence, routing,
+runner, or orchestration subsystem were added.
+
+Validation completed locally with `1,435 passed / 0 failed / 0 skipped` across the five canonical
+Debug test projects (Domain 29, Connection 367, Provider 229, Desktop 131, Infrastructure 679),
+Release win-x64 fresh self-contained publish validation, and a responding-window smoke test. The
+fresh smoke process was stopped. Exact-head CI, owner visual acceptance, and owner-assisted
+Prepare -> Ready -> Start functional proof remain separate gates. Issue #111 remains Open with
+`status:in-progress` and `current-gate`; PR #112 remains Draft/Open/Unmerged.
 
 ## CURRENT - APO-70 bounded provider-policy architecture correction
 

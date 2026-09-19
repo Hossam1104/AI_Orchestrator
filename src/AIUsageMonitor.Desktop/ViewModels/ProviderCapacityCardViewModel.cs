@@ -104,6 +104,7 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
             if (SetProperty(ref _authenticationState, value))
             {
                 OnPropertyChanged(nameof(AuthenticationText));
+                OnPropertyChanged(nameof(OwnerStatusText));
             }
         }
     }
@@ -116,6 +117,7 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
             if (SetProperty(ref _capacityState, value))
             {
                 OnPropertyChanged(nameof(CapacityText));
+                OnPropertyChanged(nameof(OwnerStatusText));
                 OnPropertyChanged(nameof(IsManualOnly));
                 OnPropertyChanged(nameof(CanRefresh));
                 (RefreshCommand as AsyncCommand)?.NotifyCanExecuteChanged();
@@ -131,6 +133,7 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
             if (SetProperty(ref _authenticationMode, value))
             {
                 OnPropertyChanged(nameof(AuthenticationText));
+                OnPropertyChanged(nameof(OwnerStatusText));
                 OnPropertyChanged(nameof(CredentialStateText));
                 OnPropertyChanged(nameof(CanCheckSession));
                 OnPropertyChanged(nameof(CanRefresh));
@@ -196,6 +199,8 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
         get => _statusDetail;
         private set => SetProperty(ref _statusDetail, value);
     }
+
+    public string OwnerStatusText => $"{AuthenticationText} · Capacity {CapacityText}";
 
     public string? AccountDisplayName
     {

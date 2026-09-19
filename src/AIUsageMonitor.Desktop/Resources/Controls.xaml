@@ -32,7 +32,8 @@
         <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
         <Setter Property="FontFamily" Value="{DynamicResource BrandBodyFontFamily}" />
         <Setter Property="FontSize" Value="13" />
-        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="MinHeight" Value="40" />
+        <Setter Property="Padding" Value="12,8" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
@@ -44,7 +45,7 @@
                         Background="{Binding Background, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
                         BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
                         BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=1, FallbackValue=1}"
-                        CornerRadius="8"
+                        CornerRadius="{DynamicResource ControlCornerRadius}"
                         SnapsToDevicePixels="True">
                         <ContentPresenter
                             Margin="{TemplateBinding Padding}"
@@ -148,6 +149,7 @@
         <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BrandBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="MinHeight" Value="40" />
         <Setter Property="Padding" Value="9,7" />
         <Setter Property="FontFamily" Value="{DynamicResource BrandBodyFontFamily}" />
         <Setter Property="FontSize" Value="13" />
@@ -162,7 +164,7 @@
                             Background="{Binding Background, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
                             BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=Transparent, FallbackValue=Transparent}"
                             BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource TemplatedParent}, TargetNullValue=1, FallbackValue=1}"
-                            CornerRadius="8"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
                             SnapsToDevicePixels="True">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -213,10 +215,10 @@
                                 MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                 MaxHeight="260"
                                 Margin="0,4,0,0"
-                                Background="{DynamicResource BrandNavyBlueBrush}"
+                                Background="{DynamicResource SurfaceRaisedBrush}"
                                 BorderBrush="{DynamicResource BrandBorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="8"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
                                 SnapsToDevicePixels="True">
                                 <Border.Effect>
                                     <DropShadowEffect Color="#FF000000" Direction="270" ShadowDepth="4" BlurRadius="14" Opacity="0.35" />
@@ -271,6 +273,71 @@
                 <Setter Property="Background" Value="{DynamicResource AccentPressedBrush}" />
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <Style x:Key="TechnicalDetailsExpanderStyle" TargetType="{x:Type Expander}">
+        <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceMutedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BrandBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Expander}">
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{DynamicResource ControlCornerRadius}">
+                        <StackPanel>
+                            <ToggleButton
+                                x:Name="HeaderSite"
+                                Padding="14,11"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{TemplateBinding Foreground}"
+                                IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter
+                                        Content="{TemplateBinding Header}"
+                                        ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                        VerticalAlignment="Center"
+                                        TextElement.FontFamily="{DynamicResource BrandBodyFontFamily}"
+                                        TextElement.FontWeight="SemiBold" />
+                                    <TextBlock
+                                        x:Name="ExpandGlyph"
+                                        Grid.Column="1"
+                                        Margin="16,0,0,0"
+                                        FontSize="18"
+                                        Foreground="{DynamicResource BrandCyanBrush}"
+                                        Text="+" />
+                                </Grid>
+                            </ToggleButton>
+                            <ContentPresenter
+                                x:Name="ExpandSite"
+                                Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                Visibility="Collapsed" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsExpanded" Value="True">
+                            <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="ExpandGlyph" Property="Text" Value="−" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter Property="BorderBrush" Value="{DynamicResource BrandFocusBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.55" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <ControlTemplate x:Key="ApoVerticalScrollBarTemplate" TargetType="{x:Type ScrollBar}">
