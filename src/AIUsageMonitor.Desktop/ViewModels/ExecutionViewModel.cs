@@ -65,16 +65,17 @@ public sealed class ExecutionViewModel : ObservableObject
         get => _selectedProject;
         set
         {
+            if ((State is ExecutionCoordinatorState.Running or ExecutionCoordinatorState.Cancelling) && !ReferenceEquals(value, _selectedProject))
+            {
+                return;
+            }
+
             if (!SetProperty(ref _selectedProject, value))
             {
                 return;
             }
 
             ResetPreparationForSelection();
-            _contextSourceText = "Project registry metadata is available; no authoritative current work is selected yet.";
-            _currentWorkText = "No current work selected.";
-            OnPropertyChanged(nameof(ContextSourceText));
-            OnPropertyChanged(nameof(CurrentWorkText));
             OnPropertyChanged(nameof(SelectedProjectText));
             NotifyCommands();
             _ = TryRestoreAsync(value, ++_restoreGeneration);
@@ -559,10 +560,27 @@ public sealed class ExecutionViewModel : ObservableObject
             return;
         }
 
+        _title = string.Empty;
+        _objective = string.Empty;
+        _workItemReference = string.Empty;
+        _acceptanceCriteria = string.Empty;
+        _constraints = string.Empty;
+        _validationExpectations = string.Empty;
+        _titleSourceText = null;
+        _contextSourceText = "Project registry metadata is available; no authoritative current work is selected yet.";
+        _currentWorkText = "No current work selected.";
         _prepared = null;
         _lastResult = null;
         _errorMessage = null;
         State = ExecutionCoordinatorState.Draft;
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Objective));
+        OnPropertyChanged(nameof(WorkItemReference));
+        OnPropertyChanged(nameof(AcceptanceCriteria));
+        OnPropertyChanged(nameof(Constraints));
+        OnPropertyChanged(nameof(ValidationExpectations));
+        OnPropertyChanged(nameof(ContextSourceText));
+        OnPropertyChanged(nameof(CurrentWorkText));
         PublishPreparedState();
     }
 

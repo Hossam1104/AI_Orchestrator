@@ -7,6 +7,36 @@ repository. Everything below that divider is retained evidence from a boundary t
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
 
+## CURRENT - APO-70 project-context isolation correction
+
+**Last Updated:** 19 September 2026
+
+Sol's bounded correction contract was reproduced and implemented on
+`feature/APO-70-v1-desktop-product-recovery` from verified head
+`b5edbe9482227626c2eecbab0bd91290ee84aeb0`. Before the fix, the deterministic
+`SelectingAnotherProjectDoesNotReuseThePreviousProjectContext` characterization failed after
+switching from a complete Project A prefill to Project B: `Title` remained `First work` and
+Prepare remained eligible.
+
+`ExecutionViewModel` now clears the previous project's title, objective, work-item reference,
+acceptance criteria, constraints, validation expectations, title provenance, current-work
+context, prepared authority, terminal result, and error state through the existing notification
+model before the new project's restore/read-model flow. A project selection change is ignored
+while an execution is Running or Cancelling so active authority cannot be rebound to another
+project. Existing generation and selected-project checks remain unchanged.
+
+Focused Desktop coverage passes `16 / 16`, including complete-context isolation, partial Mission
+Control prefill isolation, stale-restore field isolation, persisted Ready rehydration, and
+Running-state selection safety. Full canonical Release validation passes `1,442 passed / 0 failed /
+0 skipped` (Domain 29, Connection 367, Provider 229, Desktop 138, Infrastructure 679). Release
+solution build is `0 warnings / 0 errors`; self-contained publish validation passes for win-x86,
+win-x64, and win-arm64. `git diff --check` is clean.
+
+No owner Desktop acceptance, real provider/model execution, merge, release, deployment, or Issue
+#111 closure was performed. Exact-head CI after push and Sol final acceptance remain separate gates.
+Issue #111 remains Open with `status:in-progress` and `current-gate`; PR #112 remains
+Draft/Open/Unmerged.
+
 ## CURRENT - APO-70 bounded owner-facing desktop UX correction
 
 **Last Updated:** 19 September 2026

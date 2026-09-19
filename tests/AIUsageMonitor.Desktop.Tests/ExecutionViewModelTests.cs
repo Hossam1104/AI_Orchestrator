@@ -99,6 +99,56 @@ public sealed class ExecutionViewModelTests
     }
 
     [Fact]
+    public async Task SelectingAnotherProjectDoesNotReuseThePreviousProjectContext()
+    {
+        var coordinator = new FakeExecutionCoordinator();
+        var viewModel = NewViewModel(coordinator);
+        viewModel.SetPersistenceAvailability(true);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project("First")));
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project("Second")));
+
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await WaitUntil(() => coordinator.RestoreCalls == 1 && viewModel.State == ExecutionCoordinatorState.Draft);
+        viewModel.ApplyContextPrefill(new ExecutionContextPrefill(
+            "Project One authoritative context",
+            "First work",
+            "First objective",
+            "APO-ONE",
+            ["First acceptance"],
+            ["First constraint"],
+            ["First validation"]));
+        Assert.True(viewModel.PrepareCommand.CanExecute(null));
+
+        viewModel.SelectedProject = viewModel.ProjectOptions[1];
+        await WaitUntil(() => coordinator.RestoreCalls == 2 && viewModel.State == ExecutionCoordinatorState.Draft);
+
+        Assert.Equal(string.Empty, viewModel.Title);
+        Assert.Equal(string.Empty, viewModel.Objective);
+        Assert.Equal(string.Empty, viewModel.WorkItemReference);
+        Assert.Equal(string.Empty, viewModel.AcceptanceCriteria);
+        Assert.Equal(string.Empty, viewModel.Constraints);
+        Assert.Equal(string.Empty, viewModel.ValidationExpectations);
+        Assert.Equal("Title is derived from the owner request when Prepare runs.", viewModel.TitleSourceText);
+        Assert.Equal("Project registry metadata is available; no authoritative current work is selected yet.", viewModel.ContextSourceText);
+        Assert.Equal("No current work selected.", viewModel.CurrentWorkText);
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal("Enter a work request.", viewModel.PrepareBlockedReason);
+
+        viewModel.ApplyContextPrefill(new ExecutionContextPrefill(
+            "Project Two Mission Control current-work read model",
+            "Second work",
+            workItemReference: "APO-TWO"));
+
+        Assert.Equal("Second work", viewModel.Title);
+        Assert.Equal("APO-TWO", viewModel.WorkItemReference);
+        Assert.Equal(string.Empty, viewModel.Objective);
+        Assert.Equal(string.Empty, viewModel.AcceptanceCriteria);
+        Assert.Equal(string.Empty, viewModel.Constraints);
+        Assert.Equal(string.Empty, viewModel.ValidationExpectations);
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+    }
+
+    [Fact]
     public async Task OwnerRequestDerivesTitleWithoutDuplicatingTheRequest()
     {
         var coordinator = new FakeExecutionCoordinator { Preparation = PreparedResult() };
@@ -123,11 +173,12 @@ public sealed class ExecutionViewModelTests
         var viewModel = NewViewModel(coordinator);
         viewModel.SetPersistenceAvailability(true);
         viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project()));
+
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
         viewModel.Title = "Bounded change";
         viewModel.Objective = "Make the requested bounded change.";
         viewModel.AcceptanceCriteria = "Verify the result.";
 
-        viewModel.SelectedProject = viewModel.ProjectOptions[0];
         await coordinator.RestoreStarted.Task;
 
         Assert.Equal(ExecutionCoordinatorState.Preparing, viewModel.State);
@@ -259,12 +310,48 @@ public sealed class ExecutionViewModelTests
 
         viewModel.SelectedProject = viewModel.ProjectOptions[0];
         await coordinator.RestoreStarted.Task;
+        viewModel.ApplyContextPrefill(new ExecutionContextPrefill(
+            "First project authoritative context",
+            "First work",
+            "First objective",
+            "APO-ONE",
+            ["First acceptance"],
+            ["First constraint"],
+            ["First validation"]));
         viewModel.SelectedProject = viewModel.ProjectOptions[1];
         coordinator.ReleaseRestore.TrySetResult(true);
         await WaitUntil(() => coordinator.RestoreCalls == 2 && viewModel.State == ExecutionCoordinatorState.Draft);
 
         Assert.Equal("Second", viewModel.SelectedProjectText);
         Assert.False(viewModel.IsReady);
+        Assert.Equal(string.Empty, viewModel.Title);
+        Assert.Equal(string.Empty, viewModel.Objective);
+        Assert.Equal(string.Empty, viewModel.WorkItemReference);
+        Assert.Equal(string.Empty, viewModel.AcceptanceCriteria);
+        Assert.Equal(string.Empty, viewModel.Constraints);
+        Assert.Equal(string.Empty, viewModel.ValidationExpectations);
+    }
+
+    [Fact]
+    public async Task SelectingAnotherProjectIsIgnoredWhileExecutionIsRunning()
+    {
+        var coordinator = new FakeExecutionCoordinator { Preparation = PreparedResult(), BlockStart = true };
+        var viewModel = ReadyInput(coordinator);
+        await Prepare(viewModel, coordinator);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project("Second")));
+
+        viewModel.StartCommand.Execute(null);
+        await coordinator.StartRequested.Task;
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Running);
+
+        var firstProject = viewModel.SelectedProject;
+        viewModel.SelectedProject = viewModel.ProjectOptions[1];
+
+        Assert.Same(firstProject, viewModel.SelectedProject);
+        Assert.Equal("Bounded change", viewModel.Title);
+
+        coordinator.ReleaseStart.TrySetResult(true);
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Completed);
     }
 
     private static ExecutionViewModel NewViewModel(FakeExecutionCoordinator coordinator) => new(null, coordinator);
