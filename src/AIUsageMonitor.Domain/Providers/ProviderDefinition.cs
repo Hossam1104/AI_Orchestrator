@@ -117,6 +117,13 @@ public sealed class ProviderDefinition
             throw new ArgumentException("Custom providers cannot use a built-in code.", nameof(builtInCode));
         }
 
+        if (kind == ProviderKind.Custom && capacityMode == ProviderCapacityMode.Automatic)
+        {
+            throw new ArgumentException(
+                "Custom providers cannot claim automatic capacity without a typed capacity adapter.",
+                nameof(capacityMode));
+        }
+
         if (builtInCode is { } code && !Enum.IsDefined(code))
         {
             throw new ArgumentOutOfRangeException(nameof(builtInCode), "Provider code is not supported.");

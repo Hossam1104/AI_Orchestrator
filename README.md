@@ -47,6 +47,10 @@ V1 execution is focused on OpenAI and Claude under the canonical routing policy.
 auxiliary bounded capacity where separately approved. `COPILOT = POST-V1`, and new
 provider-specific expansion is deferred unless it is required for release safety.
 
+Under the owner's cross-project governance, Gemini may be delegated for explicitly selected
+low-risk/mechanical work. This does not add a Gemini APO V1 runtime adapter or executable-provider
+implementation.
+
 ## What is AI_Orchestrator?
 
 AI_Orchestrator (APO) coordinates the work around software delivery: projects and

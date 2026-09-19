@@ -1,11 +1,30 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 18 September 2026 (APO-70 Desktop Prepare readiness/command-gating remediation; fix pushed, exact-head CI green, real-proof attempt inconclusive, GitHub evidence posted)
+**Last Updated:** 19 September 2026 (APO-70 bounded provider-policy architecture correction; local validation green, owner gates pending)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 bounded provider-policy architecture correction
+
+**Last Updated:** 19 September 2026
+
+The bounded architecture correction is implemented on
+feature/APO-70-v1-desktop-product-recovery, starting from
+2bc95233472f9190d3924c3db1c44782dfd0a5. Application now owns the canonical provider
+authentication/capacity policy used by the connection workflow, provider registry, and affected
+Desktop view models. Domain rejects custom definitions that claim Automatic capacity, and
+ProviderConnectionService validates authentication, capacity/channel compatibility, and secret
+consistency before credential staging or persistence. An existing canonical test project now
+guards the accepted five-project production dependency direction without a new package.
+
+Local Release validation is green: build 0 warnings / 0 errors; canonical tests
+1,433 passed / 0 failed / 0 skipped (Domain 29, Connection 367, Provider 229, Desktop 129,
+Infrastructure 679); and git diff --check is clean. No real model/provider calls, Desktop owner
+acceptance, merge, release, or deployment were performed. Issue #111 remains open/current-gate
+and PR #112 remains Draft/Open/Unmerged; exact-head remote CI is a separate post-push gate.
 
 ## CURRENT - APO-70 owner-blocker remediation: GitHub tracker and shell recovery
 

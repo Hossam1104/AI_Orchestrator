@@ -160,9 +160,7 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
     public bool IsExternalManual => AuthenticationMode == ProviderAuthenticationMode.ExternalManual;
 
     private bool SupportsAutomaticCapacity =>
-        _definition.HasCapability(ProviderCapabilities.SupportsCapacityRefresh) &&
-        AuthenticationMode != ProviderAuthenticationMode.ExternalManual &&
-        (AuthenticationMode == ProviderAuthenticationMode.ApiKey || Code != ProviderCode.Claude);
+        ProviderPolicy.SupportsAutomaticCapacity(_definition, AuthenticationMode);
 
     public CopilotBillingScope CopilotScope
     {
@@ -329,11 +327,6 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
             return "Provider name is required.";
         }
 
-        if (IsCustom && CapacityMode == ProviderCapacityMode.Automatic)
-        {
-            return "Automatic capacity requires a registered typed adapter; use Manual or Unavailable.";
-        }
-
         if (CapacityMode == ProviderCapacityMode.Automatic && !SupportsAutomaticCapacity)
         {
             return "Automatic capacity is unavailable for the selected authentication channel.";
@@ -395,13 +388,7 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
             return;
         }
 
-        AuthenticationMode = connection.ConnectionType switch
-        {
-            ProviderConnectionType.LocalSession => ProviderAuthenticationMode.LocalSession,
-            ProviderConnectionType.ApiKey or ProviderConnectionType.OfficialApi => ProviderAuthenticationMode.ApiKey,
-            ProviderConnectionType.ExternalManual or ProviderConnectionType.Manual => ProviderAuthenticationMode.ExternalManual,
-            _ => AuthenticationMode
-        };
+        AuthenticationMode = ProviderPolicy.AuthenticationModeFor(connection.ConnectionType, AuthenticationMode);
 
         if (connection.Configuration.TryGetValue(ProviderConnectionConfigurationKeys.CapacityMode, out var capacityMode) &&
             Enum.TryParse<ProviderCapacityMode>(capacityMode, ignoreCase: true, out var parsedCapacityMode))
@@ -432,29 +419,9 @@ public sealed class ProviderConnectionEditorViewModel : ObservableObject
         }
     }
 
-    private static ProviderConnectionType ConnectionTypeFor(ProviderAuthenticationMode mode) => mode switch
-    {
-        ProviderAuthenticationMode.LocalSession => ProviderConnectionType.LocalSession,
-        ProviderAuthenticationMode.ApiKey => ProviderConnectionType.ApiKey,
-        ProviderAuthenticationMode.ExternalManual => ProviderConnectionType.ExternalManual,
-        _ => ProviderConnectionType.Unknown
-    };
+    private static ProviderConnectionType ConnectionTypeFor(ProviderAuthenticationMode mode) =>
+        ProviderPolicy.ConnectionTypeFor(mode);
 
     private static ProviderDefinition CompatibilityDefinition(ProviderCode code) =>
-        ProviderDefinition.BuiltIn(
-            Guid.NewGuid(),
-            code,
-            code switch
-            {
-                ProviderCode.Copilot => "GitHub Copilot",
-                ProviderCode.Claude => "Claude",
-                ProviderCode.Kimi => "Kimi",
-                _ => code.ToString()
-            },
-            code is ProviderCode.Codex or ProviderCode.Claude
-                ? ProviderAuthenticationMode.LocalSession
-                : ProviderAuthenticationMode.ApiKey,
-            ProviderCapacityMode.Manual,
-            ProviderCapabilities.SupportsApiKey | ProviderCapabilities.SupportsConfiguration,
-            (int)code);
+        ProviderPolicy.CreateBuiltInDefinition(code);
 }

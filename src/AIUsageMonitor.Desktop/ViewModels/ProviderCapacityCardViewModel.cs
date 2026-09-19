@@ -493,9 +493,7 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
         _capacityMode == ProviderCapacityMode.Automatic && SupportsAutomaticCapacity;
 
     private bool SupportsAutomaticCapacity =>
-        Definition.HasCapability(ProviderCapabilities.SupportsCapacityRefresh) &&
-        AuthenticationMode != ProviderAuthenticationMode.ExternalManual &&
-        (AuthenticationMode == ProviderAuthenticationMode.ApiKey || BuiltInCode != ProviderCode.Claude);
+        ProviderPolicy.SupportsAutomaticCapacity(Definition, AuthenticationMode);
 
     private void RestoreConfiguredState(string message)
     {
@@ -538,36 +536,12 @@ public sealed class ProviderCapacityCardViewModel : ObservableObject
 
     private static ProviderAuthenticationMode AuthenticationModeFor(
         ProviderConnectionType connectionType,
-        ProviderAuthenticationMode fallback) => connectionType switch
-        {
-            ProviderConnectionType.LocalSession => ProviderAuthenticationMode.LocalSession,
-            ProviderConnectionType.ApiKey or ProviderConnectionType.OfficialApi => ProviderAuthenticationMode.ApiKey,
-            ProviderConnectionType.ExternalManual or ProviderConnectionType.Manual => ProviderAuthenticationMode.ExternalManual,
-            _ => fallback
-        };
+        ProviderAuthenticationMode fallback) =>
+        ProviderPolicy.AuthenticationModeFor(connectionType, fallback);
 
-    private static ProviderCapacityState CapacityStateFor(ProviderCapacityMode mode) => mode switch
-    {
-        ProviderCapacityMode.Manual => ProviderCapacityState.Manual,
-        ProviderCapacityMode.Automatic => ProviderCapacityState.Unknown,
-        ProviderCapacityMode.Unavailable => ProviderCapacityState.Unavailable,
-        _ => ProviderCapacityState.Unknown
-    };
+    private static ProviderCapacityState CapacityStateFor(ProviderCapacityMode mode) =>
+        ProviderPolicy.CapacityStateFor(mode);
 
-    private static ProviderDefinition CompatibilityDefinition(ProviderCode code, string displayName)
-    {
-        var supportsRefresh = code is not (ProviderCode.Codex or ProviderCode.Antigravity);
-        return ProviderDefinition.BuiltIn(
-            Guid.NewGuid(),
-            code,
-            displayName,
-            code is ProviderCode.Codex or ProviderCode.Claude
-                ? ProviderAuthenticationMode.LocalSession
-                : ProviderAuthenticationMode.ApiKey,
-            supportsRefresh ? ProviderCapacityMode.Automatic : ProviderCapacityMode.Manual,
-            supportsRefresh
-                ? ProviderCapabilities.SupportsApiKey | ProviderCapabilities.SupportsCapacityRefresh
-                : ProviderCapabilities.None,
-            (int)code);
-    }
+    private static ProviderDefinition CompatibilityDefinition(ProviderCode code, string displayName) =>
+        ProviderPolicy.CreateBuiltInDefinition(code, displayName);
 }

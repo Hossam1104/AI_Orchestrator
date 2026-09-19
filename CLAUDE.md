@@ -28,8 +28,10 @@ Claude-relevant slice; do not duplicate the canonical files here.
 - **GPT-5.6 Terra Medium/High:** specialist security/concurrency/data-integrity assurance, not the
   default reviewer.
 
-Active execution providers are OpenAI/Codex and Anthropic/Claude only. Quality and risk come before
-quota preservation. Only Sol chooses when a Claude executor is explicitly assigned.
+Default APO repository-execution providers are OpenAI/Codex and Anthropic/Claude. Gemini may be an
+explicitly owner-delegated auxiliary resource for low-risk/mechanical cross-project work, but is
+not a default APO executor and this does not add a Gemini V1 runtime adapter. Quality and risk come
+before quota preservation. Only Sol chooses when a Claude executor is explicitly assigned.
 
 ## Mandatory Startup
 

@@ -67,13 +67,7 @@ public sealed class ProviderConnectionService : IProviderConnectionService
             if (!configuration.ContainsKey(ProviderConnectionConfigurationKeys.AuthenticationMode))
             {
                 configuration[ProviderConnectionConfigurationKeys.AuthenticationMode] =
-                    connection.ConnectionType switch
-                    {
-                        ProviderConnectionType.ApiKey or ProviderConnectionType.OfficialApi => ProviderAuthenticationMode.ApiKey.ToString(),
-                        ProviderConnectionType.LocalSession => ProviderAuthenticationMode.LocalSession.ToString(),
-                        ProviderConnectionType.ExternalManual or ProviderConnectionType.Manual => ProviderAuthenticationMode.ExternalManual.ToString(),
-                        _ => ProviderAuthenticationMode.None.ToString()
-                    };
+                    ProviderPolicy.AuthenticationModeFor(connection.ConnectionType).ToString();
             }
 
             _runtimeSettings.Apply(code, connection.CredentialReference, configuration);
@@ -87,6 +81,7 @@ public sealed class ProviderConnectionService : IProviderConnectionService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(edit);
+        ProviderPolicy.ValidateConnection(edit);
 
         var providerId = edit.ProviderId ?? (edit.Code is { } code
             ? _identityCatalog.GetProviderId(code)

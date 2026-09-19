@@ -194,49 +194,8 @@ public sealed class ProviderRegistry : IProviderRegistry
         }
     }
 
-    private ProviderDefinition CreateBuiltInDefinition(IAiUsageProvider provider)
-    {
-        var (name, authMode, capacityMode, capabilities, description, sortOrder) = provider.Code switch
-        {
-            ProviderCode.Codex => (
-                "Codex",
-                ProviderAuthenticationMode.LocalSession,
-                ProviderCapacityMode.Manual,
-                ProviderCapabilities.SupportsLocalSessionDetection |
-                    ProviderCapabilities.SupportsApiKey |
-                    ProviderCapabilities.SupportsConfiguration,
-                "Uses the existing authenticated local Codex session when available; API key is an optional fallback.",
-                0),
-            ProviderCode.Claude => (
-                "Claude",
-                ProviderAuthenticationMode.LocalSession,
-                ProviderCapacityMode.Manual,
-                ProviderCapabilities.SupportsLocalSessionDetection |
-                    ProviderCapabilities.SupportsApiKey |
-                    ProviderCapabilities.SupportsCapacityRefresh |
-                    ProviderCapabilities.SupportsConfiguration,
-                "Uses the existing authenticated local Claude session; organization API usage is available only through explicit API-key fallback.",
-                1),
-            ProviderCode.Antigravity => (
-                "Antigravity",
-                ProviderAuthenticationMode.ExternalManual,
-                ProviderCapacityMode.Manual,
-                ProviderCapabilities.None,
-                "External/manual provider state is shown without inventing machine-readable capacity.",
-                2),
-            _ => throw new ArgumentOutOfRangeException()
-        };
-
-        return ProviderDefinition.BuiltIn(
-            ProviderIdentity.ForProvider(provider.Code),
-            provider.Code,
-            name,
-            authMode,
-            capacityMode,
-            capabilities,
-            sortOrder,
-            description: description);
-    }
+    private static ProviderDefinition CreateBuiltInDefinition(IAiUsageProvider provider) =>
+        ProviderPolicy.CreateBuiltInDefinition(provider);
 
     /// <summary>
     /// Compares the label an operator actually sees on both sides. A display label overrides the

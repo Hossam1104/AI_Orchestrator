@@ -59,6 +59,23 @@ public sealed class ProviderRegistryTests
     }
 
     [Fact]
+    public async Task CustomDefinitions_RejectAutomaticCapacityBeforePersistence()
+    {
+        var repository = new InMemoryDefinitionRepository();
+        var registry = CreateRegistry(repository);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => registry.SaveCustomAsync(new ProviderDefinitionEdit(
+            "Unsupported automatic provider",
+            null,
+            ProviderAuthenticationMode.ApiKey,
+            ProviderCapacityMode.Automatic,
+            enabled: true)));
+
+        Assert.Empty(await repository.GetCustomAsync());
+        Assert.Equal(3, registry.GetDefinitions().Count);
+    }
+
+    [Fact]
     public async Task CustomDefinitions_RejectDuplicateNamesAndBuiltInRemoval()
     {
         var registry = CreateRegistry(new InMemoryDefinitionRepository());

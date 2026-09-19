@@ -394,48 +394,12 @@ public sealed class AiCapacityViewModel : ObservableObject
         AddProviderCommand = new AsyncCommand(() => AddProviderAsync(), () => !_isDegraded && !IsRefreshing);
     }
 
-    private static IEnumerable<ProviderDefinition> CreateDefaultDefinitions()
-    {
-        var now = DateTimeOffset.UnixEpoch;
-        return
-        [
-            ProviderDefinition.BuiltIn(
-                Guid.Parse("1cf3c94e-9bcb-4fe4-9b2c-24a0b4f3a901"),
-                ProviderCode.Codex,
-                "Codex",
-                ProviderAuthenticationMode.LocalSession,
-                ProviderCapacityMode.Manual,
-                ProviderCapabilities.SupportsLocalSessionDetection |
-                    ProviderCapabilities.SupportsApiKey |
-                    ProviderCapabilities.SupportsConfiguration,
-                0,
-                now,
-                "Existing local Codex session first; API key is optional."),
-            ProviderDefinition.BuiltIn(
-                Guid.Parse("2d6f54fa-2c0e-4cc5-8bf6-6debf48b3f02"),
-                ProviderCode.Claude,
-                "Claude",
-                ProviderAuthenticationMode.LocalSession,
-                ProviderCapacityMode.Manual,
-                ProviderCapabilities.SupportsLocalSessionDetection |
-                    ProviderCapabilities.SupportsApiKey |
-                    ProviderCapabilities.SupportsCapacityRefresh |
-                    ProviderCapabilities.SupportsConfiguration,
-                1,
-                now,
-                "Existing local Claude session first; API key is optional."),
-            ProviderDefinition.BuiltIn(
-                Guid.Parse("5b544ceb-0ac4-43b6-8c9e-9e27c9f0c505"),
-                ProviderCode.Antigravity,
-                "Antigravity",
-                ProviderAuthenticationMode.ExternalManual,
-                ProviderCapacityMode.Manual,
-                ProviderCapabilities.None,
-                2,
-                now,
-                "External/manual provider state; capacity remains unavailable.")
-        ];
-    }
+    private static IEnumerable<ProviderDefinition> CreateDefaultDefinitions() =>
+    [
+        ProviderPolicy.CreateBuiltInDefinition(ProviderCode.Codex),
+        ProviderPolicy.CreateBuiltInDefinition(ProviderCode.Claude),
+        ProviderPolicy.CreateBuiltInDefinition(ProviderCode.Antigravity)
+    ];
 
     private static string? ExecutableNameFor(ProviderCode? code) => code switch
     {

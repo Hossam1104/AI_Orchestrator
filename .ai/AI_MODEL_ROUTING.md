@@ -17,16 +17,19 @@ repository executor.
 
 ## 2. Active Execution Providers
 
-Only two providers are active for AI-assisted execution in this repository and this development
-environment:
+Only two providers are active as the default APO repository-execution providers in this repository
+and development environment:
 
 - **OpenAI / Codex**
 - **Anthropic / Claude**
 
-No other provider (Gemini, Z.ai, GLM, OpenCode, Kimi, or any other) is an active execution
-provider unless the repository owner explicitly changes this policy. This does not remove or
-weaken APO's own product-domain support for monitoring other AI providers — that is separate
-product functionality, not orchestration-executor policy.
+Gemini may be used only as an explicitly owner-authorized auxiliary resource for low-risk or
+mechanical cross-project work when appropriate. It is not part of APO's default executor portfolio,
+does not change the routing share targets below, and does not authorize a Gemini APO V1 runtime
+adapter or executable-provider implementation. Z.ai, GLM, OpenCode, Kimi, and other external
+providers remain inactive unless the repository owner explicitly changes this policy. This does not
+remove or weaken APO's own product-domain support for monitoring other AI providers — that is
+separate product functionality, not orchestration-executor policy.
 
 ---
 

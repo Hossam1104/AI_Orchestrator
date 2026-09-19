@@ -42,9 +42,12 @@ existing architecture or authorizes implementation by itself.
 This section states only the durable operating-model summary; do not duplicate the canonical files
 here.
 
-Active execution providers are **OpenAI/Codex and Anthropic/Claude only**. Gemini, Z.ai, GLM,
-OpenCode, Kimi, and other external providers are not active orchestration executors unless the
-repository owner explicitly changes this policy. This does not remove or weaken APO's own
+Default APO repository-execution providers are **OpenAI/Codex and Anthropic/Claude**. Under the
+owner's cross-project governance, Gemini may be an explicitly delegated auxiliary resource for
+low-risk/mechanical work when appropriate; it is not a default APO executor and this does not
+authorize a Gemini V1 runtime adapter or executable-provider implementation. Z.ai, GLM, OpenCode,
+Kimi, and other external providers remain inactive unless the repository owner explicitly changes
+this policy. This does not remove or weaken APO's own
 product-domain support for *monitoring* other AI providers (§6) — that is separate product
 functionality, not orchestration-executor policy.
 
