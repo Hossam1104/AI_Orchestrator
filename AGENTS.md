@@ -54,31 +54,34 @@ functionality, not orchestration-executor policy.
 | Priority | Model | Default role |
 |---|---|---|
 | 1 | GPT-5.6 Sol High | Planner / Architect / Model Router / Quota Governor / Acceptance Authority / Executor Prompt Authority (chat only) |
-| 2 | GPT-5.6 Luna xHigh | Primary bounded implementation executor unless Sol explicitly routes elsewhere |
-| 3 | Claude Sonnet 5 Medium | Fallback / special-need bounded implementation |
-| 4 | Claude Sonnet 5 High | Fallback / special-need difficult bounded implementation |
+| 2 | GPT-5.6 Luna xHigh | Default substantial implementation executor and workhorse unless Sol explicitly routes elsewhere |
+| 3 | Claude Sonnet 5 Medium | Bounded bug-fix specialist when Sol explicitly selects it |
+| 4 | Claude Sonnet 5 High | Bounded bug-fix specialist for difficult isolated defects when Sol explicitly selects it |
 | 5 | GPT-5.6 Luna Max | Exceptional implementation escalation only |
 | 6 | Claude Opus 5 | Independent critical reviewer |
-| 7 | GPT-5.6 Terra Medium/High | Specialist security/concurrency/data-integrity assurance; not default reviewer |
+| 7 | GPT-5.6 Terra Medium/High | Protected recovery / difficult surgical finalization; not the normal executor |
 | 8 | Claude Haiku 4.5 | Disabled from active routing |
 
 ## Planner - GPT-5.6 Sol
 
 Sol owns requirements interpretation, architecture, Jira decomposition, execution contracts,
 model-routing policy, acceptance criteria, approved scope changes, and final acceptance. Sol
-operates in chat mode only and must not become the routine Codex repository executor.
+operates in chat mode only, is the control plane with approximately 0% routine local execution,
+and must not become the routine Codex repository executor.
 
 ## Primary Executor - GPT-5.6 Luna xHigh
 
-Luna xHigh is the normal primary executor for bounded repository work across routine, difficult,
-cross-cutting, integration-sensitive, and high-blast-radius tasks. See `.ai/AI_MODEL_ROUTING.md`
-for the detailed tier mapping and explicit Sol route rules.
+Luna xHigh is the default substantial implementation executor and workhorse (approximately 60%
+target) for feature, multi-file, refactoring, integration, automation, test, CI/CD, architecture,
+and directly related documentation work. First-pass completion is preferred. See
+`.ai/AI_MODEL_ROUTING.md` for the detailed tier mapping and explicit Sol route rules.
 
-## Fallback / Special-Need Executors - Claude Sonnet 5 Medium / High
+## Bounded Bug-Fix Specialist - Claude Sonnet 5 Medium / High
 
-Sonnet remains an active Claude-family option, but only Sol may explicitly select it for fallback,
-quota balancing, task fit, or another special need. Sonnet Medium covers contained bounded work;
-Sonnet High covers difficult or substantial isolated work. Neither is the automatic routine primary.
+Sonnet is an active Claude-family bounded bug-fix specialist (approximately 10% ceiling) for
+isolated defects, narrow regressions, and localized implementation errors. Preferred flow is
+reproduce -> root cause -> minimal coherent fix -> regression test -> report. Only Sol may select
+it, and it is not the default broad feature or architecture executor.
 
 A failed executor is not permission for an executor or UI layer to self-route to another model.
 Future automatic retry/fallback is governed by APO-72 and must use typed failure, verified
@@ -94,15 +97,21 @@ Luna Max is exceptional escalation only and is never the normal executor.
 
 ## Independent Reviewer - Claude Opus 5
 
-Opus performs independent review gates, used at critical checkpoints rather than routinely. Opus is
-not the normal implementation executor and must remain independent from the implementation executor
-by default. Reviewer mode does not add scope or implement fixes unless explicitly requested.
+Opus performs independent review gates at approximately every seven meaningful executor prompts or
+at a critical checkpoint, and is an independent reviewer with an approximately 10% ceiling. Opus is
+not the normal implementation executor, is review-only by default, and must remain independent from
+the implementation executor. Reviewer mode does not add scope or implement fixes unless explicitly
+requested.
 
-## Specialist Assurance - GPT-5.6 Terra
+## Protected Recovery / Surgical Finalization - GPT-5.6 Terra
 
-Terra is a risk-triggered specialist for security, trust boundaries, concurrency, authorization,
-data integrity, credential boundaries, and destructive operations. Terra is not the default
-reviewer or a general executor.
+Terra is a protected recovery and difficult surgical finalization resource with an approximately
+20% ceiling, not the normal second executor. It is used when Luna work is incomplete, a stubborn
+cross-cutting failure remains, existing accepted work must be preserved while a gap is repaired, or
+another Luna correction is unlikely to be quota-efficient. Before routing Terra, Sol asks whether
+Luna can reasonably finish with a better bounded correction prompt. Security, trust boundaries,
+concurrency, authorization, data integrity, credential boundaries, and destructive operations can
+still justify Terra when recovery or assurance complexity warrants it.
 
 One assigned canonical GitHub APO Issue is the maximum active scope for one executor. No executor
 may choose a different work item, combine unrelated Issues, or continue automatically.

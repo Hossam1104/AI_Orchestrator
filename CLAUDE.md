@@ -15,18 +15,20 @@ Claude-relevant slice; do not duplicate the canonical files here.
 
 - **GPT-5.6 Sol:** planner, architect, model router, quota governor, work-item decomposition owner,
   acceptance authority, and executor prompt authority (chat mode only).
-- **GPT-5.6 Luna xHigh:** the normal primary executor for bounded repository work across routine,
-  difficult, cross-cutting, integration-sensitive, and high-blast-radius tasks.
-- **Claude Sonnet 5 Medium:** active fallback/special-need implementation for contained bounded work
-  only when Sol explicitly selects it.
-- **Claude Sonnet 5 High:** active fallback/special-need implementation for difficult or substantial
-  isolated work only when Sol explicitly selects it.
+- **GPT-5.6 Luna xHigh:** default substantial implementation executor and workhorse (approximately
+  60% target), with first-pass completion preferred.
+- **Claude Sonnet 5 Medium:** bounded bug-fix specialist for isolated defects, narrow regressions,
+  and localized implementation errors, only when Sol explicitly selects it.
+- **Claude Sonnet 5 High:** bounded bug-fix specialist for difficult isolated defects, only when Sol
+  explicitly selects it.
 - **Claude Haiku 4.5:** disabled from active routing. Do not assign or route work to Haiku.
-- **Claude Opus 5:** independent reviewer; not the default implementation executor. Used at
-  meaningful checkpoints, not routinely.
+- **Claude Opus 5:** independent reviewer, approximately 10% ceiling, used at roughly every seven
+  meaningful executor prompts or at a critical checkpoint; review-only by default.
 - **GPT-5.6 Luna Max:** exceptional implementation escalation only; never the normal executor.
-- **GPT-5.6 Terra Medium/High:** specialist security/concurrency/data-integrity assurance, not the
-  default reviewer.
+- **GPT-5.6 Terra Medium/High:** protected recovery / difficult surgical finalization resource,
+  approximately 20% ceiling, not the normal executor. Sol considers whether Luna can finish with a
+  better bounded correction prompt first; security/concurrency/data-integrity assurance may still
+  justify Terra when recovery complexity warrants it.
 
 Default APO repository-execution providers are OpenAI/Codex and Anthropic/Claude. Gemini may be an
 explicitly owner-delegated auxiliary resource for low-risk/mechanical cross-project work, but is

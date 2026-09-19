@@ -1,6 +1,6 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 19 September 2026 (APO-70 bounded provider-policy architecture correction; local validation green, owner gates pending)
+**Last Updated:** 19 September 2026 (APO-70 provider-policy acceptance and governance synchronization; owner gates pending)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
@@ -11,20 +11,30 @@ inside it says `CURRENT` or `ACTIVE`.
 
 **Last Updated:** 19 September 2026
 
-The bounded architecture correction is implemented on
-feature/APO-70-v1-desktop-product-recovery, starting from
-2bc95233472f9190d3924c3db1c44782dfd0a5. Application now owns the canonical provider
-authentication/capacity policy used by the connection workflow, provider registry, and affected
-Desktop view models. Domain rejects custom definitions that claim Automatic capacity, and
-ProviderConnectionService validates authentication, capacity/channel compatibility, and secret
-consistency before credential staging or persistence. An existing canonical test project now
-guards the accepted five-project production dependency direction without a new package.
+The bounded architecture correction was implemented on
+feature/APO-70-v1-desktop-product-recovery from `2bc95233472f9190d3924c3db1c44782dfd0a5` and is
+technically accepted by Sol at product-code commit
+`7051a14074b878cb6a02b1464518b4f6352a8867` (`fix(APO-70): centralize provider policy enforcement`).
+Application now owns the canonical provider authentication/capacity policy used by the connection
+workflow, provider registry, and affected Desktop view models. Domain rejects custom definitions
+that claim Automatic capacity, and ProviderConnectionService validates authentication,
+capacity/channel compatibility, and secret consistency before credential staging or persistence. An
+existing canonical test project guards the accepted five-project production dependency direction
+without a new package.
 
-Local Release validation is green: build 0 warnings / 0 errors; canonical tests
-1,433 passed / 0 failed / 0 skipped (Domain 29, Connection 367, Provider 229, Desktop 129,
-Infrastructure 679); and git diff --check is clean. No real model/provider calls, Desktop owner
-acceptance, merge, release, or deployment were performed. Issue #111 remains open/current-gate
-and PR #112 remains Draft/Open/Unmerged; exact-head remote CI is a separate post-push gate.
+Sol's review accepted the implementation; the remaining correction was governance wording drift,
+not rejected provider-policy code. Accepted-code evidence is canonical tests `1,433 passed / 0
+failed / 0 skipped` (Domain 29, Connection 367, Provider 229, Desktop 129, Infrastructure 679),
+Release build `0 warnings / 0 errors`, and exact-head CI run `35435220597` SUCCESS for
+win-x86/win-x64/win-arm64. This documentation-only synchronization preserves that implementation
+unchanged.
+
+The remaining APO-70 gate is unchanged: explicit owner visual acceptance; owner-assisted Desktop
+functional proof covering Prepare -> Ready -> Start -> result/validation; supported cancellation
+usability/proof; explicit owner functional acceptance; and final exact-head Sol acceptance before
+any merge decision. No real model/provider calls were performed by this correction. Issue #111
+remains Open with `status:in-progress` and `current-gate`; PR #112 remains Draft/Open/Unmerged; no
+release, merge, or deployment was performed.
 
 ## CURRENT - APO-70 owner-blocker remediation: GitHub tracker and shell recovery
 
