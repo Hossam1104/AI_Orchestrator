@@ -354,6 +354,34 @@ public sealed class ExecutionViewModelTests
         await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Completed);
     }
 
+    [Fact]
+    public async Task SelectingAnotherProjectIsIgnoredWhileOwnerPrepareIsActive()
+    {
+        var first = Project("First");
+        var second = Project("Second");
+        var coordinator = new FakeExecutionCoordinator { BlockPrepare = true, Preparation = new ExecutionPreparationResult(ExecutionPreparationStatus.Prepared, ExecutionPreparationStage.Execution, CreatePreparedExecution(first.Id)) };
+        var viewModel = NewViewModel(coordinator);
+        viewModel.SetPersistenceAvailability(true);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(first));
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(second));
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+        viewModel.Objective = "Prepare the first project.";
+        viewModel.AcceptanceCriteria = "Verify the first project.";
+
+        viewModel.PrepareCommand.Execute(null);
+        await coordinator.PrepareRequested.Task;
+
+        viewModel.SelectedProject = viewModel.ProjectOptions[1];
+
+        Assert.Same(viewModel.ProjectOptions[0], viewModel.SelectedProject);
+        coordinator.ReleasePrepare.TrySetResult(true);
+        await WaitUntil(() => viewModel.IsReady);
+
+        Assert.Equal(first.Id, coordinator.LastRequest!.ProjectId);
+        Assert.Equal(first.Id, coordinator.Preparation.PreparedExecution!.Request.ProjectId);
+    }
+
     private static ExecutionViewModel NewViewModel(FakeExecutionCoordinator coordinator) => new(null, coordinator);
 
     private static ExecutionViewModel ReadyInput(FakeExecutionCoordinator coordinator)
@@ -463,10 +491,10 @@ public sealed class ExecutionViewModelTests
         public Task<ExecutionRunSnapshot> GetCurrentRunAsync(CancellationToken cancellationToken = default) => Task.FromResult(new ExecutionRunSnapshot(null, ExecutionCoordinatorState.Draft, null, null));
     }
 
-    private static PreparedExecution CreatePreparedExecution(bool plannerAsLineageOnly = false)
+    private static PreparedExecution CreatePreparedExecution(Guid? preparedProjectId = null, bool plannerAsLineageOnly = false)
     {
         var now = DateTimeOffset.UtcNow;
-        var projectId = Guid.NewGuid();
+        var projectId = preparedProjectId ?? Guid.NewGuid();
         var workspacePath = Environment.CurrentDirectory;
         var contextId = Guid.NewGuid();
         var planner = Agent(AgentRole.Planner, projectId, "Configured planner");

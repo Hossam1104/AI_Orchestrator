@@ -32,6 +32,7 @@ public sealed class ExecutionViewModel : ObservableObject
     private readonly SemaphoreSlim _restoreGate = new(1, 1);
     private long _restoreGeneration;
     private bool _isRestoring;
+    private bool _isPreparingExecution;
 
     public ExecutionViewModel()
         : this(null, null, null)
@@ -65,7 +66,7 @@ public sealed class ExecutionViewModel : ObservableObject
         get => _selectedProject;
         set
         {
-            if ((State is ExecutionCoordinatorState.Running or ExecutionCoordinatorState.Cancelling) && !ReferenceEquals(value, _selectedProject))
+            if ((_isPreparingExecution || State is ExecutionCoordinatorState.Running or ExecutionCoordinatorState.Cancelling) && !ReferenceEquals(value, _selectedProject))
             {
                 return;
             }
@@ -312,6 +313,7 @@ public sealed class ExecutionViewModel : ObservableObject
     private bool CanPrepare() =>
         IsPersistenceAvailable &&
         _coordinator is not null &&
+        !_isPreparingExecution &&
         !IsBusy &&
         SelectedProject is not null &&
         !string.IsNullOrWhiteSpace(Objective) &&
@@ -323,25 +325,28 @@ public sealed class ExecutionViewModel : ObservableObject
 
     private async Task PrepareAsync()
     {
-        if (!CanPrepare() || _coordinator is null || SelectedProject is null)
+        var project = SelectedProject;
+        if (!CanPrepare() || _coordinator is null || project is null)
         {
             return;
         }
 
+        var request = new OrchestrationWorkRequest(
+            project.Id,
+            Environment.UserName,
+            string.IsNullOrWhiteSpace(Title) ? ExecutionContextPrefillPolicy.DeriveTitle(Objective) : Title,
+            Objective,
+            string.IsNullOrWhiteSpace(WorkItemReference) ? null : WorkItemReference,
+            ParseLines(AcceptanceCriteria),
+            ParseLines(Constraints),
+            ParseLines(ValidationExpectations));
         _errorMessage = null;
         OnPropertyChanged(nameof(ErrorMessage));
+        _isPreparingExecution = true;
         State = ExecutionCoordinatorState.Preparing;
         try
         {
-            var result = await _coordinator.PrepareAsync(new OrchestrationWorkRequest(
-                SelectedProject.Id,
-                Environment.UserName,
-                string.IsNullOrWhiteSpace(Title) ? ExecutionContextPrefillPolicy.DeriveTitle(Objective) : Title,
-                Objective,
-                string.IsNullOrWhiteSpace(WorkItemReference) ? null : WorkItemReference,
-                ParseLines(AcceptanceCriteria),
-                ParseLines(Constraints),
-                ParseLines(ValidationExpectations))).ConfigureAwait(true);
+            var result = await _coordinator.PrepareAsync(request).ConfigureAwait(true);
             _prepared = result.PreparedExecution;
             State = result.Succeeded ? ExecutionCoordinatorState.Ready : result.Status == ExecutionPreparationStatus.Cancelled ? ExecutionCoordinatorState.Cancelled : ExecutionCoordinatorState.Failed;
             _errorMessage = result.ErrorMessage;
@@ -352,8 +357,11 @@ public sealed class ExecutionViewModel : ObservableObject
             State = ExecutionCoordinatorState.Failed;
             _errorMessage = "The request could not be prepared safely.";
         }
-
-        PublishPreparedState();
+        finally
+        {
+            _isPreparingExecution = false;
+            PublishPreparedState();
+        }
     }
 
     private async Task StartAsync()

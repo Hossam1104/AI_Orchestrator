@@ -7,6 +7,30 @@ repository. Everything below that divider is retained evidence from a boundary t
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
 
+## CURRENT - APO-70 active-Prepare project-authority race correction
+
+**Last Updated:** 19 September 2026
+
+On verified starting head `48a4adad1b373d5747aa6103fec2e287b24e7fd2`, the Sol-reported active
+Prepare/project-selection race was reproduced: while the owner Prepare coordinator was blocked,
+Project B could replace selected Project A and the later Project A authority was published under
+Project B. `ExecutionViewModel` now captures the selected project in the immutable Prepare request,
+tracks active owner Prepare separately from background restore, and rejects selection changes only
+while owner Prepare, Running, or Cancelling is active. Background restore remains switchable and
+retains its existing generation and selected-project stale-result checks.
+
+The focused regression now passes `17 / 17`, including the new blocked-Prepare authority test and
+the existing stale-restore project-switch test. Release build passes with `0 warnings / 0 errors`;
+self-contained publish validation passes for win-x86, win-x64, and win-arm64 with matching PE
+architectures. The local canonical suite completed Domain 29/29, Connection 367/367, Provider
+229/229, and Desktop 139/139; the Infrastructure host stalled before producing a result and was
+stopped, so a full local-suite pass is not claimed.
+
+No real Sol/Luna/provider execution, owner Desktop acceptance, merge, release, deployment, or Issue
+#111 closure was performed. Exact-head CI after push and Sol's final acceptance remain separate
+gates. Issue #111 remains Open with `status:in-progress` and `current-gate`; PR #112 remains
+Draft/Open/Unmerged.
+
 ## CURRENT - APO-70 project-context isolation correction
 
 **Last Updated:** 19 September 2026
