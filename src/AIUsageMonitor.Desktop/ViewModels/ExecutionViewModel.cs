@@ -238,40 +238,7 @@ public sealed class ExecutionViewModel : ObservableObject
 
     public string PrepareBlockedReason
     {
-        get
-        {
-            if (PrepareCommand.CanExecute(null))
-            {
-                return string.Empty;
-            }
-
-            if (!IsPersistenceAvailable || _coordinator is null)
-            {
-                return "Execution persistence is unavailable.";
-            }
-
-            if (_isRestoring)
-            {
-                return "Wait for persisted execution recovery to finish.";
-            }
-
-            if (IsBusy)
-            {
-                return "Another execution operation is already in progress.";
-            }
-
-            if (SelectedProject is null)
-            {
-                return "Select a registered project.";
-            }
-
-            if (string.IsNullOrWhiteSpace(Objective))
-            {
-                return "Enter a work request.";
-            }
-
-            return "Add acceptance criteria in Owner Mode.";
-        }
+        get => GetPrepareBlocker() ?? string.Empty;
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -311,17 +278,84 @@ public sealed class ExecutionViewModel : ObservableObject
     }
 
     private bool CanPrepare() =>
-        IsPersistenceAvailable &&
-        _coordinator is not null &&
-        !_isPreparingExecution &&
-        !IsBusy &&
-        SelectedProject is not null &&
-        !string.IsNullOrWhiteSpace(Objective) &&
-        ParseLines(AcceptanceCriteria).Count > 0;
+        GetPrepareBlocker() is null;
 
     private bool CanStart() => IsPersistenceAvailable && _coordinator is not null && IsReady;
 
     private bool CanCancel() => IsPersistenceAvailable && _coordinator is not null && State == ExecutionCoordinatorState.Running;
+
+    private string? GetPrepareBlocker()
+    {
+        if (!IsPersistenceAvailable || _coordinator is null)
+        {
+            return "Execution persistence is unavailable.";
+        }
+
+        if (_isRestoring)
+        {
+            return "Wait for persisted execution recovery to finish.";
+        }
+
+        if (_isPreparingExecution || IsBusy)
+        {
+            return "Another execution operation is already in progress.";
+        }
+
+        if (SelectedProject is null)
+        {
+            return "Select a registered project.";
+        }
+
+        if (string.IsNullOrWhiteSpace(Objective))
+        {
+            return "Enter a work request.";
+        }
+
+        if (Objective.Trim().Length > 4_000)
+        {
+            return "Work request cannot exceed 4,000 characters.";
+        }
+
+        var effectiveTitle = string.IsNullOrWhiteSpace(Title)
+            ? ExecutionContextPrefillPolicy.DeriveTitle(Objective)
+            : Title.Trim();
+        if (effectiveTitle.Length > 500)
+        {
+            return "Title cannot exceed 500 characters.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(WorkItemReference) && WorkItemReference.Trim().Length > 200)
+        {
+            return "Work item reference cannot exceed 200 characters.";
+        }
+
+        var acceptanceCriteria = ParseLines(AcceptanceCriteria);
+        if (acceptanceCriteria.Count == 0)
+        {
+            return "Add acceptance criteria in Owner Mode.";
+        }
+
+        var lineError = ValidateLines(acceptanceCriteria, "Acceptance criteria", "Acceptance criterion");
+        return lineError ?? ValidateLines(ParseLines(Constraints), "Constraints", "Constraint") ?? ValidateLines(ParseLines(ValidationExpectations), "Validation expectations", "Validation expectation");
+    }
+
+    private static string? ValidateLines(IReadOnlyList<string> values, string pluralName, string singularName)
+    {
+        if (values.Count > 32)
+        {
+            return $"{pluralName} cannot contain more than 32 entries.";
+        }
+
+        for (var index = 0; index < values.Count; index++)
+        {
+            if (values[index].Length > 4_000)
+            {
+                return $"{singularName} {index + 1} cannot exceed 4,000 characters.";
+            }
+        }
+
+        return null;
+    }
 
     private async Task PrepareAsync()
     {
@@ -331,21 +365,21 @@ public sealed class ExecutionViewModel : ObservableObject
             return;
         }
 
-        var request = new OrchestrationWorkRequest(
-            project.Id,
-            Environment.UserName,
-            string.IsNullOrWhiteSpace(Title) ? ExecutionContextPrefillPolicy.DeriveTitle(Objective) : Title,
-            Objective,
-            string.IsNullOrWhiteSpace(WorkItemReference) ? null : WorkItemReference,
-            ParseLines(AcceptanceCriteria),
-            ParseLines(Constraints),
-            ParseLines(ValidationExpectations));
-        _errorMessage = null;
-        OnPropertyChanged(nameof(ErrorMessage));
-        _isPreparingExecution = true;
-        State = ExecutionCoordinatorState.Preparing;
         try
         {
+            var request = new OrchestrationWorkRequest(
+                project.Id,
+                Environment.UserName,
+                string.IsNullOrWhiteSpace(Title) ? ExecutionContextPrefillPolicy.DeriveTitle(Objective) : Title,
+                Objective,
+                string.IsNullOrWhiteSpace(WorkItemReference) ? null : WorkItemReference,
+                ParseLines(AcceptanceCriteria),
+                ParseLines(Constraints),
+                ParseLines(ValidationExpectations));
+            _errorMessage = null;
+            OnPropertyChanged(nameof(ErrorMessage));
+            _isPreparingExecution = true;
+            State = ExecutionCoordinatorState.Preparing;
             var result = await _coordinator.PrepareAsync(request).ConfigureAwait(true);
             _prepared = result.PreparedExecution;
             State = result.Succeeded ? ExecutionCoordinatorState.Ready : result.Status == ExecutionPreparationStatus.Cancelled ? ExecutionCoordinatorState.Cancelled : ExecutionCoordinatorState.Failed;

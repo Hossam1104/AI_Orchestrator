@@ -28,6 +28,83 @@ public sealed class ExecutionViewModelTests
     }
 
     [Fact]
+    public void PrepareBlocksObjectiveBeyondCanonicalLimitWithoutCallingCoordinator()
+    {
+        var coordinator = new FakeExecutionCoordinator();
+        var viewModel = ReadyInput(coordinator);
+        viewModel.Objective = new string('x', 4_001);
+
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal("Work request cannot exceed 4,000 characters.", viewModel.PrepareBlockedReason);
+        Assert.Equal(0, coordinator.PrepareCalls);
+    }
+
+    [Fact]
+    public void PrepareAcceptsCanonicalInputBoundaries()
+    {
+        var viewModel = ReadyInput(new FakeExecutionCoordinator());
+        viewModel.Title = new string('t', 500);
+        viewModel.Objective = new string('o', 4_000);
+        viewModel.WorkItemReference = new string('w', 200);
+        viewModel.AcceptanceCriteria = string.Join(Environment.NewLine, Enumerable.Repeat(new string('c', 4_000), 32));
+        viewModel.Constraints = string.Join(Environment.NewLine, Enumerable.Repeat("constraint", 32));
+        viewModel.ValidationExpectations = string.Join(Environment.NewLine, Enumerable.Repeat("validation", 32));
+
+        Assert.True(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal(string.Empty, viewModel.PrepareBlockedReason);
+    }
+
+    [Fact]
+    public void PrepareBlocksOversizedOptionalAndAdvancedInputs()
+    {
+        var coordinator = new FakeExecutionCoordinator();
+        var viewModel = ReadyInput(coordinator);
+
+        viewModel.Title = new string('t', 501);
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal("Title cannot exceed 500 characters.", viewModel.PrepareBlockedReason);
+
+        viewModel.Title = "Bounded change";
+        viewModel.WorkItemReference = new string('w', 201);
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal("Work item reference cannot exceed 200 characters.", viewModel.PrepareBlockedReason);
+        Assert.Equal(0, coordinator.PrepareCalls);
+    }
+
+    [Fact]
+    public void PrepareBlocksAcceptanceCriteriaCountAndItemLength()
+    {
+        var viewModel = ReadyInput(new FakeExecutionCoordinator());
+        viewModel.AcceptanceCriteria = string.Join(Environment.NewLine, Enumerable.Repeat("criterion", 33));
+
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal("Acceptance criteria cannot contain more than 32 entries.", viewModel.PrepareBlockedReason);
+
+        viewModel.AcceptanceCriteria = "criterion\r\n" + new string('x', 4_001);
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+        Assert.Equal("Acceptance criterion 2 cannot exceed 4,000 characters.", viewModel.PrepareBlockedReason);
+    }
+
+    [Fact]
+    public void PrepareBlocksOversizedOptionalLineLists()
+    {
+        var viewModel = ReadyInput(new FakeExecutionCoordinator());
+        viewModel.Constraints = string.Join(Environment.NewLine, Enumerable.Repeat("constraint", 33));
+        Assert.Equal("Constraints cannot contain more than 32 entries.", viewModel.PrepareBlockedReason);
+
+        viewModel.Constraints = "constraint\r\n" + new string('x', 4_001);
+        Assert.Equal("Constraint 2 cannot exceed 4,000 characters.", viewModel.PrepareBlockedReason);
+
+        viewModel.Constraints = "constraint";
+        viewModel.ValidationExpectations = string.Join(Environment.NewLine, Enumerable.Repeat("validation", 33));
+        Assert.Equal("Validation expectations cannot contain more than 32 entries.", viewModel.PrepareBlockedReason);
+
+        viewModel.ValidationExpectations = "validation\r\n" + new string('x', 4_001);
+        Assert.Equal("Validation expectation 2 cannot exceed 4,000 characters.", viewModel.PrepareBlockedReason);
+        Assert.False(viewModel.PrepareCommand.CanExecute(null));
+    }
+
+    [Fact]
     public async Task PrepareBlockedReasonExplainsEachMissingRequiredInputInPriorityOrder()
     {
         var viewModel = NewViewModel(new FakeExecutionCoordinator());
@@ -214,6 +291,7 @@ public sealed class ExecutionViewModelTests
     {
         var coordinator = new FakeExecutionCoordinator { Preparation = new ExecutionPreparationResult(ExecutionPreparationStatus.RepositoryNotClean, ExecutionPreparationStage.Repository, ErrorMessage: "The source worktree is not clean.") };
         var viewModel = ReadyInput(coordinator);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project("Second")));
 
         viewModel.PrepareCommand.Execute(null);
         await coordinator.PrepareRequested.Task;
@@ -222,6 +300,26 @@ public sealed class ExecutionViewModelTests
         Assert.Equal("The source worktree is not clean.", viewModel.ErrorMessage);
         Assert.False(viewModel.IsReady);
         Assert.False(viewModel.StartCommand.CanExecute(null));
+
+        viewModel.SelectedProject = viewModel.ProjectOptions[1];
+        Assert.Same(viewModel.ProjectOptions[1], viewModel.SelectedProject);
+    }
+
+    [Fact]
+    public async Task PrepareExceptionFailsSafelyAndReleasesProjectSelection()
+    {
+        var coordinator = new FakeExecutionCoordinator { PrepareException = new InvalidOperationException("untrusted detail") };
+        var viewModel = ReadyInput(coordinator);
+        viewModel.ProjectOptions.Add(new MissionControlProjectOption(Project("Second")));
+
+        viewModel.PrepareCommand.Execute(null);
+        await coordinator.PrepareRequested.Task;
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Failed);
+
+        Assert.Equal("The request could not be prepared safely.", viewModel.ErrorMessage);
+        Assert.DoesNotContain("untrusted detail", viewModel.ErrorMessage, StringComparison.Ordinal);
+        viewModel.SelectedProject = viewModel.ProjectOptions[1];
+        Assert.Same(viewModel.ProjectOptions[1], viewModel.SelectedProject);
     }
 
     [Fact]
@@ -441,6 +539,7 @@ public sealed class ExecutionViewModelTests
         internal ExecutionStartResult StartResult { get; init; } = new(ExecutionCoordinatorState.Completed);
         internal bool BlockStart { get; init; }
         internal bool BlockPrepare { get; init; }
+        internal Exception? PrepareException { get; init; }
         internal bool BlockFirstRestore { get; init; }
         internal ExecutionRehydrationResult RestoreResult { get; init; } = new(ExecutionRehydrationStatus.NotResumable);
         internal readonly TaskCompletionSource<bool> PrepareRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -460,6 +559,7 @@ public sealed class ExecutionViewModelTests
             LastRequest = request;
             PrepareRequested.TrySetResult(true);
             if (BlockPrepare) await ReleasePrepare.Task;
+            if (PrepareException is not null) throw PrepareException;
             return Preparation;
         }
 

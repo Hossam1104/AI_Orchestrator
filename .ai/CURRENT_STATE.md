@@ -7,6 +7,24 @@ repository. Everything below that divider is retained evidence from a boundary t
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
 
+## CURRENT - APO-70 Prepare input-bound and safe-failure correction
+
+**Last Updated:** 20 September 2026
+
+On starting head `abf76e5d5427653349dcb4c177658b401b12eb9e`, deterministic characterization proved
+that owner-entered values beyond the canonical `OrchestrationWorkRequest` limits remained Prepare-
+eligible: Objective 4,001 characters, 33 acceptance-criteria entries, Title 501 characters, and
+oversized optional line lists. The bounded Desktop correction mirrors the existing Application
+limits for owner readiness, keeps precise first blockers visible, explicitly blocks Prepare while
+background restore is active, and moves request construction plus Prepare-state activation inside
+the existing protected `try/catch/finally`. Coordinator failures and exceptions therefore release
+the active Prepare selection guard and retain sanitized owner-facing error behavior.
+
+Focused Execution ViewModel validation passes `23 / 23`, including canonical boundary, invalid
+input, optional-list, returned-failure, and thrown-exception regressions. No real Sol/Luna/provider
+calls or owner Desktop acceptance were performed. Commit, push, exact-head CI, and final Sol review
+remain pending; Issue #111 remains Open/current-gate and PR #112 remains Draft/Open/Unmerged.
+
 ## CURRENT - APO-70 active-Prepare project-authority race correction
 
 **Last Updated:** 19 September 2026
