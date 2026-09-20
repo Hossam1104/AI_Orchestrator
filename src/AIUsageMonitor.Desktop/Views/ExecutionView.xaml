@@ -15,7 +15,7 @@
         </Style>
     </UserControl.Resources>
     <ScrollViewer Padding="28" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel>
+        <StackPanel Style="{StaticResource WorkspacePageStackStyle}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

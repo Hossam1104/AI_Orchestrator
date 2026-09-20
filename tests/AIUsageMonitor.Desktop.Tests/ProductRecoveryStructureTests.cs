@@ -28,7 +28,9 @@ public sealed class ProductRecoveryStructureTests
         Assert.Contains("<ColumnDefinition Width=\"264\" />", xaml, StringComparison.Ordinal);
         Assert.Contains("<RowDefinition Height=\"116\" />", xaml, StringComparison.Ordinal);
         Assert.Contains("AI PROJECT ORCHESTRATOR", xaml, StringComparison.Ordinal);
-        Assert.Contains("<UniformGrid Columns=\"2\" />", xaml, StringComparison.Ordinal);
+        Assert.Contains("<WrapPanel ItemWidth=\"510\" />", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<UniformGrid Columns=\"2\" />", xaml, StringComparison.Ordinal);
+        Assert.Contains("WorkspacePageStackStyle", xaml, StringComparison.Ordinal);
         Assert.Contains("OwnerStatusText", xaml, StringComparison.Ordinal);
         Assert.Contains("DELIVERY LIFECYCLE", xaml, StringComparison.Ordinal);
         Assert.Contains("IsExpanded=\"False\"", xaml, StringComparison.Ordinal);

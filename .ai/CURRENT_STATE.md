@@ -7,6 +7,32 @@ repository. Everything below that divider is retained evidence from a boundary t
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
 
+## CURRENT - APO-70 workspace visual recomposition
+
+**Last Updated:** 20 September 2026
+
+On verified starting head `a42242cb8b609fa18c69a269175f41a6dcfaa1f8`, the bounded owner-facing
+workspace visual pass was implemented against the live RMS reference principles without copying
+branding or business logic. Projects now use a single page scroll owner with a stacked registry /
+selected-detail hierarchy; Add Existing Project remains a guided, persistence-backed flow; Mission
+Control, AI Providers, and Execution use the shared readable page-width surface; and lifecycle,
+provider, and onboarding cards wrap at smaller widths. The Mission Control current-project surface
+is a truthful hero/status surface. Existing view models, provider truth, onboarding persistence,
+and execution lifecycle behavior were not changed.
+
+The focused render acceptance suite generated 20 Light/Dark, populated/empty, dialog/preview,
+Execution, and small-profile PNGs plus a source-head/theme/workspace/dimensions manifest under
+`C:\Users\Win11\AppData\Local\Temp\AIUsageMonitor\APO-70-visual-evidence`. Canonical Release
+validation passes `1,449 / 1,449` tests with `0` failed and `0` skipped (Domain 29, Connection 367,
+Provider 229, Desktop 145, Infrastructure 679); the Release solution build has `0` warnings and
+`0` errors; and self-contained single-file publish validation passes for win-x86, win-x64, and
+win-arm64.
+
+This is technical implementation evidence only. No real Sol/Luna/provider execution, owner visual
+acceptance, owner functional Prepare -> Ready -> Start proof, merge, release, deployment, or Issue
+#111 closure was performed. PR #112 remains Draft/Open/Unmerged and Issue #111 remains
+Open/current-gate; exact-head CI and Sol acceptance remain separate gates.
+
 ## CURRENT - APO-70 Prepare input-bound and safe-failure correction
 
 **Last Updated:** 20 September 2026

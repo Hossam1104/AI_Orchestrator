@@ -1,4 +1,5 @@
 using System.IO;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -122,6 +123,23 @@ public sealed class VisualRenderAcceptanceTests
                 "OWNER MODE",
                 "ACCEPTANCE CRITERIA",
                 "NO REGISTERED PROJECTS");
+            var lightSmallMissionControl = RenderShell(
+                CreateShell(CreateMissionControlViewModel(CreateProject()), 1020, 660),
+                "light-small-mission-control",
+                evidenceDirectory,
+                "CURRENT PROJECT",
+                "CURRENT WORK");
+            var lightSmallProjects = RenderShell(
+                CreateShell(CreateProjectsViewModel(CreateProject()), 1020, 660),
+                "light-small-projects",
+                evidenceDirectory,
+                "PROJECT DETAILS");
+            var lightSmallProviders = RenderShell(
+                CreateShell(CreateCapacityViewModel(), 1020, 660),
+                "light-small-ai-capacity",
+                evidenceDirectory,
+                "AI PROVIDERS",
+                "Claude");
 
             ThemeManager.Apply(ThemeVariant.Dark);
             var darkMissionControl = RenderShell(
@@ -174,29 +192,33 @@ public sealed class VisualRenderAcceptanceTests
                 [
                     "APO-70 deterministic WPF render evidence",
                     $"Generated UTC: {EvidenceTime:O}",
+                    GetSourceIdentity(),
                     "Strategy: structural/render invariants plus retained PNG evidence; no brittle golden-image comparison.",
                     "Light renders:",
-                    lightNoProject.Path,
-                    lightMissionControl.Path,
-                    lightProjectsEmpty.Path,
-                    lightProjectsPopulated.Path,
-                    lightAddExistingProject.Path,
-                    lightExistingProjectPreview.Path,
-                    lightCapacity.Path,
-                    lightProviderDialog.Path,
-                    lightFriendlyError.Path,
-                    lightComboBoxOpen.Path,
-                    lightExecution.Path,
+                    FormatEvidence(lightNoProject),
+                    FormatEvidence(lightMissionControl),
+                    FormatEvidence(lightProjectsEmpty),
+                    FormatEvidence(lightProjectsPopulated),
+                    FormatEvidence(lightAddExistingProject),
+                    FormatEvidence(lightExistingProjectPreview),
+                    FormatEvidence(lightCapacity),
+                    FormatEvidence(lightProviderDialog),
+                    FormatEvidence(lightFriendlyError),
+                    FormatEvidence(lightComboBoxOpen),
+                    FormatEvidence(lightExecution),
+                    FormatEvidence(lightSmallMissionControl),
+                    FormatEvidence(lightSmallProjects),
+                    FormatEvidence(lightSmallProviders),
                     "Dark renders:",
-                    darkMissionControl.Path,
-                    darkProjects.Path,
-                    darkCapacity.Path,
-                    darkAddExistingProject.Path,
-                    darkFriendlyError.Path,
-                    darkExecution.Path
+                    FormatEvidence(darkMissionControl),
+                    FormatEvidence(darkProjects),
+                    FormatEvidence(darkCapacity),
+                    FormatEvidence(darkAddExistingProject),
+                    FormatEvidence(darkFriendlyError),
+                    FormatEvidence(darkExecution)
                 ]);
 
-            Assert.Equal(17, Directory.EnumerateFiles(evidenceDirectory, "*.png").Count());
+            Assert.Equal(20, Directory.EnumerateFiles(evidenceDirectory, "*.png").Count());
             Assert.True(File.Exists(Path.Combine(evidenceDirectory, "render-manifest.txt")));
         });
     }
@@ -204,7 +226,44 @@ public sealed class VisualRenderAcceptanceTests
     private static string GetEvidenceDirectory() =>
         Path.Combine(Path.GetTempPath(), "AIUsageMonitor", "APO-70-visual-evidence");
 
-    private static MainWindow CreateShell(object activeWorkspace)
+    private static string FormatEvidence(RenderEvidence evidence) =>
+        $"{evidence.Path} | {evidence.Width}x{evidence.Height}";
+
+    private static string GetSourceIdentity()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "TASK.md")))
+        {
+            directory = directory.Parent;
+        }
+
+        if (directory is null)
+        {
+            return "Source HEAD: unavailable (repository root not found)";
+        }
+
+        using var process = Process.Start(new ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = $"-C \"{directory.FullName}\" rev-parse HEAD",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        });
+        if (process is null)
+        {
+            return "Source HEAD: unavailable (git could not start)";
+        }
+
+        process.WaitForExit(5000);
+        var head = process.StandardOutput.ReadToEnd().Trim();
+        return process.ExitCode == 0 && head.Length > 0
+            ? $"Source HEAD: {head}"
+            : "Source HEAD: unavailable (git command failed)";
+    }
+
+    private static MainWindow CreateShell(object activeWorkspace, double width = 1500, double height = 950)
     {
         var viewModel = activeWorkspace switch
         {
@@ -244,8 +303,8 @@ public sealed class VisualRenderAcceptanceTests
 
         var window = new MainWindow(viewModel)
         {
-            Width = 1180,
-            Height = 760,
+            Width = width,
+            Height = height,
             WindowStyle = WindowStyle.None,
             ResizeMode = ResizeMode.NoResize,
             ShowInTaskbar = false,

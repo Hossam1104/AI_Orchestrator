@@ -108,8 +108,8 @@
         </Style>
 
         <DataTemplate DataType="{x:Type vm:MissionControlViewModel}">
-            <ScrollViewer Padding="28" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel>
+            <ScrollViewer Padding="24,24,24,32" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Style="{StaticResource WorkspacePageStackStyle}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -129,14 +129,17 @@
                         </StackPanel>
                     </Grid>
 
-                    <Border Margin="0,18,0,0" Style="{StaticResource CardStyle}" Padding="16">
+                    <Border Margin="0,18,0,0" Background="{DynamicResource HeroBrush}" BorderBrush="{DynamicResource HeroBorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource CardCornerRadius}" Padding="18">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="PROJECT" VerticalAlignment="Center" Style="{StaticResource EyebrowTextStyle}" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="CURRENT PROJECT" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock Text="Project-scoped delivery truth" Margin="0,4,0,0" Style="{StaticResource CaptionTextStyle}" />
+                            </StackPanel>
                             <ComboBox Grid.Column="1" Margin="16,0,16,0" ItemsSource="{Binding ProjectOptions}" SelectedItem="{Binding SelectedProject, Mode=TwoWay}" DisplayMemberPath="DisplayText" Style="{StaticResource BrandComboBoxStyle}" AutomationProperties.Name="Mission Control project selector" />
                             <Border Grid.Column="2" Style="{StaticResource StatusChipStyle}" Padding="10,6">
                                 <TextBlock Text="{Binding OverallStateText}" Foreground="{StaticResource BrandTextBrush}" FontWeight="SemiBold" AutomationProperties.Name="Mission Control overall state" />
@@ -190,32 +193,32 @@
                     <Border Margin="0,16,0,0" Style="{StaticResource CardStyle}" Padding="14" Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibilityConverter}}">
                         <StackPanel>
                             <TextBlock Text="DELIVERY LIFECYCLE" Style="{StaticResource EyebrowTextStyle}" />
-                            <UniformGrid Columns="4" Margin="0,10,0,0">
-                                <Border Margin="0,0,6,0" Padding="10" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
+                            <WrapPanel Margin="0,10,0,0">
+                                <Border Width="240" Margin="0,0,8,8" Padding="10" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
                                     <StackPanel>
                                         <TextBlock Text="EXECUTION" Style="{StaticResource EyebrowTextStyle}" />
                                         <TextBlock Text="{Binding RuntimeText}" Margin="0,4,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                     </StackPanel>
                                 </Border>
-                                <Border Margin="0,0,6,0" Padding="10" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
+                                <Border Width="240" Margin="0,0,8,8" Padding="10" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
                                     <StackPanel>
                                         <TextBlock Text="VALIDATION" Style="{StaticResource EyebrowTextStyle}" />
                                         <TextBlock Text="{Binding ValidationText}" Margin="0,4,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                     </StackPanel>
                                 </Border>
-                                <Border Margin="0,0,6,0" Padding="10" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
+                                <Border Width="240" Margin="0,0,8,8" Padding="10" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
                                     <StackPanel>
                                         <TextBlock Text="REVIEW" Style="{StaticResource EyebrowTextStyle}" />
                                         <TextBlock Text="{Binding ReviewText}" Margin="0,4,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                     </StackPanel>
                                 </Border>
-                                <Border Padding="10" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
+                                <Border Width="240" Margin="0,0,8,8" Padding="10" Background="{DynamicResource SurfaceMutedBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
                                     <StackPanel>
                                         <TextBlock Text="OWNER GATE" Style="{StaticResource EyebrowTextStyle}" />
                                         <TextBlock Text="{Binding ApprovalText}" Margin="0,4,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                     </StackPanel>
                                 </Border>
-                            </UniformGrid>
+                            </WrapPanel>
                             <Grid Margin="0,10,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -316,8 +319,8 @@
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:AiCapacityViewModel}">
-            <ScrollViewer Padding="28" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel>
+            <ScrollViewer Padding="24,24,24,32" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Style="{StaticResource WorkspacePageStackStyle}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -355,12 +358,12 @@
                     <ItemsControl Margin="0,22,0,0" ItemsSource="{Binding Cards}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid Columns="2" />
+                                <WrapPanel ItemWidth="510" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="8" Style="{StaticResource CardStyle}" MinHeight="280">
+                                <Border Margin="0,0,12,12" Style="{StaticResource CardStyle}" MinHeight="280">
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
@@ -464,7 +467,7 @@
                     <Setter Property="FontSize" Value="13" />
                 </Style>
             </DataTemplate.Resources>
-            <ScrollViewer Padding="20" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Style="{StaticResource WorkspacePageStackStyle}" MaxWidth="920">
                 <StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -481,20 +484,20 @@
                         </Border>
                     </Grid>
 
-                    <UniformGrid Columns="4" Margin="0,20,0,0">
-                        <Border Margin="0,0,6,0" Padding="8" CornerRadius="8" Tag="{Binding IsProjectStep}" Style="{StaticResource OnboardingStepStyle}">
+                    <WrapPanel Margin="0,20,0,0">
+                        <Border MinWidth="200" Margin="0,0,8,8" Padding="10" CornerRadius="8" Tag="{Binding IsProjectStep}" Style="{StaticResource OnboardingStepStyle}">
                             <TextBlock Text="1  Project" Style="{StaticResource CaptionTextStyle}" />
                         </Border>
-                        <Border Margin="0,0,6,0" Padding="8" CornerRadius="8" Tag="{Binding IsRepositoryStep}" Style="{StaticResource OnboardingStepStyle}">
+                        <Border MinWidth="200" Margin="0,0,8,8" Padding="10" CornerRadius="8" Tag="{Binding IsRepositoryStep}" Style="{StaticResource OnboardingStepStyle}">
                             <TextBlock Text="2  Preview" Style="{StaticResource CaptionTextStyle}" />
                         </Border>
-                        <Border Margin="0,0,6,0" Padding="8" CornerRadius="8" Tag="{Binding IsTrackerStep}" Style="{StaticResource OnboardingStepStyle}">
+                        <Border MinWidth="200" Margin="0,0,8,8" Padding="10" CornerRadius="8" Tag="{Binding IsTrackerStep}" Style="{StaticResource OnboardingStepStyle}">
                             <TextBlock Text="3  Tracker" Style="{StaticResource CaptionTextStyle}" />
                         </Border>
-                        <Border Padding="8" CornerRadius="8" Tag="{Binding IsAgentsStep}" Style="{StaticResource OnboardingStepStyle}">
+                        <Border MinWidth="200" Padding="10" CornerRadius="8" Tag="{Binding IsAgentsStep}" Style="{StaticResource OnboardingStepStyle}">
                             <TextBlock Text="4  AI roles" Style="{StaticResource CaptionTextStyle}" />
                         </Border>
-                    </UniformGrid>
+                    </WrapPanel>
 
                     <Border Margin="0,16,0,0" Padding="18" Background="{StaticResource BrandNavyBlueBrush}" BorderBrush="{StaticResource BrandBorderBrush}" BorderThickness="1" CornerRadius="12">
                         <Grid>
@@ -606,7 +609,7 @@
                         </StackPanel>
                     </Grid>
                 </StackPanel>
-            </ScrollViewer>
+            </StackPanel>
         </DataTemplate>
 
         <DataTemplate DataType="{x:Type vm:ExecutionViewModel}">
@@ -650,28 +653,23 @@
                 </Style>
             </DataTemplate.Resources>
 
-            <Grid Margin="28">
+            <ScrollViewer Padding="24,24,24,32" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Margin="0" MaxWidth="1080" HorizontalAlignment="Stretch">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
+                <StackPanel>
                         <TextBlock Text="PROJECTS" Style="{StaticResource EyebrowTextStyle}" />
                         <TextBlock Text="Registered workspaces and project lifecycle" Margin="0,8,0,0" Style="{StaticResource DisplayTitleStyle}" FontSize="27" />
                         <TextBlock Text="Keep project metadata visible, isolated, and ready for the next approved step." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                    <WrapPanel Margin="0,14,0,0">
                         <Button Content="Refresh" Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh projects" Style="{StaticResource SecondaryButtonStyle}" />
                         <Button Content="Add Existing Project" Command="{Binding AddExistingProjectCommand}" AutomationProperties.Name="Add Existing Project" Margin="8,0,0,0" Style="{StaticResource PrimaryButtonStyle}" />
                         <TextBlock Text="{Binding AddExistingProjectStateText}" Margin="8,7,0,0" TextWrapping="Wrap" Foreground="{StaticResource BrandWarningBrush}" Style="{StaticResource CaptionTextStyle}" />
-                    </StackPanel>
-                </Grid>
+                    </WrapPanel>
+                </StackPanel>
 
                 <Grid Grid.Row="1" Margin="0,22,0,0">
                     <Grid Visibility="{Binding ShowLoadingState, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -705,15 +703,10 @@
                         </Border>
                     </Grid>
 
-                    <Grid Visibility="{Binding ShowRegistrySurface, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="0.9*" MinWidth="200" />
-                            <ColumnDefinition Width="16" />
-                            <ColumnDefinition Width="1.1*" MinWidth="295" />
-                        </Grid.ColumnDefinitions>
+                    <StackPanel Visibility="{Binding ShowRegistrySurface, Converter={StaticResource BoolToVisibilityConverter}}">
 
                         <Border Grid.ColumnSpan="3" Style="{StaticResource CardStyle}" Padding="32" Visibility="{Binding ShowEmptyRegistryState, Converter={StaticResource BoolToVisibilityConverter}}">
-                            <Grid>
+                            <Grid Margin="0,0,0,18">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
@@ -731,7 +724,7 @@
                             </Grid>
                         </Border>
 
-                        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="14" Visibility="{Binding ShowEmptyRegistryState, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <Border Style="{StaticResource CardStyle}" Padding="18" Visibility="{Binding ShowEmptyRegistryState, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -826,18 +819,18 @@
                             </Grid>
                         </Border>
 
-                        <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="20" Visibility="{Binding ShowEmptyRegistryState, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                        <Border Style="{StaticResource CardStyle}" Padding="20" Visibility="{Binding ShowEmptyRegistryState, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                             <Grid>
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                                    <ScrollViewer.Style>
-                                        <Style TargetType="ScrollViewer">
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
                                             <Setter Property="Visibility" Value="Visible" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsEditorVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
                                                 <DataTrigger Binding="{Binding IsOnboardingVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </ScrollViewer.Style>
+                                    </Grid.Style>
                                     <StackPanel>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -994,9 +987,9 @@
                                              <TextBlock Text="Select a registered workspace to inspect its metadata, or use Add Existing Project to register one." Margin="0,8,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                         </StackPanel>
                                     </StackPanel>
-                                </ScrollViewer>
+                                </Grid>
 
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding IsEditorVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <StackPanel Visibility="{Binding IsEditorVisible, Converter={StaticResource BoolToVisibilityConverter}}">
                                     <StackPanel>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -1082,16 +1075,15 @@
                                         </Grid>
                                         <TextBlock Text="Registration stores metadata only. APO does not mutate the selected workspace or contact a remote service." Margin="0,18,0,0" TextWrapping="Wrap" Style="{StaticResource CaptionTextStyle}" />
                                     </StackPanel>
-                                </ScrollViewer>
+                                </StackPanel>
 
-                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding IsOnboardingVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-                                    <ContentControl Content="{Binding Onboarding}" />
-                                </ScrollViewer>
+                                <ContentControl Content="{Binding Onboarding}" Visibility="{Binding IsOnboardingVisible, Converter={StaticResource BoolToVisibilityConverter}}" />
                             </Grid>
                         </Border>
-                    </Grid>
+                    </StackPanel>
                 </Grid>
             </Grid>
+            </ScrollViewer>
         </DataTemplate>
     </Window.Resources>
 

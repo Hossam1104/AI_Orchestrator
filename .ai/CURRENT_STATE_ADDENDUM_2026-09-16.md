@@ -266,3 +266,27 @@ Root cause was README drift: `.ai/AI_EXECUTION_POLICY.md` and `scripts/Run-Fresh
 Remediation commit: `e0954f93f89fc645e59a68089757d598ac5c7b1c` (README only). Focused Release/x64 guard: 1 passed / 0 failed. Full local CI-equivalent validation on this head: restore passed; Release build 0 warnings / 0 errors; Domain 28, Connection 355, Provider 228, Desktop 118, Infrastructure 677 passed - 1,406 passed / 0 failed / 0 skipped. Exact-head GitHub Actions run `35087030323` succeeded on this commit: restore, build, all five test projects, and validated single-file publishes for win-x86, win-x64, and win-arm64 passed; build reported 0 warnings and 0 errors.
 
 No product-runtime proof was executed: no `PrepareAsync`, `StartAsync`, real nested Sol, or real nested Luna invocation occurred. The next planner boundary remains the real cross-process restored-Ready Luna execution proof described in Section 5.
+
+## 11. APO-70 workspace visual recomposition implementation
+
+On verified feature head `a42242cb8b609fa18c69a269175f41a6dcfaa1f8`, the bounded APO-70 workspace
+visual recomposition was implemented after inspecting the live RMS WPF reference. The change is
+limited to shared WPF topology and visual composition: Projects is now a single-scroll page with a
+clear registry-to-selected-detail hierarchy; onboarding is a guided page without a competing outer
+scroll owner; provider and lifecycle surfaces wrap instead of relying on fixed two/four-column
+grids; Mission Control has a truthful current-project hero/status surface; and Execution consumes
+the same shared page-width treatment. Existing view-model, persistence, provider truth, and
+Prepare/Ready/Start behavior remain unchanged.
+
+Visual render evidence contains 20 PNGs covering Light/Dark Mission Control, Projects, Add Existing
+Project, onboarding preview, AI Providers, Execution, empty/error/dialog states, and 1020x660
+small-profile Mission/Projects/Providers layouts. The generated manifest records source HEAD,
+theme, workspace, dimensions, and evidence filename. The evidence directory is
+`C:\Users\Win11\AppData\Local\Temp\AIUsageMonitor\APO-70-visual-evidence`.
+
+Validation on this scope is `1,449 passed / 0 failed / 0 skipped` across the five canonical Release
+test projects; the Release build is `0 warnings / 0 errors`; `git diff --check` is clean; and
+self-contained single-file publish validation passes for win-x86, win-x64, and win-arm64. This does
+not claim owner visual or functional acceptance, real Sol/Luna/provider execution, merge, release,
+deployment, or Issue #111 closure. PR #112 remains Draft/Open/Unmerged and exact-head CI plus Sol
+acceptance remain pending.

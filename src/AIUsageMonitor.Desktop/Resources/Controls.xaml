@@ -23,6 +23,11 @@
         <Setter Property="Padding" Value="12,7" />
     </Style>
 
+    <Style x:Key="WorkspacePageStackStyle" TargetType="{x:Type StackPanel}">
+        <Setter Property="MaxWidth" Value="1080" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+
     <Style x:Key="StatusPillStyle" TargetType="{x:Type Border}" BasedOn="{StaticResource StatusChipStyle}" />
 
     <Style x:Key="BaseButtonStyle" TargetType="{x:Type Button}">
