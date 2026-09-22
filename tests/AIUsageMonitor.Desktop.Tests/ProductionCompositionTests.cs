@@ -145,6 +145,16 @@ public sealed class ProductionCompositionTests : IDisposable
     }
 
     [Fact]
+    public void ProductionComposition_ResolvesAgentConnectionVerificationAndTheExactOneCodexProbe()
+    {
+        using var provider = BuildProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IAgentConnectionVerificationService>());
+        Assert.Single(provider.GetServices<IAgentConnectionProbe>());
+        Assert.NotNull(provider.GetRequiredService<IExecutionCoordinator>());
+    }
+
+    [Fact]
     public void ProductionComposition_ResolvesTrackerBoundaryAndAudit()
     {
         using var provider = BuildProvider();

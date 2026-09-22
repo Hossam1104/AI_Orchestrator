@@ -1,11 +1,76 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 19 September 2026 (APO-70 bounded owner-facing desktop UX correction; owner gates pending)
+**Last Updated:** 22 September 2026 (APO-70 verified-connection-truth planner/executor adapter-resolution correction; owner gates pending)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 verified-connection-truth planner/executor adapter-resolution correction
+
+**Last Updated:** 22 September 2026
+
+On verified starting head `7960f310b75a923d15ff4bdc193064cedda3da64`, owner functional acceptance
+of Prepare reached planner selection/adapter resolution and surfaced exactly "No exact bounded
+planner adapter is available", with no real Sol invocation, no Ready state, and no Start/Luna
+invocation. Root-cause tracing proved the defect was not resolver strictness: a configured Codex
+planner/executor whose persisted `ConnectionMode` is `Unknown` (never locally session-verified)
+cannot exact-match any adapter, even though a bounded local CLI session probe (`codex login
+status`) could truthfully resolve that identity without invoking a model. Verified connection truth
+was never projected from the local CLI session into the agent's execution identity before adapter
+resolution ran, for either the planner (`PlannerAdapterResolver`) or the executor identity used at
+Start (`ExecutionAdapterResolver` via routing).
+
+The minimal fix adds one new bounded Application service, `AgentConnectionVerificationService`
+(`IAgentConnectionVerificationService`), invoked once, early, inside
+`ExecutionPreparationCoordinator.PrepareAsync`, before planner adapter resolution. For an agent
+whose `ConnectionMode` is `Unknown`, it locates the exactly-one matching `IAgentConnectionProbe` for
+that agent's provider (zero or multiple matches pass the agent through unchanged, mirroring
+`PlannerAdapterResolver`'s own zero/one/many exact-match semantics), and only on a definitive result
+(`Authenticated`/`AuthenticationRequired`) promotes `ConnectionMode`/`Availability`/
+`AuthenticationState` and persists via the existing `IAgentRepository.UpsertAsync` — `Entitlement`
+is never fabricated and stays `Unknown`, and a non-definitive probe result
+(`Unavailable`/`Cancelled`/`TimedOut`) neither mutates nor persists. `CodexAgentConnectionProbe`
+reuses the existing `CodexLocalInvocation.VerifySessionAsync` local `codex login status` probe
+(already used at real invocation time) rather than duplicating Codex CLI/session logic a third
+time. Because `RoutingInputAssembler.AssembleAsync` independently re-resolves project/agent context
+from the persisted repository, this single early persistence also reaches routing's own agent
+snapshot, so the same fix protects the executor identity used for Start/Luna without threading an
+updated view through routing's API. `PlannerAdapterResolver`/`ExecutionAdapterResolver` exact-match
+strictness is unchanged; no project override was given a global capability it lacked; no Provider
+Registry or Agent Registry logic was duplicated; Desktop/WPF owns no provider parsing or process
+execution.
+
+New regression coverage spans all required categories: `AgentConnectionVerificationServiceTests`
+(7 tests: promotion + persistence on Authenticated, AuthenticationRequired confirms invocation mode
+but blocks availability, three non-definitive statuses leave the agent unchanged and unpersisted,
+Entitlement is never fabricated, an already-decided agent skips the probe, zero/multiple
+provider-matching probes leave the agent unchanged); `CodexAgentConnectionProbeTests` (6 tests:
+Authenticated, AuthenticationRequired, executable-not-found, TimedOut, Cancelled, inconclusive
+output, all via deterministic fakes with no real CLI invocation); three new
+`ExecutionPreparationCoordinatorTests` fixture-driven end-to-end cases proving (a) the original
+defect reproduces exactly without verification wired (`PlannerUnavailable` at Planning with the
+exact reported message, probe never called), (b) enabling verification resolves the exact adapter
+and Prepare succeeds, and (c) the same verification path promotes the executor identity so
+`PreparedExecution.Executor.ConnectionMode` is truthfully `Cli` at the boundary Start/Luna would use
+next; and one new `ProductionCompositionTests` case confirming
+`IAgentConnectionVerificationService`, exactly one `IAgentConnectionProbe`, and
+`IExecutionCoordinator` all resolve cleanly through the real production DI container.
+
+Full local validation: Debug build 0 warnings / 0 errors; Release build 0 warnings / 0 errors;
+canonical suite `1,468 passed / 0 failed / 0 skipped` (Domain 29, Connection 379, Provider 235,
+Desktop 146, Infrastructure 679) versus the prior 1,449-test baseline, with zero regressions;
+`git diff --check` clean (only benign LF/CRLF notices); a targeted secret-pattern scan of the diff
+and new files found no genuine matches; and self-contained single-file publish validation passed
+for `win-x86`, `win-x64`, and `win-arm64` (all three produced a working `AIUsageMonitor.Desktop.exe`).
+
+No real Sol, Luna, or Codex model was invoked; `PrepareAsync`/`StartAsync` were exercised only
+through fakes, in-memory doubles, and isolated temp-directory DI containers — never against the
+owner's real `agents.json` or project data, which remained untouched throughout. The Desktop app
+was not launched. No merge, main push, force push, release, tag, or deployment was performed. The
+next boundary is Sol exact-head review of this correction; PR #112 remains Draft/Open/Unmerged and
+Issue #111 remains Open/current-gate.
 
 ## CURRENT - APO-70 workspace visual recomposition
 

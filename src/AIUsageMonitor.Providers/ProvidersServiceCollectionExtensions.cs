@@ -117,6 +117,7 @@ public static class ProvidersServiceCollectionExtensions
             provider.GetService<IProviderProcessRunner>()));
         services.AddSingleton<IPlannerAdapter, CodexPlannerAdapter>();
         services.AddSingleton<IExecutionAdapter, CodexExecutionAdapter>();
+        services.AddSingleton<AIUsageMonitor.Application.Agents.IAgentConnectionProbe, CodexAgentConnectionProbe>();
         services.AddSingleton<AntigravityProvider>();
         services.AddSingleton<JiraWorkItemTrackerAdapter>();
         services.AddSingleton<IWorkItemTrackerAdapter>(provider => provider.GetRequiredService<JiraWorkItemTrackerAdapter>());

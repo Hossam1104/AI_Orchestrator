@@ -238,6 +238,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
     private readonly IRoutingDecisionService _routing;
     private readonly IExecutableRoutingPolicyResolver _routingPolicy;
     private readonly IPlannerAdapterResolver _planners;
+    private readonly IAgentConnectionVerificationService _connectionVerification;
     private readonly IHandoffPackageService _handoffs;
     private readonly IWorkspacePreparationPlanningService _workspacePlanning;
     private readonly IWorkspacePreparationService _workspace;
@@ -261,6 +262,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
         IRoutingDecisionService routing,
         IExecutableRoutingPolicyResolver routingPolicy,
         IPlannerAdapterResolver planners,
+        IAgentConnectionVerificationService connectionVerification,
         IHandoffPackageService handoffs,
         IWorkspacePreparationPlanningService workspacePlanning,
         IWorkspacePreparationService workspace,
@@ -277,6 +279,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
         _routing = routing ?? throw new ArgumentNullException(nameof(routing));
         _routingPolicy = routingPolicy ?? throw new ArgumentNullException(nameof(routingPolicy));
         _planners = planners ?? throw new ArgumentNullException(nameof(planners));
+        _connectionVerification = connectionVerification ?? throw new ArgumentNullException(nameof(connectionVerification));
         _handoffs = handoffs ?? throw new ArgumentNullException(nameof(handoffs));
         _workspacePlanning = workspacePlanning ?? throw new ArgumentNullException(nameof(workspacePlanning));
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
@@ -328,7 +331,8 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
             }
 
             var view = contextResolution.View;
-            var plannerCandidates = view.EffectiveAgents
+            var agents = await VerifyPlannerAndExecutorConnectionsAsync(view.EffectiveAgents, view.Project.LocalPath, cancellationToken).ConfigureAwait(false);
+            var plannerCandidates = agents
                 .Where(agent => agent.Enabled && agent.RoleCapabilities.Contains(AgentRole.Planner))
                 .ToArray();
             if (plannerCandidates.Length != 1)
@@ -451,7 +455,7 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
                 return await FailAsync(ExecutionPreparationStatus.RoutingFailed, ExecutionPreparationStage.Routing, routingResult.ErrorMessage ?? "Routing produced no eligible executor.").ConfigureAwait(false);
             }
 
-            var executor = view.EffectiveAgents.FirstOrDefault(agent => agent.Id == routingResult.Decision.SelectedAgentId.Value);
+            var executor = agents.FirstOrDefault(agent => agent.Id == routingResult.Decision.SelectedAgentId.Value);
             if (executor is null)
             {
                 return await FailAsync(ExecutionPreparationStatus.RoutingFailed, ExecutionPreparationStage.Routing, "Routing selected an agent outside the current project context.").ConfigureAwait(false);
@@ -727,6 +731,33 @@ public sealed class ExecutionCoordinator : IExecutionCoordinator
         {
             _stateGate.Release();
         }
+    }
+
+    /// <summary>
+    /// Projects verified local connection truth into every enabled Planner/Executor-capable agent
+    /// before adapter resolution and routing run, so the same shared truth backs both the planner
+    /// adapter match and the eventual execution adapter match at Start. Agents outside those two
+    /// roles, or already-decided agents, pass through unchanged.
+    /// </summary>
+    private async Task<IReadOnlyList<EffectiveAgentDefinition>> VerifyPlannerAndExecutorConnectionsAsync(
+        IReadOnlyList<EffectiveAgentDefinition> agents,
+        string workspacePath,
+        CancellationToken cancellationToken)
+    {
+        var verified = new List<EffectiveAgentDefinition>(agents.Count);
+        foreach (var agent in agents)
+        {
+            if (agent.Enabled && (agent.RoleCapabilities.Contains(AgentRole.Planner) || agent.RoleCapabilities.Contains(AgentRole.Executor)))
+            {
+                verified.Add(await _connectionVerification.VerifyAsync(agent, workspacePath, cancellationToken).ConfigureAwait(false));
+            }
+            else
+            {
+                verified.Add(agent);
+            }
+        }
+
+        return verified;
     }
 
     private async Task<ExecutionPreparationResult> FailAsync(

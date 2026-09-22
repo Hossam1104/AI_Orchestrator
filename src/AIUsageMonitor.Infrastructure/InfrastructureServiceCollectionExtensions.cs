@@ -73,6 +73,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IAgentRepository, JsonAgentRepository>();
         services.AddSingleton<IAgentProjectOverrideRepository, JsonAgentProjectOverrideRepository>();
         services.AddSingleton<IAgentRegistryService, AgentRegistryService>();
+        services.AddSingleton<IAgentConnectionVerificationService, AgentConnectionVerificationService>();
         services.AddSingleton<IDefaultAgentCatalog, DefaultAgentCatalog>();
         services.AddSingleton<IProjectContextReferenceRepository, JsonProjectContextReferenceRepository>();
         services.AddSingleton<IProjectContextResolver, ProjectContextResolver>();

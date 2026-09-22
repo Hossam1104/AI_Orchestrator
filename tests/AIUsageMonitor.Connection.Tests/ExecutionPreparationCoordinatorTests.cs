@@ -219,6 +219,46 @@ public sealed class ExecutionPreparationCoordinatorTests
         Assert.Equal(ExecutionCoordinatorState.Draft, (await fixture.Coordinator.GetCurrentRunAsync()).State);
     }
 
+    [Fact]
+    public async Task PrepareAsyncFailsAdapterResolutionWhenPlannerConnectionTruthIsUnverified()
+    {
+        var fixture = new Fixture(unverifiedPlanner: true, enableConnectionVerification: false);
+
+        var result = await fixture.Coordinator.PrepareAsync(fixture.Request());
+
+        Assert.Equal(ExecutionPreparationStatus.PlannerUnavailable, result.Status);
+        Assert.Equal(ExecutionPreparationStage.Planning, result.Stage);
+        Assert.Contains("No exact bounded planner adapter is available", result.ErrorMessage, StringComparison.Ordinal);
+        Assert.Equal(0, fixture.ConnectionProbe.Calls);
+    }
+
+    [Fact]
+    public async Task PrepareAsyncPromotesVerifiedPlannerConnectionTruthAndResolvesTheExactAdapter()
+    {
+        var fixture = new Fixture(unverifiedPlanner: true, enableConnectionVerification: true);
+
+        var result = await fixture.Coordinator.PrepareAsync(fixture.Request());
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        Assert.Equal(1, fixture.ConnectionProbe.Calls);
+        Assert.NotNull(fixture.ConnectionRepository.LastUpserted);
+        Assert.Equal(AgentConnectionMode.Cli, fixture.ConnectionRepository.LastUpserted!.ConnectionMode);
+    }
+
+    [Fact]
+    public async Task PrepareAsyncPromotesVerifiedExecutorConnectionTruthProtectingLunaAtStart()
+    {
+        var fixture = new Fixture(unverifiedExecutor: true, enableConnectionVerification: true);
+
+        var result = await fixture.Coordinator.PrepareAsync(fixture.Request());
+
+        Assert.True(result.Succeeded, result.ErrorMessage);
+        Assert.Equal(AgentConnectionMode.Cli, result.PreparedExecution!.Executor.ConnectionMode);
+        Assert.Equal(1, fixture.ConnectionProbe.Calls);
+        Assert.NotNull(fixture.ConnectionRepository.LastUpserted);
+        Assert.Equal(AgentConnectionMode.Cli, fixture.ConnectionRepository.LastUpserted!.ConnectionMode);
+    }
+
     public enum FailurePoint { None, Contract, Graph, Policy, Routing, Handoff, WorkspacePlan, Workspace, Recovery }
 
     private sealed class Fixture
@@ -243,12 +283,16 @@ public sealed class ExecutionPreparationCoordinatorTests
         internal bool BlockPlanner;
         internal bool DriftPlannerClassification;
         internal FailurePoint Failure;
+        internal readonly RecordingAgentRepository ConnectionRepository = new();
+        internal readonly FakeConnectionProbe ConnectionProbe = new();
+        private readonly bool _unverifiedExecutor;
 
-        internal Fixture()
+        internal Fixture(bool unverifiedPlanner = false, bool unverifiedExecutor = false, bool enableConnectionVerification = false)
         {
+            _unverifiedExecutor = unverifiedExecutor;
             var project = new Project(ProjectId, "APO", WorkspacePath, "main", ProjectStatus.Active, Now, Now);
-            var plannerAgent = Agent(AgentRole.Planner, ProjectId);
-            Executor = Agent(AgentRole.Executor, ProjectId);
+            var plannerAgent = unverifiedPlanner ? UnverifiedAgent(AgentRole.Planner, ProjectId) : Agent(AgentRole.Planner, ProjectId);
+            Executor = unverifiedExecutor ? UnverifiedAgent(AgentRole.Executor, ProjectId) : Agent(AgentRole.Executor, ProjectId);
             var context = new ProjectContextReference(ProjectId, Guid.NewGuid(), ProjectContextContract.CurrentVersion, Now, Now,
                 new ProjectRepositoryContextReference(ProjectId, WorkspacePath, RepositorySelectionState.Inspect, RepositoryVerificationStatus.AvailableClean, WorkspacePath, true, "main", false, [], Now),
                 new ProjectTrackerContextReference(TrackerReferenceState.Skipped),
@@ -266,14 +310,44 @@ public sealed class ExecutionPreparationCoordinatorTests
             Recovery = new FakeRecovery(this);
             Execution = new FakeExecution();
             Rehydrator = new FakeRehydrator();
-            Coordinator = new ExecutionCoordinator(new FakeContext(new ProjectContextView(project, context, [plannerAgent, Executor])), new FakeRepository(), Contract, Graph, Routing, Policy, new FakePlannerResolver(Planner), Handoff, WorkspacePlan, Workspace, Recovery, Execution, new HandoffRedactionService(), Rehydrator, new FixedClock(Now));
+            IPlannerAdapterResolver plannerResolver = unverifiedPlanner ? new PlannerAdapterResolver([Planner]) : new FakePlannerResolver(Planner);
+            IAgentConnectionVerificationService connectionVerification = enableConnectionVerification
+                ? new AgentConnectionVerificationService([ConnectionProbe], ConnectionRepository, new FixedClock(Now))
+                : new PassThroughConnectionVerification();
+            Coordinator = new ExecutionCoordinator(new FakeContext(new ProjectContextView(project, context, [plannerAgent, Executor])), new FakeRepository(), Contract, Graph, Routing, Policy, plannerResolver, connectionVerification, Handoff, WorkspacePlan, Workspace, Recovery, Execution, new HandoffRedactionService(), Rehydrator, new FixedClock(Now));
         }
 
         internal OrchestrationWorkRequest Request() => new(ProjectId, "owner:apo", "Bounded execution", "Execute the bounded request.", "APO-70", ["Preserve the owner criterion"], ["Stay in the prepared workspace"], classification: Classification());
 
-        private static RoutingTaskClassification Classification() => new(RoutingScopeScale.Bounded, RoutingTaskRisk.Low, RoutingBlastRadius.Local, RoutingValidationCost.Low, AgentRole.Executor, capacityRequirement: RoutingCapacityRequirement.NotApplicable, requiresAuthenticatedAccess: true, requiresVerifiedAvailability: true, requiresVerifiedEntitlement: true);
+        private RoutingTaskClassification Classification() => new(RoutingScopeScale.Bounded, RoutingTaskRisk.Low, RoutingBlastRadius.Local, RoutingValidationCost.Low, AgentRole.Executor, capacityRequirement: RoutingCapacityRequirement.NotApplicable, requiresSupportedConnection: !_unverifiedExecutor, requiresAuthenticatedAccess: !_unverifiedExecutor, requiresVerifiedAvailability: !_unverifiedExecutor, requiresVerifiedEntitlement: !_unverifiedExecutor);
 
         private EffectiveAgentDefinition Agent(AgentRole role, Guid projectId) => new(projectId, new AgentDefinition(Guid.NewGuid(), $"Codex {role}", role.ToString(), AgentConnectionMode.Cli, AgentAvailability.Available, true, Now, Now, provider: "OpenAI", roleCapabilities: [role], supportedConnectionModes: [AgentConnectionMode.Cli], authenticationState: AgentAuthenticationState.Authenticated, entitlementState: AgentEntitlementState.VerifiedAvailable, modelIdentifier: "gpt-test"), null);
+
+        private EffectiveAgentDefinition UnverifiedAgent(AgentRole role, Guid projectId) => new(projectId, new AgentDefinition(Guid.NewGuid(), $"Codex {role}", role.ToString(), AgentConnectionMode.Unknown, AgentAvailability.Unknown, true, Now, Now, provider: "OpenAI", roleCapabilities: [role], supportedConnectionModes: [], authenticationState: AgentAuthenticationState.Unknown, entitlementState: AgentEntitlementState.Unknown, modelIdentifier: "gpt-test"), null);
+    }
+
+    private sealed class RecordingAgentRepository : IAgentRepository
+    {
+        internal AgentDefinition? LastUpserted;
+        public Task<IReadOnlyList<AgentDefinition>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<AgentDefinition>>([]);
+        public Task<AgentDefinition?> GetByIdAsync(Guid agentId, CancellationToken cancellationToken = default) => Task.FromResult<AgentDefinition?>(null);
+        public Task UpsertAsync(AgentDefinition agent, CancellationToken cancellationToken = default)
+        {
+            LastUpserted = agent;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeConnectionProbe : IAgentConnectionProbe
+    {
+        internal int Calls;
+        public string Provider => "OpenAI";
+        public AgentConnectionMode ConnectionMode => AgentConnectionMode.Cli;
+        public Task<AgentConnectionProbeResult> ProbeAsync(AgentDefinition agent, string workspacePath, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            return Task.FromResult(new AgentConnectionProbeResult(AgentConnectionProbeStatus.Authenticated, "Authenticated local Codex session verified."));
+        }
     }
 
     private sealed class FixedClock(DateTimeOffset value) : IClock { public DateTimeOffset UtcNow { get; } = value; }
@@ -283,6 +357,7 @@ public sealed class ExecutionPreparationCoordinatorTests
         public Task<RepositoryStateSnapshot> VerifyAsync(Project project, CancellationToken cancellationToken = default) => Task.FromResult(new RepositoryStateSnapshot(project.Id, project.LocalPath, new LocalRepositoryInspection(RepositoryVerificationStatus.AvailableClean, project.LocalPath, project.LocalPath, true, "main", false, new string('a', 40), new string('a', 7), isClean: true)));
     }
     private sealed class FakePlannerResolver(FakePlanner planner) : IPlannerAdapterResolver { public PlannerAdapterResolution Resolve(EffectiveAgentDefinition value) => new(PlannerAdapterResolutionStatus.Resolved, planner); }
+    private sealed class PassThroughConnectionVerification : IAgentConnectionVerificationService { public Task<EffectiveAgentDefinition> VerifyAsync(EffectiveAgentDefinition agent, string workspacePath, CancellationToken cancellationToken = default) => Task.FromResult(agent); }
 
     private sealed class FakePlanner(Fixture fixture) : IPlannerAdapter
     {
@@ -354,7 +429,7 @@ public sealed class ExecutionPreparationCoordinatorTests
             LastClassification = classification;
             return fixture.Failure == FailurePoint.Policy
                 ? Task.FromResult(new ExecutableRoutingPolicyResolution(ExecutableRoutingPolicyResolutionStatus.PersistenceUnavailable, ErrorMessage: "policy failure"))
-                : Task.FromResult(new ExecutableRoutingPolicyResolution(ExecutableRoutingPolicyResolutionStatus.Resolved, new RoutingPolicySnapshot("test-policy", AgentRole.Executor, [executorId], capacityRequirement: RoutingCapacityRequirement.NotApplicable, requireAuthenticatedAccess: true, requireVerifiedAvailability: true, requireVerifiedEntitlement: true)));
+                : Task.FromResult(new ExecutableRoutingPolicyResolution(ExecutableRoutingPolicyResolutionStatus.Resolved, new RoutingPolicySnapshot("test-policy", AgentRole.Executor, [executorId], capacityRequirement: RoutingCapacityRequirement.NotApplicable, requireSupportedConnection: classification.RequiresSupportedConnection, requireAuthenticatedAccess: classification.RequiresAuthenticatedAccess, requireVerifiedAvailability: classification.RequiresVerifiedAvailability, requireVerifiedEntitlement: classification.RequiresVerifiedEntitlement)));
         }
     }
     private sealed class FakeRouting(Fixture fixture) : IRoutingDecisionService
