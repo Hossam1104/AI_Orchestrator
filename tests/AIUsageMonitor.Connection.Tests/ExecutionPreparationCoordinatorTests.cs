@@ -7,6 +7,8 @@ using AIUsageMonitor.Application.Projects;
 using AIUsageMonitor.Application.Routing;
 using AIUsageMonitor.Application.Time;
 using AIUsageMonitor.Application.Workspaces;
+using AIUsageMonitor.Providers.Codex;
+using AIUsageMonitor.Providers.Common;
 
 namespace AIUsageMonitor.Connection.Tests;
 
@@ -259,6 +261,26 @@ public sealed class ExecutionPreparationCoordinatorTests
         Assert.Equal(AgentConnectionMode.Cli, fixture.ConnectionRepository.LastUpserted!.ConnectionMode);
     }
 
+    [Fact]
+    public async Task PrepareAsyncFailsClosedWhenUnrelatedCustomOpenAIPlannerHasNoCodexApplicability()
+    {
+        // Negative end-to-end regression (Finding B): wires the REAL production CodexAgentConnectionProbe
+        // (not a permissive test double) against a planner that shares Codex's provider ("OpenAI") but is
+        // not the exact built-in Sol identity (random id, ModelIdentifier "gpt-test" instead of
+        // "gpt-5.6-sol"). Even though the underlying Codex CLI session would report authenticated if
+        // invoked, applicability must fail closed: zero probe invocations, no persistence, and the
+        // planner adapter resolver stays Unavailable exactly as it did before any connection truth existed.
+        var fixture = new Fixture(unverifiedPlanner: true, useRealCodexProbe: true);
+
+        var result = await fixture.Coordinator.PrepareAsync(fixture.Request());
+
+        Assert.Equal(ExecutionPreparationStatus.PlannerUnavailable, result.Status);
+        Assert.Equal(ExecutionPreparationStage.Planning, result.Stage);
+        Assert.Contains("No exact bounded planner adapter is available", result.ErrorMessage, StringComparison.Ordinal);
+        Assert.Equal(0, fixture.CodexProcessRunner!.Calls);
+        Assert.Null(fixture.ConnectionRepository.LastUpserted);
+    }
+
     public enum FailurePoint { None, Contract, Graph, Policy, Routing, Handoff, WorkspacePlan, Workspace, Recovery }
 
     private sealed class Fixture
@@ -285,9 +307,10 @@ public sealed class ExecutionPreparationCoordinatorTests
         internal FailurePoint Failure;
         internal readonly RecordingAgentRepository ConnectionRepository = new();
         internal readonly FakeConnectionProbe ConnectionProbe = new();
+        internal readonly StubProviderProcessRunner? CodexProcessRunner;
         private readonly bool _unverifiedExecutor;
 
-        internal Fixture(bool unverifiedPlanner = false, bool unverifiedExecutor = false, bool enableConnectionVerification = false)
+        internal Fixture(bool unverifiedPlanner = false, bool unverifiedExecutor = false, bool enableConnectionVerification = false, bool useRealCodexProbe = false)
         {
             _unverifiedExecutor = unverifiedExecutor;
             var project = new Project(ProjectId, "APO", WorkspacePath, "main", ProjectStatus.Active, Now, Now);
@@ -311,9 +334,23 @@ public sealed class ExecutionPreparationCoordinatorTests
             Execution = new FakeExecution();
             Rehydrator = new FakeRehydrator();
             IPlannerAdapterResolver plannerResolver = unverifiedPlanner ? new PlannerAdapterResolver([Planner]) : new FakePlannerResolver(Planner);
-            IAgentConnectionVerificationService connectionVerification = enableConnectionVerification
-                ? new AgentConnectionVerificationService([ConnectionProbe], ConnectionRepository, new FixedClock(Now))
-                : new PassThroughConnectionVerification();
+            IAgentConnectionVerificationService connectionVerification;
+            if (useRealCodexProbe)
+            {
+                CodexProcessRunner = new StubProviderProcessRunner();
+                connectionVerification = new AgentConnectionVerificationService(
+                    [new CodexAgentConnectionProbe(new StubExecutableLocator(), CodexProcessRunner)],
+                    ConnectionRepository,
+                    new FixedClock(Now));
+            }
+            else if (enableConnectionVerification)
+            {
+                connectionVerification = new AgentConnectionVerificationService([ConnectionProbe], ConnectionRepository, new FixedClock(Now));
+            }
+            else
+            {
+                connectionVerification = new PassThroughConnectionVerification();
+            }
             Coordinator = new ExecutionCoordinator(new FakeContext(new ProjectContextView(project, context, [plannerAgent, Executor])), new FakeRepository(), Contract, Graph, Routing, Policy, plannerResolver, connectionVerification, Handoff, WorkspacePlan, Workspace, Recovery, Execution, new HandoffRedactionService(), Rehydrator, new FixedClock(Now));
         }
 
@@ -343,10 +380,26 @@ public sealed class ExecutionPreparationCoordinatorTests
         internal int Calls;
         public string Provider => "OpenAI";
         public AgentConnectionMode ConnectionMode => AgentConnectionMode.Cli;
+        public bool CanProbe(AgentDefinition agent) => string.Equals(agent.Provider, Provider, StringComparison.OrdinalIgnoreCase);
         public Task<AgentConnectionProbeResult> ProbeAsync(AgentDefinition agent, string workspacePath, CancellationToken cancellationToken = default)
         {
             Calls++;
             return Task.FromResult(new AgentConnectionProbeResult(AgentConnectionProbeStatus.Authenticated, "Authenticated local Codex session verified."));
+        }
+    }
+
+    private sealed class StubExecutableLocator : IExecutableLocator
+    {
+        public string? Find(string commandName) => $"C:\\test-tools\\{commandName}.exe";
+    }
+
+    private sealed class StubProviderProcessRunner : IProviderProcessRunner
+    {
+        internal int Calls;
+        public Task<ProviderProcessResult> RunAsync(ProviderProcessRequest request, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            return Task.FromResult(new ProviderProcessResult(ProviderProcessOutcome.ExitedSuccessfully, 0, "Logged in", string.Empty, false, false));
         }
     }
 

@@ -155,6 +155,29 @@ public sealed class ProductionCompositionTests : IDisposable
     }
 
     [Fact]
+    public void ProductionComposition_RegisteredCodexProbeMatchesExactSolAndLunaOnly()
+    {
+        // Finding B: the exact-one registered probe must be authoritative only for the exact
+        // built-in Sol and Luna identities, and must fail closed for any other agent, including one
+        // that merely shares its provider — asserted purely via CanProbe, without invoking any real
+        // process, so this composition test remains a 0-model, 0-CLI-invocation check.
+        using var provider = BuildProvider();
+        var catalog = provider.GetRequiredService<IDefaultAgentCatalog>();
+        var probe = Assert.Single(provider.GetServices<IAgentConnectionProbe>());
+        var defaults = catalog.GetDefaults();
+        var sol = defaults.Single(agent => agent.RoleCapabilities.Contains(AgentRole.Planner));
+        var luna = defaults.Single(agent => agent.Name.Contains("Luna", StringComparison.OrdinalIgnoreCase));
+        var unrelatedOpenAiAgent = defaults.Single(agent =>
+            string.Equals(agent.Provider, "OpenAI", StringComparison.OrdinalIgnoreCase) &&
+            agent.Id != sol.Id &&
+            agent.Id != luna.Id);
+
+        Assert.True(probe.CanProbe(sol));
+        Assert.True(probe.CanProbe(luna));
+        Assert.False(probe.CanProbe(unrelatedOpenAiAgent));
+    }
+
+    [Fact]
     public void ProductionComposition_ResolvesTrackerBoundaryAndAudit()
     {
         using var provider = BuildProvider();

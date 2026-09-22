@@ -5,7 +5,8 @@ namespace AIUsageMonitor.Application.Agents;
 /// <summary>
 /// Bounded implementation of <see cref="IAgentConnectionVerificationService"/>. It never guesses:
 /// an agent is probed only when its connection mode is still <see cref="AgentConnectionMode.Unknown"/>
-/// and exactly one registered probe matches its provider; a probe result that is not a definitive
+/// and exactly one registered probe declares itself authoritative for that agent's identity via
+/// <see cref="IAgentConnectionProbe.CanProbe"/>; a probe result that is not a definitive
 /// authentication outcome leaves the agent unverified for the next attempt rather than persisting a
 /// fabricated fact.
 /// </summary>
@@ -39,7 +40,7 @@ public sealed class AgentConnectionVerificationService : IAgentConnectionVerific
         }
 
         var matches = _probes
-            .Where(probe => string.Equals(probe.Provider, agent.Provider, StringComparison.OrdinalIgnoreCase))
+            .Where(probe => probe.CanProbe(agent.GlobalDefinition))
             .ToArray();
         if (matches.Length != 1)
         {

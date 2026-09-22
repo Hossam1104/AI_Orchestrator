@@ -1,11 +1,97 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 22 September 2026 (APO-70 verified-connection-truth planner/executor adapter-resolution correction; owner gates pending)
+**Last Updated:** 22 September 2026 (APO-70 exact Codex probe applicability + real persisted identity proof correction; owner gates pending)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 exact Codex probe applicability + real persisted identity proof correction
+
+**Last Updated:** 22 September 2026
+
+Sol reviewed the prior correction commit `2bf3456` (verified-connection-truth planner/executor
+adapter-resolution fix, entry below) and classified it PARTIAL: the implementation direction was
+accepted, but two blocking findings required a follow-up bounded correction before acceptance could
+proceed. This entry documents that correction; it supersedes neither the prior entry's root-cause
+narrative nor its evidence, both of which are reproved (not repeated) below.
+
+**Finding A — real persisted-state proof.** The prior session never read the owner's real
+`agents.json`; it only asserted the file was untouched. This session read it read-only (no mutation
+at any point) and hashed it before and after: SHA-256
+`ECFCFF509B06E7D76724DB6FA5F1B0E9AA77904E859724C6AB654D645960D26C` both times, confirming zero
+drift. The real persisted Sol (`b4c0b0d1-7f2c-4d4d-9f4d-000000000038`) and Luna
+(`b4c0b0d1-7f2c-4d4d-9f4d-000000000039`) records match `DefaultAgentCatalog` defaults exactly —
+`ConnectionMode`/`Availability`/`AuthenticationState`/`EntitlementState` all `Unknown`, no
+`LastConnectionResult` — which reproves the prior entry's root-cause classification against real
+data instead of only fixture data.
+
+**Finding B — probe applicability was too broad.** `AgentConnectionVerificationService` selected a
+probe by `probe.Provider == agent.Provider` alone. Any enabled `Unknown`-mode agent sharing
+`Provider = "OpenAI"` — not just Sol or Luna — would be promoted to `ConnectionMode = Cli` merely
+because the local Codex CLI session happened to be authenticated. Reproduced deterministically
+before fixing: a custom agent carrying Sol's own provider, model identifier, and role capability but
+a different (non-catalog) id was still promoted pre-fix, and the real catalog's own `GPT-5.6 Terra
+HIGH` (also `Provider = "OpenAI"`, `SecuritySpecialist` role, no model identifier) was equally
+promotable — proving the gap was provider-string matching, not a synthetic edge case.
+
+The fix adds one new applicability contract, `IAgentConnectionProbe.CanProbe(AgentDefinition)`
+(`src/AIUsageMonitor.Application/Agents/IAgentConnectionProbe.cs`), and replaces
+`AgentConnectionVerificationService`'s provider-string match with
+`probe.CanProbe(agent.GlobalDefinition)` — evaluated against the agent's global, non-project-overridden
+definition, so a project override can never broaden what a probe is willing to verify.
+`CodexAgentConnectionProbe.CanProbe` (`src/AIUsageMonitor.Providers/Codex/CodexAgentConnectionProbe.cs`)
+is authoritative only for the exact built-in Sol identity (stable id `...038` + `Provider = "OpenAI"`
++ `ModelIdentifier = "gpt-5.6-sol"` + `Planner` role capability + `Enabled`) and the exact built-in
+Luna identity (stable id `...039` + `Provider = "OpenAI"` + `ModelIdentifier = "gpt-5.6-luna"` +
+`Executor` role capability + `Enabled`); it fails closed for everything else, including any other
+`Provider = "OpenAI"` agent. The two stable ids are hardcoded directly in the Providers-layer probe
+because `DefaultAgentCatalog` exposes no public shared seam for them (its ids are private inside an
+internal `CatalogEntry`); this keeps the identity-scope rule owned entirely by the Providers layer,
+never as a provider-specific special case inside the Application-layer verification service. The
+zero/one/many fail-closed selection, the already-decided skip (`ConnectionMode != Unknown`), the
+`AuthenticationRequired` safety behavior, and `Entitlement` never being fabricated are all unchanged
+from the prior entry; `PlannerAdapterResolver`/`ExecutionAdapterResolver` were not touched.
+
+New regression coverage (15 tests, all new, zero removed): `AgentConnectionVerificationServiceTests`
+gained 2 cases proving a probe that shares a provider but declares itself inapplicable is never
+invoked, and that applicability is evaluated against `GlobalDefinition` rather than an effective
+project-overridden view. `CodexAgentConnectionProbeTests` gained 8 `CanProbe` cases (exact Sol match,
+exact Luna match, an unrelated custom OpenAI agent, Sol's id with the wrong model/provider/missing
+role, Luna's id with the missing role, and Sol's id while disabled — all `false` except the two exact
+matches) plus 3 integration cases wiring the real `CodexAgentConnectionProbe` into
+`AgentConnectionVerificationService` end-to-end: the unrelated-agent defect no longer promotes or
+persists (zero invocations), and exact Sol/exact Luna both promote and persist correctly.
+`ExecutionPreparationCoordinatorTests` gained one negative end-to-end regression that wires the real
+production probe (not a permissive fake) behind a planner sharing Codex's provider but not its exact
+identity, proving `PlannerUnavailable`/"No exact bounded planner adapter is available" and zero probe
+process invocations — the planner adapter resolver stays exactly as unavailable as it was before any
+connection truth existed. `ProductionCompositionTests` gained one case asserting the real DI-resolved
+probe's `CanProbe` accepts the catalog's Sol and Luna and rejects the catalog's own Terra HIGH, with
+no process invoked. `AIUsageMonitor.Connection.Tests.csproj` gained a test-only project reference to
+`AIUsageMonitor.Providers` so this coordinator-level regression can exercise the real probe; no
+production project reference changed.
+
+Full local validation: Debug build 0 warnings / 0 errors; Release build 0 warnings / 0 errors;
+canonical suite `1,483 passed / 0 failed / 0 skipped` (Domain 29, Connection 382, Provider 246,
+Desktop 147, Infrastructure 679) versus the prior 1,468-test baseline, with zero regressions;
+`git diff --check` clean (only benign LF/CRLF notices); a targeted secret-pattern scan of the diff
+found no genuine matches; and self-contained single-file publish validation passed for `win-x86`,
+`win-x64`, and `win-arm64` via the canonical `-p:PublishProfile=<rid>` profiles (each profile sets
+`IncludeNativeLibrariesForSelfExtract=true`, which is required for a WPF single-file publish to
+bundle its native interop DLLs — an initial raw-flag publish without that profile correctly failed
+this repository's own publish-output validator, confirming the validator's native-library check is
+live). Owner `agents.json` hash was re-verified identical after implementation:
+`ECFCFF509B06E7D76724DB6FA5F1B0E9AA77904E859724C6AB654D645960D26C`.
+
+No real Sol, Luna, or Codex model was invoked. `agents.json` was opened read-only for the Finding A
+proof and never written; every other exercise of `PrepareAsync`/probing ran only through fakes,
+in-memory doubles, and isolated temp-directory DI containers. The Desktop app was not launched. No
+merge, main push, force push, release, tag, or deployment was performed. The next boundary is Sol
+exact-head review of this correction; PR #112 remains Draft/Open/Unmerged and Issue #111 remains
+Open/current-gate. Owner functional acceptance and final Sol acceptance/merge remain pending and are
+explicitly out of scope for this session.
 
 ## CURRENT - APO-70 verified-connection-truth planner/executor adapter-resolution correction
 

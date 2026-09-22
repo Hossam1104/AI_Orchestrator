@@ -124,6 +124,46 @@ public sealed class AgentConnectionVerificationServiceTests
         Assert.Null(repository.LastUpserted);
     }
 
+    [Fact]
+    public async Task VerifyAsync_WhenProbeSharesProviderButDeclaresItselfNotApplicable_ReturnsAgentUnchanged()
+    {
+        // Finding B regression: sharing a provider is not sufficient. A probe that explicitly
+        // reports it is not authoritative for this specific agent identity must never be invoked,
+        // even though its Provider string matches.
+        var repository = new RecordingAgentRepository();
+        var probe = new FakeProbe(AgentConnectionProbeStatus.Authenticated, canProbe: static _ => false);
+        var service = new AgentConnectionVerificationService([probe], repository, new FixedClock(Now));
+        var agent = UnverifiedAgent();
+
+        var result = await service.VerifyAsync(agent, WorkspacePath);
+
+        Assert.Equal(0, probe.Calls);
+        Assert.Equal(AgentConnectionMode.Unknown, result.ConnectionMode);
+        Assert.Same(agent, result);
+        Assert.Null(repository.LastUpserted);
+    }
+
+    [Fact]
+    public async Task VerifyAsync_EvaluatesApplicabilityAgainstGlobalDefinitionNotProjectOverride()
+    {
+        // A project override must never broaden what a probe is willing to verify: applicability is
+        // decided from agent.GlobalDefinition, which is exactly what CanProbe receives here.
+        var repository = new RecordingAgentRepository();
+        AgentDefinition? observed = null;
+        var probe = new FakeProbe(AgentConnectionProbeStatus.Authenticated, canProbe: agent =>
+        {
+            observed = agent;
+            return true;
+        });
+        var service = new AgentConnectionVerificationService([probe], repository, new FixedClock(Now));
+        var agent = UnverifiedAgent();
+
+        await service.VerifyAsync(agent, WorkspacePath);
+
+        Assert.NotNull(observed);
+        Assert.Same(agent.GlobalDefinition, observed);
+    }
+
     private static EffectiveAgentDefinition UnverifiedAgent()
     {
         var global = new AgentDefinition(
@@ -158,11 +198,13 @@ public sealed class AgentConnectionVerificationServiceTests
         }
     }
 
-    private sealed class FakeProbe(AgentConnectionProbeStatus status, string provider = "OpenAI") : IAgentConnectionProbe
+    private sealed class FakeProbe(AgentConnectionProbeStatus status, string provider = "OpenAI", Func<AgentDefinition, bool>? canProbe = null) : IAgentConnectionProbe
     {
         internal int Calls;
         public string Provider { get; } = provider;
         public AgentConnectionMode ConnectionMode => AgentConnectionMode.Cli;
+        public bool CanProbe(AgentDefinition agent) =>
+            canProbe?.Invoke(agent) ?? string.Equals(Provider, agent.Provider, StringComparison.OrdinalIgnoreCase);
         public Task<AgentConnectionProbeResult> ProbeAsync(AgentDefinition agent, string workspacePath, CancellationToken cancellationToken = default)
         {
             Calls++;

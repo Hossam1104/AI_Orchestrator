@@ -28,6 +28,16 @@ public interface IAgentConnectionProbe
     /// <summary>The connection mode this probe can confirm when authentication succeeds or is required.</summary>
     AgentConnectionMode ConnectionMode { get; }
 
+    /// <summary>
+    /// Returns whether this probe is authoritative for <paramref name="agent"/>'s identity. Sharing
+    /// a provider is not sufficient: a probe owns a specific, deterministic scope (for example a
+    /// stable built-in agent id plus its model identifier and intended role) and must fail closed
+    /// for any agent outside that scope, including other agents that merely share its provider.
+    /// Callers evaluate this against an agent's global (non-project-overridden) definition, so a
+    /// project override can never broaden what a probe is willing to verify.
+    /// </summary>
+    bool CanProbe(AgentDefinition agent);
+
     Task<AgentConnectionProbeResult> ProbeAsync(
         AgentDefinition agent,
         string workspacePath,

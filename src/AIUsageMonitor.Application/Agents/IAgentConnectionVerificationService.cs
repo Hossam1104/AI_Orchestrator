@@ -9,7 +9,8 @@ public interface IAgentConnectionVerificationService
 {
     /// <summary>
     /// Returns the agent unchanged when its connection mode is already decided, no exactly-one
-    /// matching probe is registered for its provider, or the probe could not reach a definitive
+    /// registered probe declares itself authoritative for its identity (see
+    /// <see cref="IAgentConnectionProbe.CanProbe"/>), or the probe could not reach a definitive
     /// result. Otherwise probes once, persists the verified global truth, and returns the
     /// refreshed effective view.
     /// </summary>
