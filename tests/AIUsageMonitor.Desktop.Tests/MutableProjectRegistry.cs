@@ -41,8 +41,36 @@ internal sealed class MutableProjectRegistry : IProjectRegistryService
         return Task.FromResult(project);
     }
 
-    public Task<Project> UpdateProjectAsync(Guid projectId, ProjectEdit edit, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+    public Task<Project> UpdateProjectAsync(Guid projectId, ProjectEdit edit, CancellationToken cancellationToken = default)
+    {
+        var index = _projects.FindIndex(p => p.Id == projectId);
+        if (index < 0)
+        {
+            throw new KeyNotFoundException("The project no longer exists.");
+        }
+
+        var existing = _projects[index];
+        var updated = new Project(
+            existing.Id,
+            edit.Name,
+            edit.LocalPath,
+            edit.DefaultBranch,
+            edit.Status,
+            existing.CreatedAt,
+            DateTimeOffset.UtcNow,
+            edit.RepositoryProvider,
+            edit.RepositoryUrl,
+            edit.RepositoryId,
+            edit.RepositoryMetadata ?? existing.RepositoryMetadata,
+            edit.TrackerType,
+            edit.TrackerId,
+            edit.TrackerMetadata ?? existing.TrackerMetadata,
+            edit.GovernanceReferences,
+            edit.RoutingPolicyReference,
+            edit.SafetyPolicyReference);
+        _projects[index] = updated;
+        return Task.FromResult(updated);
+    }
 
     public void Remove(Guid projectId) => _projects.RemoveAll(p => p.Id == projectId);
 }

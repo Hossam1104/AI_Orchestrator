@@ -5,14 +5,44 @@ using AIUsageMonitor.Application.Projects;
 
 namespace AIUsageMonitor.Desktop.ViewModels;
 
-public sealed class MissionControlProjectOption
+public sealed class MissionControlProjectOption : ObservableObject
 {
+    private Project _project;
+
     public MissionControlProjectOption(Project project)
     {
-        Project = project ?? throw new ArgumentNullException(nameof(project));
+        _project = project ?? throw new ArgumentNullException(nameof(project));
     }
 
-    public Project Project { get; }
+    public Project Project => _project;
+
+    /// <summary>
+    /// Applies newer registry truth for the same project ID in place, so bound selectors keep this
+    /// exact instance (<c>SelectedItem</c> identity survives) while their displayed facts stop being
+    /// stale. A no-op when the incoming snapshot is reference-equal to what is already held.
+    /// </summary>
+    public void Update(Project project)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        if (project.Id != _project.Id)
+        {
+            throw new ArgumentException("Cannot update a project option with a different project ID.", nameof(project));
+        }
+
+        if (ReferenceEquals(project, _project))
+        {
+            return;
+        }
+
+        _project = project;
+        OnPropertyChanged(nameof(Project));
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(DisplayText));
+        OnPropertyChanged(nameof(RepositoryContextText));
+        OnPropertyChanged(nameof(TrackerContextText));
+        OnPropertyChanged(nameof(GovernanceContextText));
+    }
 
     public Guid Id => Project.Id;
 
@@ -336,15 +366,16 @@ public sealed class MissionControlViewModel : ObservableObject
 
     private void ReconcileProjectOptions(IReadOnlyList<Project> latest)
     {
-        var latestIds = new HashSet<Guid>(latest.Select(static project => project.Id));
+        var latestById = latest.ToDictionary(static project => project.Id);
         var existingIds = new HashSet<Guid>();
 
         for (var index = ProjectOptions.Count - 1; index >= 0; index--)
         {
-            var id = ProjectOptions[index].Id;
-            if (latestIds.Contains(id))
+            var option = ProjectOptions[index];
+            if (latestById.TryGetValue(option.Id, out var project))
             {
-                existingIds.Add(id);
+                existingIds.Add(option.Id);
+                option.Update(project);
             }
             else
             {
@@ -374,7 +405,27 @@ public sealed class MissionControlViewModel : ObservableObject
             ProjectOptions.Insert(insertAt, option);
         }
 
+        ReorderAlphabetically(comparer);
         OnPropertyChanged(nameof(HasProjects));
+    }
+
+    /// <summary>
+    /// Restores alphabetical order after in-place metadata updates (e.g. a rename) using
+    /// <see cref="ObservableCollection{T}.Move"/>, which raises a Move notification rather than a
+    /// Remove+Add pair. A bound <c>SelectedItem</c> survives a Move; it does not survive Remove+Add,
+    /// which would momentarily null the binding.
+    /// </summary>
+    private void ReorderAlphabetically(StringComparer comparer)
+    {
+        var sorted = ProjectOptions.OrderBy(option => option.Name, comparer).ToList();
+        for (var index = 0; index < sorted.Count; index++)
+        {
+            var currentIndex = ProjectOptions.IndexOf(sorted[index]);
+            if (currentIndex != index)
+            {
+                ProjectOptions.Move(currentIndex, index);
+            }
+        }
     }
 
     private async Task LoadProjectsAsync(CancellationToken cancellationToken)

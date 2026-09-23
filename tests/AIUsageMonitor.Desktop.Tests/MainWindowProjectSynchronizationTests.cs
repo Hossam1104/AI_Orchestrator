@@ -85,6 +85,36 @@ public sealed class MainWindowProjectSynchronizationTests
         Assert.Equal(2, viewModel.MissionControl.ProjectOptions.Count);
     }
 
+    [Fact]
+    public async Task NavigatingToWorkspacesAfterSameProcessEditRevealsUpdatedMetadataInBoth()
+    {
+        var alpha = CreateProject("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new MainWindowViewModel(
+            new MissionControlViewModel(registry, new FakeReadModel()),
+            new AiCapacityViewModel(),
+            new ProjectsViewModel(),
+            new ExecutionViewModel(registry, new FakeExecutionCoordinator()));
+
+        await viewModel.InitializeAsync();
+        Assert.Single(viewModel.Execution.ProjectOptions);
+        Assert.Single(viewModel.MissionControl.ProjectOptions);
+        var executionOption = viewModel.Execution.ProjectOptions[0];
+        var missionControlOption = viewModel.MissionControl.ProjectOptions[0];
+
+        await registry.UpdateProjectAsync(alpha.Id, new ProjectEdit { Name = "Alpha Renamed", LocalPath = alpha.LocalPath, Status = ProjectStatus.Paused });
+
+        viewModel.ShowExecutionCommand.Execute(null);
+        await WaitUntil(() => viewModel.Execution.ProjectOptions[0].Name == "Alpha Renamed");
+        viewModel.ShowMissionControlCommand.Execute(null);
+        await WaitUntil(() => viewModel.MissionControl.ProjectOptions[0].Name == "Alpha Renamed");
+
+        Assert.Same(executionOption, viewModel.Execution.ProjectOptions[0]);
+        Assert.Same(missionControlOption, viewModel.MissionControl.ProjectOptions[0]);
+        Assert.Equal(ProjectStatus.Paused.ToString(), viewModel.Execution.ProjectOptions[0].StatusText);
+        Assert.Equal(ProjectStatus.Paused.ToString(), viewModel.MissionControl.ProjectOptions[0].StatusText);
+    }
+
     private static async Task WaitUntil(Func<bool> predicate)
     {
         for (var i = 0; i < 100 && !predicate(); i++) await Task.Delay(10);

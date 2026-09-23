@@ -533,6 +533,143 @@ public sealed class ExecutionViewModelTests
     }
 
     [Fact]
+    public async Task RefreshProjectsAsyncUpdatesExistingProjectMetadataForAnUnselectedProject()
+    {
+        var alpha = Project("Alpha");
+        var beta = Project("Beta");
+        var registry = new MutableProjectRegistry(alpha, beta);
+        var viewModel = new ExecutionViewModel(registry, new FakeExecutionCoordinator());
+        await viewModel.InitializeAsync();
+        var betaOption = viewModel.ProjectOptions.Single(option => option.Id == beta.Id);
+
+        await registry.UpdateProjectAsync(beta.Id, new ProjectEdit
+        {
+            Name = "Beta Renamed",
+            LocalPath = beta.LocalPath,
+            DefaultBranch = beta.DefaultBranch,
+            Status = ProjectStatus.Paused
+        });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Same(betaOption, viewModel.ProjectOptions.Single(option => option.Id == beta.Id));
+        Assert.Equal("Beta Renamed", betaOption.Name);
+        Assert.Equal(ProjectStatus.Paused.ToString(), betaOption.StatusText);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncPreservesSelectedIdentityWhileApplyingNewMetadata()
+    {
+        var alpha = Project("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new ExecutionViewModel(registry, new FakeExecutionCoordinator());
+        await viewModel.InitializeAsync();
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+        var selectedBeforeRefresh = viewModel.SelectedProject;
+
+        await registry.UpdateProjectAsync(alpha.Id, new ProjectEdit
+        {
+            Name = "Alpha Renamed",
+            LocalPath = alpha.LocalPath,
+            DefaultBranch = alpha.DefaultBranch,
+            Status = ProjectStatus.Paused
+        });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Same(selectedBeforeRefresh, viewModel.SelectedProject);
+        Assert.Equal("Alpha Renamed", viewModel.SelectedProject!.Name);
+        Assert.Equal(ProjectStatus.Paused.ToString(), viewModel.SelectedProject.StatusText);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncDuringDraftPreservesOwnerRequestFields()
+    {
+        var alpha = Project("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new ExecutionViewModel(registry, new FakeExecutionCoordinator());
+        await viewModel.InitializeAsync();
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+        viewModel.Title = "Bounded change";
+        viewModel.Objective = "Make the requested bounded change.";
+        viewModel.AcceptanceCriteria = "Verify the result.";
+        viewModel.Constraints = "No unrelated scope.";
+
+        await registry.UpdateProjectAsync(alpha.Id, new ProjectEdit
+        {
+            Name = "Alpha Renamed",
+            LocalPath = alpha.LocalPath,
+            DefaultBranch = alpha.DefaultBranch,
+            Status = ProjectStatus.Active
+        });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Equal("Bounded change", viewModel.Title);
+        Assert.Equal("Make the requested bounded change.", viewModel.Objective);
+        Assert.Equal("Verify the result.", viewModel.AcceptanceCriteria);
+        Assert.Equal("No unrelated scope.", viewModel.Constraints);
+        Assert.Equal(ExecutionCoordinatorState.Draft, viewModel.State);
+        Assert.Equal("Alpha Renamed", viewModel.SelectedProject!.Name);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncDuringRunningUpdatesSelectedProjectMetadataWithoutDisturbingState()
+    {
+        var alpha = Project("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var coordinator = new FakeExecutionCoordinator { Preparation = PreparedResult(), BlockStart = true };
+        var viewModel = new ExecutionViewModel(registry, coordinator);
+        await viewModel.InitializeAsync();
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+        viewModel.Title = "Bounded change";
+        viewModel.Objective = "Make the requested bounded change.";
+        viewModel.AcceptanceCriteria = "Verify the result.";
+
+        await Prepare(viewModel, coordinator);
+        viewModel.StartCommand.Execute(null);
+        await coordinator.StartRequested.Task;
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Running);
+
+        var runningSelection = viewModel.SelectedProject;
+        await registry.UpdateProjectAsync(alpha.Id, new ProjectEdit
+        {
+            Name = "Alpha Renamed While Running",
+            LocalPath = alpha.LocalPath,
+            DefaultBranch = alpha.DefaultBranch,
+            Status = ProjectStatus.Active
+        });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Equal(ExecutionCoordinatorState.Running, viewModel.State);
+        Assert.Same(runningSelection, viewModel.SelectedProject);
+        Assert.Equal("Alpha Renamed While Running", viewModel.SelectedProject!.Name);
+        Assert.Equal("Bounded change", viewModel.Title);
+        Assert.Equal(1, coordinator.PrepareCalls);
+
+        coordinator.ReleaseStart.TrySetResult(true);
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Completed);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncRepeatedMetadataUpdatesRemainDuplicateFree()
+    {
+        var alpha = Project("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new ExecutionViewModel(registry, new FakeExecutionCoordinator());
+        await viewModel.InitializeAsync();
+
+        await registry.UpdateProjectAsync(alpha.Id, new ProjectEdit { Name = "Alpha 2", LocalPath = alpha.LocalPath, DefaultBranch = alpha.DefaultBranch, Status = ProjectStatus.Active });
+        await viewModel.RefreshProjectsAsync();
+        await registry.UpdateProjectAsync(alpha.Id, new ProjectEdit { Name = "Alpha 3", LocalPath = alpha.LocalPath, DefaultBranch = alpha.DefaultBranch, Status = ProjectStatus.Paused });
+        await viewModel.RefreshProjectsAsync();
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Single(viewModel.ProjectOptions);
+        Assert.Equal("Alpha 3", viewModel.ProjectOptions[0].Name);
+    }
+
+    [Fact]
     public async Task RefreshProjectsAsyncIsNoOpWithoutPersistence()
     {
         var viewModel = NewViewModel(new FakeExecutionCoordinator());

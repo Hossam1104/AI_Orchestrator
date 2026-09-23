@@ -173,6 +173,95 @@ public sealed class MissionControlViewModelTests
     }
 
     [Fact]
+    public async Task RefreshProjectsAsyncUpdatesExistingProjectMetadata()
+    {
+        var alpha = CreateProject("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new MissionControlViewModel(registry, new FakeReadModel());
+        await viewModel.InitializeAsync();
+        var option = viewModel.ProjectOptions[0];
+
+        await registry.UpdateProjectAsync(alpha.Id, new ProjectEdit { Name = "Alpha Renamed", LocalPath = alpha.LocalPath, Status = ProjectStatus.Paused });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Same(option, viewModel.ProjectOptions[0]);
+        Assert.Equal("Alpha Renamed", option.Name);
+        Assert.Equal(ProjectStatus.Paused.ToString(), option.StatusText);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncPreservesSelectedIdentityWhileApplyingNewMetadata()
+    {
+        var alpha = CreateProject("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new MissionControlViewModel(registry, new FakeReadModel());
+        await viewModel.InitializeAsync();
+        await viewModel.SelectProjectAsync(alpha.Id);
+        var selectedBeforeRefresh = viewModel.SelectedProject;
+
+        await registry.UpdateProjectAsync(alpha.Id, new ProjectEdit { Name = "Alpha Renamed", LocalPath = alpha.LocalPath, Status = ProjectStatus.Paused });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Same(selectedBeforeRefresh, viewModel.SelectedProject);
+        Assert.Equal("Alpha Renamed", viewModel.SelectedProject!.Name);
+        Assert.Equal(ProjectStatus.Paused.ToString(), viewModel.SelectedProject.StatusText);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncRenameReordersCollectionWithoutClearing()
+    {
+        var alpha = CreateProject("Alpha");
+        var zed = CreateProject("Zed");
+        var registry = new MutableProjectRegistry(alpha, zed);
+        var viewModel = new MissionControlViewModel(registry, new FakeReadModel());
+        await viewModel.InitializeAsync();
+        Assert.Equal(["Alpha", "Zed"], viewModel.ProjectOptions.Select(option => option.Name));
+
+        await registry.UpdateProjectAsync(zed.Id, new ProjectEdit { Name = "Beta", LocalPath = zed.LocalPath, Status = ProjectStatus.Active });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Equal(["Alpha", "Beta"], viewModel.ProjectOptions.Select(option => option.Name));
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncPreservesSelectedIdentityAcrossRenameReorder()
+    {
+        var alpha = CreateProject("Alpha");
+        var zed = CreateProject("Zed");
+        var registry = new MutableProjectRegistry(alpha, zed);
+        var viewModel = new MissionControlViewModel(registry, new FakeReadModel());
+        await viewModel.InitializeAsync();
+        await viewModel.SelectProjectAsync(zed.Id);
+        var selectedBeforeRename = viewModel.SelectedProject;
+
+        await registry.UpdateProjectAsync(zed.Id, new ProjectEdit { Name = "Beta", LocalPath = zed.LocalPath, Status = ProjectStatus.Active });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Same(selectedBeforeRename, viewModel.SelectedProject);
+        Assert.Equal("Beta", viewModel.SelectedProject!.Name);
+        Assert.Equal(["Alpha", "Beta"], viewModel.ProjectOptions.Select(option => option.Name));
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncMetadataUpdateOfSelectedProjectDoesNotRereadReadModel()
+    {
+        var alpha = CreateProject("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var readModel = new FakeReadModel();
+        var viewModel = new MissionControlViewModel(registry, readModel);
+        // Alpha is the only Active project, so InitializeAsync auto-selects and reads it once.
+        await viewModel.InitializeAsync();
+        var snapshotBeforeRefresh = viewModel.Snapshot;
+
+        await registry.UpdateProjectAsync(alpha.Id, new ProjectEdit { Name = "Alpha Renamed", LocalPath = alpha.LocalPath, Status = ProjectStatus.Active });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Same(snapshotBeforeRefresh, viewModel.Snapshot);
+        Assert.Equal([alpha.Id], readModel.RequestedProjectIds);
+        Assert.Equal("Alpha Renamed", viewModel.SelectedProject!.Name);
+    }
+
+    [Fact]
     public async Task RefreshProjectsAsyncIsNoOpWithoutPersistence()
     {
         var viewModel = new MissionControlViewModel();

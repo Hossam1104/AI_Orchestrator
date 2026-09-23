@@ -1,11 +1,87 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 23 September 2026 (APO-70 live project-registry synchronization correction; owner gates pending)
+**Last Updated:** 23 September 2026 (APO-70 existing-project metadata reconciliation correction; owner gates pending)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 existing-project metadata reconciliation correction
+
+**Last Updated:** 23 September 2026
+
+Owner functional acceptance found a defect remaining after `bad78d2` (the prior APO-70 correction,
+entry below): that fix made a *newly registered* project appear in Execution and Mission Control
+without restart, but an edit to an *already-visible* project's metadata (same project id — e.g. a
+rename or status change) still did not refresh in either selector. `ReconcileProjectOptions` in both
+view models only added genuinely new project ids and removed vanished ones; for an id already present
+it explicitly skipped the entry, so the wrapping `MissionControlProjectOption` — which held an
+immutable `Project` reference captured at first sight — was never told about the newer snapshot.
+
+**Root cause.** `MissionControlProjectOption` (`src/AIUsageMonitor.Desktop/ViewModels/MissionControlViewModel.cs`)
+was a plain immutable wrapper with a constructor-only `Project` reference and no way to apply a newer
+snapshot in place. Both `ExecutionViewModel.ReconcileProjectOptions` and
+`MissionControlViewModel.ReconcileProjectOptions` `continue`d past any project id already present in
+`ProjectOptions`, so a same-id edit was silently discarded even though the registry itself was
+correctly updated and persisted.
+
+**Fix.** `MissionControlProjectOption` now extends `ObservableObject` and exposes `Update(Project)`:
+it validates the incoming project shares the same id (throws on mismatch), no-ops on a
+reference-equal snapshot, otherwise swaps the backing field and raises `PropertyChanged` for
+`Project`/`Name`/`StatusText`/`DisplayText`/`RepositoryContextText`/`TrackerContextText`/
+`GovernanceContextText` — the exact instance is preserved, only its displayed facts change, so a
+bound `SelectedItem` never drops out of the collection and WPF never pushes a transient `null` back
+through the TwoWay binding. Both `ReconcileProjectOptions` methods now call `option.Update(project)`
+for every id still present instead of skipping it. Because `Update()` never reassigns
+`ExecutionViewModel.SelectedProject`/`MissionControlViewModel.SelectedProject` itself, none of the
+owner's in-progress Draft fields (Title/Objective/AcceptanceCriteria/Constraints) or Ready/Running/
+Cancelling execution authority (RunId, prepared workspace, checkpoint, executor, lifecycle state) are
+reset or reinterpreted by a metadata-only refresh, even when `LocalPath` changes. Mission Control
+additionally gained a private `ReorderAlphabetically` step (called at the end of
+`ReconcileProjectOptions`) that walks the collection in current-`Name` sorted order and calls
+`ObservableCollection<T>.Move` for any option not already at its sorted index — a rename that changes
+alphabetical position (e.g. "Zed" → "Beta") now reorders the live collection using Move, which raises
+a Move notification rather than a Remove+Add pair, so a renamed *and currently selected* option is
+never dropped from `SelectedItem` by the reorder itself. Mission Control's read-model `Snapshot` is
+untouched by a metadata-only refresh — no new `ReadAsync` call is triggered merely because registry
+metadata changed elsewhere. Test infrastructure: `MutableProjectRegistry.UpdateProjectAsync`
+(`tests/AIUsageMonitor.Desktop.Tests/MutableProjectRegistry.cs`) was implemented (it previously threw
+`NotSupportedException`) mirroring production `ProjectRegistryService.UpdateProjectAsync` semantics
+(preserves `Id`/`CreatedAt`, refreshes `UpdatedAt`, falls back to the existing metadata dictionaries
+when the edit's are null) so tests can simulate a same-process registry edit.
+
+**Tests.** 11 new regression tests, zero removed, zero modified: 5 in `ExecutionViewModelTests.cs`
+(unselected-project metadata update; selected-identity preserved across a metadata update; Draft
+request fields survive a metadata refresh; a metadata refresh during `Running` updates the selected
+option without disturbing `State`/`Title`/prepared authority; repeated metadata updates stay
+duplicate-free), 5 in `MissionControlViewModelTests.cs` (metadata update; selected-identity preserved;
+a rename reorders the collection via Move without clearing it; selected-identity survives a rename
+reorder; a metadata-only refresh does not re-read the Mission Control read model or disturb
+`Snapshot`), and 1 composition-root test in `MainWindowProjectSynchronizationTests.cs`
+(`NavigatingToWorkspacesAfterSameProcessEditRevealsUpdatedMetadataInBoth`) proving the same-id edit is
+visible with preserved identity in both workspaces after navigation, wired through
+`MainWindowViewModel` exactly as the owner drives it. All 11 were run against the unmodified `bad78d2`
+production code before any production file was touched and confirmed to fail (11/11 failed with the
+stale-value assertion mismatches expected of the described defect), proving the characterization; they
+were re-run after the fix and pass, alongside the full pre-existing `ExecutionViewModelTests`/
+`MissionControlViewModelTests`/`MainWindowProjectSynchronizationTests` suites with zero regressions.
+
+Full local validation: Release build 0 warnings / 0 errors; canonical suite `1,513 passed / 0 failed /
+0 skipped` (Domain 29, Connection 382, Provider 246, Desktop 177, Infrastructure 679) versus the prior
+1,502-test baseline (+11, matching the new tests exactly, zero regressions); `git diff --check` clean.
+A fresh self-contained `win-x64` publish (`scripts\Run-FreshDesktop.ps1 -SmokeTest`) built, launched,
+presented a responding main window, and was stopped cleanly (`APO PROCESS COUNT = 0` afterward);
+executable SHA-256 `A5BA43E4115B6E46F51A3A296706435E9131E62396E64FE23B8F1763091768D0`. As with the prior
+entry, that smoke test proves the fixed build boots correctly but does not itself exercise the live UI
+path (editing a registered project's metadata and visually confirming both selectors update in place
+without restart): this session has no UI-automation/input-injection tool available, so that live
+click-through proof is not claimed here and remains an explicit open item for a session or reviewer
+with that capability, or for owner manual confirmation.
+
+No real Sol, Luna, or Codex model was invoked; no Prepare/Start was invoked against a real coordinator
+outside fakes. No merge, main push, force push, release, tag, or deployment was performed. PR #112
+remains Draft/Open/Unmerged and Issue #111 remains Open/current-gate.
 
 ## CURRENT - APO-70 live project-registry synchronization correction
 

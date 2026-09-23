@@ -302,15 +302,16 @@ public sealed class ExecutionViewModel : ObservableObject
 
     private void ReconcileProjectOptions(IReadOnlyList<Project> latest)
     {
-        var latestIds = new HashSet<Guid>(latest.Select(static project => project.Id));
+        var latestById = latest.ToDictionary(static project => project.Id);
         var existingIds = new HashSet<Guid>();
 
         for (var index = ProjectOptions.Count - 1; index >= 0; index--)
         {
-            var id = ProjectOptions[index].Id;
-            if (latestIds.Contains(id))
+            var option = ProjectOptions[index];
+            if (latestById.TryGetValue(option.Id, out var project))
             {
-                existingIds.Add(id);
+                existingIds.Add(option.Id);
+                option.Update(project);
             }
             else
             {
