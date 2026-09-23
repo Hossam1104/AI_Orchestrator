@@ -35,6 +35,60 @@ public sealed class ProjectOnboardingViewModelTests
     }
 
     [Fact]
+    public void QueryingNextCanExecuteDoesNotProduceValidationSideEffects()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+
+        // WPF's CommandManager re-queries CanExecute on unrelated UI events; merely asking whether
+        // Next is enabled must never mutate owner-facing validation state.
+        _ = onboarding.NextCommand.CanExecute(null);
+        _ = onboarding.NextCommand.CanExecute(null);
+        _ = onboarding.NextCommand.CanExecute(null);
+
+        Assert.False(onboarding.HasError);
+        Assert.Null(onboarding.ErrorMessage);
+    }
+
+    [Fact]
+    public void CorrectingLocalPathClearsObsoleteMissingPathError()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+        onboarding.Name = "Project";
+
+        onboarding.NextCommand.Execute(null);
+        Assert.Equal("Local workspace path is required.", onboarding.ErrorMessage);
+
+        onboarding.LocalPath = "C:\\project";
+
+        Assert.True(onboarding.NextCommand.CanExecute(null));
+        Assert.False(onboarding.HasError);
+        Assert.Null(onboarding.ErrorMessage);
+    }
+
+    [Fact]
+    public void ExplicitInvalidNextAttemptReportsValidationAndDoesNotAdvance()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+
+        onboarding.NextCommand.Execute(null);
+
+        Assert.Equal(ProjectOnboardingStep.Project, onboarding.CurrentStep);
+        Assert.Equal("Project name is required.", onboarding.ErrorMessage);
+    }
+
+    [Fact]
+    public void ValidNextAdvancesToRepositoryStepWithoutError()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+        SetProjectValues(onboarding);
+
+        onboarding.NextCommand.Execute(null);
+
+        Assert.Equal(ProjectOnboardingStep.Repository, onboarding.CurrentStep);
+        Assert.False(onboarding.HasError);
+    }
+
+    [Fact]
     public void RepositorySkipAdvancesWithoutFakeConnection()
     {
         var onboarding = CreateOnboarding(new FakeOnboardingService());

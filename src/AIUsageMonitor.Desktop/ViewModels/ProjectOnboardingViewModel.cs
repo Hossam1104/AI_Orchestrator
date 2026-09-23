@@ -147,6 +147,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         {
             if (SetProperty(ref _name, value ?? string.Empty))
             {
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
@@ -172,6 +173,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
                 }
             }
 
+            ClearStaleValidationError();
             NotifyCommands();
         }
     }
@@ -184,6 +186,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             if (SetProperty(ref _repositoryChoice, value))
             {
                 OnPropertyChanged(nameof(RepositoryDecisionText));
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
@@ -288,6 +291,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             if (SetProperty(ref _repositoryDefaultBranch, value ?? string.Empty))
             {
                 OnPropertyChanged(nameof(CanAcceptRepository));
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
@@ -310,6 +314,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
                 OnPropertyChanged(nameof(TrackerReferenceLabel));
                 OnPropertyChanged(nameof(TrackerReferenceHelpText));
                 OnPropertyChanged(nameof(TrackerStateText));
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
@@ -334,6 +339,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         {
             if (SetProperty(ref _trackerReference, value ?? string.Empty))
             {
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
@@ -384,12 +390,13 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
 
     private void Next()
     {
-        ErrorMessage = null;
-        if (!IsCurrentStepValid())
+        if (!TryValidateCurrentStep(out var error))
         {
+            ErrorMessage = error;
             return;
         }
 
+        ErrorMessage = null;
         CurrentStep = (ProjectOnboardingStep)((int)CurrentStep + 1);
     }
 
@@ -402,29 +409,54 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         }
     }
 
-    private bool IsCurrentStepValid()
+    /// <summary>
+    /// Pure eligibility check used by command CanExecute evaluation. WPF's CommandManager can query
+    /// this at any time (focus changes, input events); it must never mutate owner-facing state.
+    /// </summary>
+    private bool IsCurrentStepValid() => TryValidateCurrentStep(out _);
+
+    /// <summary>
+    /// Called from onboarding input setters (Name, LocalPath, tracker/repository fields) so a
+    /// correction deterministically clears a stale field-level error from an earlier explicit Next
+    /// attempt. Deliberately not wired into NotifyCommands/IsBusy: those also run after
+    /// business-outcome error assignment (e.g. FinishAsync failure), which must not be cleared here.
+    /// </summary>
+    private void ClearStaleValidationError()
+    {
+        if (HasError && TryValidateCurrentStep(out _))
+        {
+            ErrorMessage = null;
+        }
+    }
+
+    /// <summary>
+    /// Produces the validation outcome and, when invalid, the message an explicit attempted action
+    /// (e.g. Next) should display. Side-effect-free: callers decide whether/how to surface the error.
+    /// </summary>
+    private bool TryValidateCurrentStep(out string? error)
     {
         switch (CurrentStep)
         {
             case ProjectOnboardingStep.Project when string.IsNullOrWhiteSpace(Name):
-                ErrorMessage = "Project name is required.";
+                error = "Project name is required.";
                 return false;
             case ProjectOnboardingStep.Project when string.IsNullOrWhiteSpace(LocalPath):
-                ErrorMessage = "Local workspace path is required.";
+                error = "Local workspace path is required.";
                 return false;
             case ProjectOnboardingStep.Repository when RepositoryChoice == RepositoryOnboardingChoice.NotSelected:
-                ErrorMessage = "Confirm the preview evidence or choose to continue without repository integration.";
+                error = "Confirm the preview evidence or choose to continue without repository integration.";
                 return false;
             case ProjectOnboardingStep.Repository when RepositoryChoice == RepositoryOnboardingChoice.AcceptDetected && !CanAcceptRepository:
-                ErrorMessage = "A verified repository with a usable branch is required; otherwise choose skip.";
+                error = "A verified repository with a usable branch is required; otherwise choose skip.";
                 return false;
             case ProjectOnboardingStep.Tracker when !IsTrackerSkipped && string.IsNullOrWhiteSpace(TrackerReference):
-                ErrorMessage = "A bounded tracker reference is required, or choose No tracker / Skip.";
+                error = "A bounded tracker reference is required, or choose No tracker / Skip.";
                 return false;
             case ProjectOnboardingStep.Tracker when !IsTrackerSkipped && TrackerReference.Length > MaxTrackerReferenceLength:
-                ErrorMessage = $"The tracker reference cannot exceed {MaxTrackerReferenceLength} characters.";
+                error = $"The tracker reference cannot exceed {MaxTrackerReferenceLength} characters.";
                 return false;
             default:
+                error = null;
                 return true;
         }
     }
