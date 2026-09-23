@@ -176,6 +176,7 @@ public sealed class MainWindowViewModel : ObservableObject
         IsProjectsSelected = false;
         IsAiCapacitySelected = false;
         IsExecutionSelected = false;
+        _ = MissionControl.RefreshProjectsAsync();
     }
 
     private void ShowProjects()
@@ -203,6 +204,7 @@ public sealed class MainWindowViewModel : ObservableObject
         IsProjectsSelected = false;
         IsAiCapacitySelected = false;
         IsExecutionSelected = true;
+        _ = Execution.RefreshProjectsAsync();
     }
 
     private void OpenAddExistingProject()

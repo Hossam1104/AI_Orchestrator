@@ -1,11 +1,74 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 22 September 2026 (APO-70 exact Codex probe applicability + real persisted identity proof correction; owner gates pending)
+**Last Updated:** 23 September 2026 (APO-70 live project-registry synchronization correction; owner gates pending)
 
 Only the sections above the `Historical record` divider describe the current state of the
 repository. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## CURRENT - APO-70 live project-registry synchronization correction
+
+**Last Updated:** 23 September 2026
+
+Owner functional acceptance found a defect distinct from the two prior APO-70 corrections below: a
+project registered in the running Desktop process appears immediately in the Projects workspace and
+is persisted, but the Execution workspace's project selector (and, on inspection, Mission Control's)
+kept showing only the registry snapshot each had read once at `MainWindowViewModel.InitializeAsync()`
+— the new project stayed invisible in both workspaces until the app was restarted.
+
+**Root cause.** `ExecutionViewModel.InitializeAsync()` and `MissionControlViewModel.LoadProjectsAsync()`
+(called only from their own `InitializeAsync`) each read `IProjectRegistryService.GetProjectsAsync`
+exactly once, at composition-root startup. No navigation, onboarding-completion, or other in-process
+event ever triggered a second read for either consumer; `ProjectsViewModel` was unaffected because it
+owns its own independent `RefreshAsync`/`ReplaceProject` path.
+
+**Fix.** Added `RefreshProjectsAsync()` to both `ExecutionViewModel`
+(`src/AIUsageMonitor.Desktop/ViewModels/ExecutionViewModel.cs`) and `MissionControlViewModel`
+(`src/AIUsageMonitor.Desktop/ViewModels/MissionControlViewModel.cs`), each backed by a private
+`ReconcileProjectOptions` that adds newly-registered projects and removes vanished ones by project id
+without ever clearing the `ObservableCollection` or replacing the currently selected option's
+instance while it still exists in the registry. Both selectors bind `SelectedItem="{Binding
+SelectedProject, Mode=TwoWay}"`; a naive `Clear()`-and-rebuild (the pattern `ProjectsViewModel`
+already uses for its own list) would transiently desynchronize `SelectedItem` from `ItemsSource` and
+let WPF push a transient `null` back through the TwoWay binding, silently wiping the owner's
+in-progress Title/Objective/AcceptanceCriteria in Execution or resetting Mission Control's snapshot.
+The reconciliation never auto-selects — that stays an `InitializeAsync`-only, cold-start behavior —
+and Mission Control's insertion preserves its existing alphabetical `Name` ordering.
+`MainWindowViewModel.ShowExecution()`/`ShowMissionControl()`
+(`src/AIUsageMonitor.Desktop/ViewModels/MainWindowViewModel.cs`) now call the corresponding
+`RefreshProjectsAsync()` on navigation, making navigation-triggered refresh the explicit
+synchronization contract (no shared mutable collection, no event bus, no VM recreation, no polling).
+
+**Tests.** 15 new regression tests, zero removed: 6 in `ExecutionViewModelTests.cs` and 6 in
+`MissionControlViewModelTests.cs` cover same-process visibility after refresh, selection preserved by
+id across refresh, no duplication across repeated refreshes, a newly-registered project being
+selectable, Mission Control's alphabetical insertion order, Execution's running-state safety (refresh
+during `Running` does not disturb `SelectedProject`, `Title`, or `State`), and a no-persistence no-op.
+3 new tests in `MainWindowProjectSynchronizationTests.cs` (new file) reproduce the defect at the real
+composition root — `MainWindowViewModel.ShowExecutionCommand`/`ShowMissionControlCommand` after a
+same-process `CreateProjectAsync` — and were confirmed to fail against the pre-fix code (via a
+temporary `git stash` of only the three production files, tests re-run, then restored) before the fix
+was accepted. A new `MutableProjectRegistry` test double
+(`tests/AIUsageMonitor.Desktop.Tests/MutableProjectRegistry.cs`) was added because every existing
+`IProjectRegistryService` fake in the suite was fixed-list-at-construction and could not simulate a
+project being registered mid-test.
+
+Full local validation: Release build 0 warnings / 0 errors; canonical suite `1,502 passed / 0 failed
+/ 0 skipped` (Domain 29, Connection 382, Provider 246, Desktop 166, Infrastructure 679) versus the
+prior 1,487-test baseline, with zero regressions; `git diff --check` clean. A fresh self-contained
+`win-x64` publish (`scripts\Run-FreshDesktop.ps1 -SmokeTest`) built, launched, presented a responding
+main window, and was stopped cleanly (`APO PROCESS COUNT = 0` afterward); executable SHA-256
+`53910200CD22B8FB28E565205F55A7B1B87C604A542572169D028444AD6A5B3D`. That smoke test proves the fixed
+build boots correctly but does not by itself exercise the live UI path (launching the onboarding
+wizard, registering a project, and visually confirming Execution/Mission Control update without
+restart): this session has no UI-automation/input-injection tool available to drive that interaction,
+so the live click-through proof is not claimed here and remains an explicit open item for a session
+or reviewer with that capability, or for owner manual confirmation.
+
+No real Sol, Luna, or Codex model was invoked; no Prepare/Start was invoked against a real coordinator
+outside fakes. No merge, main push, force push, release, tag, or deployment was performed. PR #112
+remains Draft/Open/Unmerged and Issue #111 remains Open/current-gate.
 
 ## CURRENT - APO-70 exact Codex probe applicability + real persisted identity proof correction
 

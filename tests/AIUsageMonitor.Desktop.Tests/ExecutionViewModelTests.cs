@@ -431,6 +431,118 @@ public sealed class ExecutionViewModelTests
     }
 
     [Fact]
+    public async Task RefreshProjectsAsyncMakesSameProcessRegisteredProjectVisibleWithoutRestart()
+    {
+        var alpha = Project("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new ExecutionViewModel(registry, new FakeExecutionCoordinator());
+        await viewModel.InitializeAsync();
+
+        Assert.Single(viewModel.ProjectOptions);
+
+        var beta = await registry.CreateProjectAsync(new ProjectEdit { Name = "Beta", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Equal(2, viewModel.ProjectOptions.Count);
+        Assert.Contains(viewModel.ProjectOptions, option => option.Id == alpha.Id);
+        Assert.Contains(viewModel.ProjectOptions, option => option.Id == beta.Id);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncPreservesSelectedProjectInstanceById()
+    {
+        var alpha = Project("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new ExecutionViewModel(registry, new FakeExecutionCoordinator());
+        await viewModel.InitializeAsync();
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+        var selectedBeforeRefresh = viewModel.SelectedProject;
+
+        await registry.CreateProjectAsync(new ProjectEdit { Name = "Beta", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Same(selectedBeforeRefresh, viewModel.SelectedProject);
+        Assert.Equal(alpha.Id, viewModel.SelectedProject!.Id);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncDoesNotDuplicateProjectsAcrossRepeatedCalls()
+    {
+        var alpha = Project("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new ExecutionViewModel(registry, new FakeExecutionCoordinator());
+        await viewModel.InitializeAsync();
+
+        await registry.CreateProjectAsync(new ProjectEdit { Name = "Beta", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+        await viewModel.RefreshProjectsAsync();
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Equal(2, viewModel.ProjectOptions.Count);
+    }
+
+    [Fact]
+    public async Task NewlyRegisteredProjectIsSelectableAfterRefresh()
+    {
+        var alpha = Project("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var coordinator = new FakeExecutionCoordinator();
+        var viewModel = new ExecutionViewModel(registry, coordinator);
+        await viewModel.InitializeAsync();
+
+        var beta = await registry.CreateProjectAsync(new ProjectEdit { Name = "Beta", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+        var betaOption = viewModel.ProjectOptions.Single(option => option.Id == beta.Id);
+        viewModel.SelectedProject = betaOption;
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+
+        Assert.Same(betaOption, viewModel.SelectedProject);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncDoesNotDisturbRunningExecutionState()
+    {
+        var alpha = Project("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var coordinator = new FakeExecutionCoordinator { Preparation = PreparedResult(), BlockStart = true };
+        var viewModel = new ExecutionViewModel(registry, coordinator);
+        await viewModel.InitializeAsync();
+        viewModel.SelectedProject = viewModel.ProjectOptions[0];
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Draft);
+        viewModel.Title = "Bounded change";
+        viewModel.Objective = "Make the requested bounded change.";
+        viewModel.AcceptanceCriteria = "Verify the result.";
+
+        await Prepare(viewModel, coordinator);
+        viewModel.StartCommand.Execute(null);
+        await coordinator.StartRequested.Task;
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Running);
+
+        var runningSelection = viewModel.SelectedProject;
+        await registry.CreateProjectAsync(new ProjectEdit { Name = "Beta", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Equal(ExecutionCoordinatorState.Running, viewModel.State);
+        Assert.Same(runningSelection, viewModel.SelectedProject);
+        Assert.Equal("Bounded change", viewModel.Title);
+        Assert.Equal(2, viewModel.ProjectOptions.Count);
+
+        coordinator.ReleaseStart.TrySetResult(true);
+        await WaitUntil(() => viewModel.State == ExecutionCoordinatorState.Completed);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncIsNoOpWithoutPersistence()
+    {
+        var viewModel = NewViewModel(new FakeExecutionCoordinator());
+
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Empty(viewModel.ProjectOptions);
+    }
+
+    [Fact]
     public async Task SelectingAnotherProjectIsIgnoredWhileExecutionIsRunning()
     {
         var coordinator = new FakeExecutionCoordinator { Preparation = PreparedResult(), BlockStart = true };

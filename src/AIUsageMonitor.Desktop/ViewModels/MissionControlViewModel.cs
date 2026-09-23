@@ -303,6 +303,80 @@ public sealed class MissionControlViewModel : ObservableObject
         await RefreshSelectedProjectAsync(SelectedProject.Id, _selectionGeneration, cancellationToken).ConfigureAwait(true);
     }
 
+    /// <summary>
+    /// Reconciles <see cref="ProjectOptions"/> with current registry truth without app restart.
+    /// Unlike <see cref="LoadProjectsAsync"/>, this never clears the collection and never replaces
+    /// or removes the currently selected option's instance while it still exists in the registry:
+    /// the selector binds <c>SelectedItem</c> TwoWay, so dropping that exact instance out of the
+    /// collection — even momentarily — lets WPF push a transient null back through the binding and
+    /// silently reset the read model in view. It also never auto-selects a project; that remains a
+    /// <see cref="LoadProjectsAsync"/>-only, cold-start behavior.
+    /// </summary>
+    public async Task RefreshProjectsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_projects is null || !IsStorageAvailable)
+        {
+            return;
+        }
+
+        try
+        {
+            var latest = await _projects.GetProjectsAsync(cancellationToken).ConfigureAwait(true);
+            ReconcileProjectOptions(latest);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // A same-process synchronization refresh must not destroy an already-loaded project list.
+        }
+    }
+
+    private void ReconcileProjectOptions(IReadOnlyList<Project> latest)
+    {
+        var latestIds = new HashSet<Guid>(latest.Select(static project => project.Id));
+        var existingIds = new HashSet<Guid>();
+
+        for (var index = ProjectOptions.Count - 1; index >= 0; index--)
+        {
+            var id = ProjectOptions[index].Id;
+            if (latestIds.Contains(id))
+            {
+                existingIds.Add(id);
+            }
+            else
+            {
+                ProjectOptions.RemoveAt(index);
+            }
+        }
+
+        var comparer = StringComparer.CurrentCultureIgnoreCase;
+        foreach (var project in latest.OrderBy(value => value.Name, comparer))
+        {
+            if (existingIds.Contains(project.Id))
+            {
+                continue;
+            }
+
+            var option = new MissionControlProjectOption(project);
+            var insertAt = ProjectOptions.Count;
+            for (var index = 0; index < ProjectOptions.Count; index++)
+            {
+                if (comparer.Compare(ProjectOptions[index].Name, project.Name) > 0)
+                {
+                    insertAt = index;
+                    break;
+                }
+            }
+
+            ProjectOptions.Insert(insertAt, option);
+        }
+
+        OnPropertyChanged(nameof(HasProjects));
+    }
+
     private async Task LoadProjectsAsync(CancellationToken cancellationToken)
     {
         if (_projects is null)

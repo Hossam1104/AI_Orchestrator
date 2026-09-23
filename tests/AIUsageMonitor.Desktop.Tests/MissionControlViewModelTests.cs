@@ -88,6 +88,101 @@ public sealed class MissionControlViewModelTests
         Assert.False(readModel.ObservedDisposedToken);
     }
 
+    [Fact]
+    public async Task RefreshProjectsAsyncMakesSameProcessRegisteredProjectVisibleWithoutRestart()
+    {
+        var alpha = CreateProject("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new MissionControlViewModel(registry, new FakeReadModel());
+        await viewModel.InitializeAsync();
+
+        Assert.Single(viewModel.ProjectOptions);
+
+        var beta = await registry.CreateProjectAsync(new ProjectEdit { Name = "Zed", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Equal(2, viewModel.ProjectOptions.Count);
+        Assert.Contains(viewModel.ProjectOptions, option => option.Id == alpha.Id);
+        Assert.Contains(viewModel.ProjectOptions, option => option.Id == beta.Id);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncPreservesSelectedProjectInstanceById()
+    {
+        var alpha = CreateProject("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new MissionControlViewModel(registry, new FakeReadModel());
+        await viewModel.InitializeAsync();
+        await viewModel.SelectProjectAsync(alpha.Id);
+        var selectedBeforeRefresh = viewModel.SelectedProject;
+
+        await registry.CreateProjectAsync(new ProjectEdit { Name = "Zed", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Same(selectedBeforeRefresh, viewModel.SelectedProject);
+        Assert.Equal(alpha.Id, viewModel.SelectedProject!.Id);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncDoesNotDuplicateProjectsAcrossRepeatedCalls()
+    {
+        var alpha = CreateProject("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var viewModel = new MissionControlViewModel(registry, new FakeReadModel());
+        await viewModel.InitializeAsync();
+
+        await registry.CreateProjectAsync(new ProjectEdit { Name = "Zed", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+        await viewModel.RefreshProjectsAsync();
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Equal(2, viewModel.ProjectOptions.Count);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncInsertsNewProjectInAlphabeticalOrder()
+    {
+        var alpha = CreateProject("Alpha");
+        var zed = CreateProject("Zed");
+        var registry = new MutableProjectRegistry(alpha, zed);
+        var viewModel = new MissionControlViewModel(registry, new FakeReadModel());
+        await viewModel.InitializeAsync();
+
+        await registry.CreateProjectAsync(new ProjectEdit { Name = "Middle", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Equal(["Alpha", "Middle", "Zed"], viewModel.ProjectOptions.Select(option => option.Name));
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncDoesNotDisturbSnapshotOfSelectedProject()
+    {
+        var alpha = CreateProject("Alpha");
+        var registry = new MutableProjectRegistry(alpha);
+        var readModel = new FakeReadModel();
+        var viewModel = new MissionControlViewModel(registry, readModel);
+        // Alpha is the only Active project, so InitializeAsync auto-selects and reads it once.
+        await viewModel.InitializeAsync();
+        var snapshotBeforeRefresh = viewModel.Snapshot;
+
+        await registry.CreateProjectAsync(new ProjectEdit { Name = "Zed", LocalPath = Environment.CurrentDirectory });
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Same(snapshotBeforeRefresh, viewModel.Snapshot);
+        Assert.Equal([alpha.Id], readModel.RequestedProjectIds);
+    }
+
+    [Fact]
+    public async Task RefreshProjectsAsyncIsNoOpWithoutPersistence()
+    {
+        var viewModel = new MissionControlViewModel();
+        viewModel.SetPersistenceAvailability(false);
+
+        await viewModel.RefreshProjectsAsync();
+
+        Assert.Empty(viewModel.ProjectOptions);
+    }
+
     private static MissionControlViewModel CreateViewModel(params Project[] projects) =>
         CreateViewModel(new FakeReadModel(), projects);
 
