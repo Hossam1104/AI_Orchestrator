@@ -13,22 +13,7 @@ Canonical model portfolio, routing, quota, and execution-policy detail live in
 `.ai/AI_MODEL_ROUTING.md` and `.ai/AI_EXECUTION_POLICY.md`. This section summarizes only the
 Claude-relevant slice; do not duplicate the canonical files here.
 
-- **GPT-5.6 Sol:** planner, architect, model router, quota governor, work-item decomposition owner,
-  acceptance authority, and executor prompt authority (chat mode only).
-- **GPT-5.6 Luna xHigh:** default substantial implementation executor and workhorse (approximately
-  60% target), with first-pass completion preferred.
-- **Claude Sonnet 5 Medium:** bounded bug-fix specialist for isolated defects, narrow regressions,
-  and localized implementation errors, only when Sol explicitly selects it.
-- **Claude Sonnet 5 High:** bounded bug-fix specialist for difficult isolated defects, only when Sol
-  explicitly selects it.
-- **Claude Haiku 4.5:** disabled from active routing. Do not assign or route work to Haiku.
-- **Claude Opus 5:** independent reviewer, approximately 10% ceiling, used at roughly every seven
-  meaningful executor prompts or at a critical checkpoint; review-only by default.
-- **GPT-5.6 Luna Max:** exceptional implementation escalation only; never the normal executor.
-- **GPT-5.6 Terra Medium/High:** protected recovery / difficult surgical finalization resource,
-  approximately 20% ceiling, not the normal executor. Sol considers whether Luna can finish with a
-  better bounded correction prompt first; security/concurrency/data-integrity assurance may still
-  justify Terra when recovery complexity warrants it.
+Current development roles are in [AI model routing](.ai/AI_MODEL_ROUTING.md): GPT-5.6 High in Chat is persistent Sol authority; GPT-6 Luna Reasoning xHigh is the default substantial executor; Claude Sonnet 5 Effort HIGH handles bounded isolated bug fixes and difficult recovery; Claude Opus 5.5 Effort HIGH handles independent review and exceptional owner-authorized Grand Master Cleaning; GPT-6 Sol Reasoning High is exceptional direct Codex implementation; Gemini 3.8 Flash Reasoning HIGH is an explicitly delegated low-risk mechanical auxiliary. GPT-5.6 Terra is retired. No APO work runs during the 2026-09-24 owner hold; see [current state](.ai/CURRENT_STATE.md).
 
 Default APO repository-execution providers are OpenAI/Codex and Anthropic/Claude. Gemini may be an
 explicitly owner-delegated auxiliary resource for low-risk/mechanical cross-project work, but is

@@ -1,5 +1,7 @@
 # AI_Orchestrator — External Reference Harvest and Roadmap Integration
 
+**Current authority (2026-09-24):** AI_Orchestrator is OWNER-PAUSED / ON HOLD until Hossam explicitly resumes it. APO-70 / Issue #111 remains the sole logical gate; PR #112 remains Draft/Open/Unmerged. Owner visual acceptance is PASS; owner Desktop functional acceptance is NOT COMPLETE. No implementation or acceptance run is authorized while paused. See [current state](../.ai/CURRENT_STATE.md#project-status--owner-paused--on-hold) and [resume boundary](../.ai/CURRENT_STATE.md#resume-here). Dated evidence below retains its historical meaning.
+
 **Status:** Approved planning extension
 **Date:** 2026-09-16
 **Reference repository:** `monocsp/flutter_ai_orchestration`
@@ -404,7 +406,7 @@ The approved sequence is:
 CURRENT GATE
 APO-70 backend cross-process proof (SOL-ACCEPTED / COMPLETE)
   ↓
-APO-70 fresh Desktop functional + visual owner acceptance
+APO-70 owner visual PASS; Desktop functional owner acceptance pending
   ↓
 Final exact-head Sol acceptance for APO-70
   ↓
@@ -461,7 +463,7 @@ STOP
 
 The proof is complete and Sol-accepted on source head
 `a2719257e6dc2b276152f35aa34ad945a912a20a`; this document does not authorize a new execution. The
-remaining APO-70 gate is fresh owner-visible Desktop functional + visual acceptance. The repository's
+remaining APO-70 gate is owner-visible Desktop functional acceptance, after explicit owner resume. The repository's
 universal standalone lowercase `p` prompt gate remains authoritative.
 
 ---

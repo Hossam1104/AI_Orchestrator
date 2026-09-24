@@ -26,16 +26,7 @@
 The accepted FAST V1 foundation through APO-48, APO-51, APO-49, APO-63, APO-50, and APO-33 remains
 preserved. GitHub Actions CI is active on `main`, and v1.0.0 has **not** been released.
 
-The sole active implementation/recovery gate is **APO-70 (GitHub issue #111)** on
-`feature/APO-70-v1-desktop-product-recovery`, with Draft PR #112. The recovery line has already
-proved a real production-composed Sol `PrepareAsync` path through contract, WorkGraph, routing,
-Luna selection, handoff, isolated workspace preparation, recovery checkpoint, and `Ready`. Persisted
-`Ready` was rehydrated across coordinator/process restart, followed by exactly one real
-`gpt-5.6-luna` `StartAsync` workspace-write execution and a passing fresh-process anti-replay
-check. The backend cross-process proof is **SOL-ACCEPTED / COMPLETE** on source head
-`a2719257e6dc2b276152f35aa34ad945a912a20a` for ProjectId `c743e0da-24a6-4ad3-b309-aeb72658013c`.
-The remaining gate is fresh owner-visible Desktop functional + visual acceptance, followed by final
-exact-head Sol acceptance; merge, release, and deployment remain pending.
+**Project status: OWNER-PAUSED / ON HOLD since 2026-09-24 by Hossam.** APO-70 / open Issue #111 remains the sole logical gate on `feature/APO-70-v1-desktop-product-recovery`; PR #112 remains Open/Draft/Unmerged. Owner visual acceptance is **PASS**, superseding earlier rejections. Owner Desktop functional acceptance is **NOT COMPLETE**. The Sol-accepted backend cross-process proof remains valid but does not close the Desktop gate. The current real Prepare/planner/Start/executor acceptance budget remains unused (one each). No implementation or acceptance attempt is authorized until Hossam explicitly resumes. See [current state](.ai/CURRENT_STATE.md#project-status--owner-paused--on-hold) and [RESUME HERE](.ai/CURRENT_STATE.md#resume-here).
 
 The external-reference reviews have now been integrated as **planning/governance only**. They did
 not replace APO's stack or execution architecture. See
@@ -140,7 +131,7 @@ APO is an active foundation, not a finished orchestration product.
 | :white_check_mark: Implemented / validated | APO-38..43 control-plane contracts/services: agent/model truth, progressive onboarding, versioned contracts, dependency-aware WorkGraphs, structured handoffs, and durable Smart Continue/recovery state |
 | :white_check_mark: Implemented / validated | APO-44..46 bounded execution foundation: explainable quality-first routing, isolated workspaces, and bounded cancellable execution with project/authority/recovery safeguards |
 | :white_check_mark: Implemented / validated | APO-68 workspace-preparation hardening: fail-closed approval-index recovery, mutation timeout safety, repository lock identity, and inherited Git-environment hardening |
-| :warning: Partial / validated | APO-70 backend cross-process proof is Sol-accepted and complete; fresh owner-visible Desktop functional + visual acceptance remains pending |
+| :warning: Partial / validated | APO-70 backend cross-process proof is Sol-accepted and complete; owner visual acceptance is PASS; Desktop functional acceptance remains pending |
 | :white_check_mark: Implemented / validated | APO-47 tracker-agnostic work-item/dependency synchronization foundation with bounded reads, explicit mutation authority, post-verification, and audit evidence |
 | :white_check_mark: Implemented / validated | Official provider capacity adapter surfaces for Codex, Claude, Kimi, GitHub Copilot, and Antigravity, with documented manual/unsupported boundaries |
 | :white_check_mark: Implemented / validated | APO-62 provider-independent, read-only remote SCM and CI evidence (GitHub and Azure Repos) |
@@ -158,7 +149,7 @@ successful self-contained publish validation for `win-x86`, `win-x64`, and `win-
 planning/documentation commits move the branch HEAD and must not reuse that older SHA as an
 exact-head runtime acceptance claim.
 
-Not yet proven/accepted: the complete owner-visible end-to-end lifecycle, owner visual/functional
+Not yet proven/accepted: the complete owner-visible end-to-end lifecycle, owner functional
 acceptance, final APO-70 exact-head acceptance, and release readiness. Claude execution remains a
 separate provider/runtime capability and must not be claimed from the Codex proof.
 
@@ -246,21 +237,14 @@ overrides capability, risk, or the required review gate.
 
 | Model | Default role |
 | --- | --- |
-| **GPT-5.6 Sol High** | Planner, architect, router, quota governor, acceptance and prompt authority (chat only) |
-| **GPT-5.6 Luna xHigh** | Primary bounded implementation executor |
-| **Claude Sonnet 5 Medium** | Fallback / special-need bounded implementation when explicitly selected by Sol |
-| **Claude Sonnet 5 High** | Fallback / special-need difficult bounded implementation when explicitly selected by Sol |
-| **GPT-5.6 Luna Max** | Exceptional implementation escalation only |
-| **Claude Opus 5** | Independent critical reviewer at meaningful checkpoints |
-| **GPT-5.6 Terra Medium/High** | Specialist security, concurrency, and data-integrity assurance |
-| **Claude Haiku 4.5** | Disabled from active routing |
+| **GPT-5.6 High in Chat (Sol)** | Persistent planning, architecture, state, requirements, acceptance, governance, routing; 0% normal implementation |
+| **GPT-6 Luna Reasoning xHigh in Codex** | Default substantial executor |
+| **Claude Sonnet 5 Effort HIGH** | Bounded isolated bug fixes and difficult recovery/surgical finalization |
+| **Claude Opus 5.5 Effort HIGH** | Independent critical review; exceptional owner-authorized Grand Master Cleaning |
+| **GPT-6 Sol Reasoning High in Codex** | Emergency/exceptional direct implementation |
+| **Gemini 3.8 Flash Reasoning HIGH** | Explicitly delegated low-risk mechanical auxiliary |
 
-OpenAI/Codex and Anthropic/Claude are the active execution providers. GPT-5.6 Sol remains the
-planner, architect, router, quota governor, acceptance authority, and prompt authority in chat mode.
-Luna xHigh is the normal primary executor. Sonnet is an explicit fallback/special-need option;
-Haiku is disabled from active routing; Opus remains independent; and Terra is risk-triggered. The
-canonical policy is maintained in
-[AI model routing](.ai/AI_MODEL_ROUTING.md) and [AI execution policy](.ai/AI_EXECUTION_POLICY.md).
+GPT-5.6 Terra is retired. Development roles are separate from persisted APO product model IDs such as `gpt-5.6-sol` and `gpt-5.6-luna`. [Canonical routing](.ai/AI_MODEL_ROUTING.md) remains authoritative; no work is routed during the owner hold.
 
 Future APO-74 historical-performance routing is advisory and transparent: it may affect selection
 only among already eligible candidates and cannot override correctness, security, capability,
@@ -403,7 +387,7 @@ The roadmap follows the approved APO Epics and canonical GitHub work items. Deli
 identified explicitly; remaining entries are planned capability boundaries, not shipped runtime
 claims:
 
-1. **Current P0 gate — APO-70 / #111:** fresh owner-visible Desktop functional + visual acceptance, then final exact-head Sol acceptance.
+1. **Current P0 gate — APO-70 / #111:** owner visual PASS; Desktop functional acceptance only after explicit owner resume, then final exact-head Sol acceptance.
 2. **P0/P1 runtime evidence — APO-55 / #93:** process ownership, process-tree termination truth, restart reconciliation, environment fingerprint, and Mission Control runtime evidence.
 3. **P1 local Agent Readiness — APO-71 / #113:** executable provenance/path/version + supported modes + authentication/entitlement/capability/freshness truth.
 4. **P1 Project Intelligence Map — APO-75 / #117:** HEAD-bound, read-only planning context and impact analysis.

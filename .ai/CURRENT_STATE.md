@@ -1,11 +1,35 @@
 # AI_Orchestrator - Current State
 
-**Last Updated:** 23 September 2026 (APO-70 existing-project metadata reconciliation correction; owner gates pending)
+**Last Updated:** 24 September 2026 (owner hold and acceptance reconciliation)
 
-Only the sections above the `Historical record` divider describe the current state of the
-repository. Everything below that divider is retained evidence from a boundary that has already
+The owner-hold section below is the latest authority. Older `CURRENT` sections below it
+record dated correction boundaries and are superseded where their gate wording conflicts with the
+hold. Only the sections above the `Historical record` divider describe the recent repository
+correction chronology. Everything below that divider is retained evidence from a boundary that has already
 closed: it is preserved for provenance and must not be read as current status, even where a line
 inside it says `CURRENT` or `ACTIVE`.
+
+## PROJECT STATUS — OWNER PAUSED / ON HOLD
+
+**Owner:** Hossam. **Pause date:** 2026-09-24. Hossam intentionally paused AI_Orchestrator until he explicitly returns and resumes it. This is not a product-defect block, cancellation, rejection, or completion. No implementation, acceptance run, model call, later roadmap work, merge, release, or deployment is authorized while paused.
+
+- APO-70 is the sole logical current gate: Issue #111 **Open / current-gate**, PR #112 **Open / Draft / Unmerged**, branch `feature/APO-70-v1-desktop-product-recovery`.
+- Pre-documentation HEAD `b424c36daad93b1b063851ffabb7273d4024907c`, local and remote `main` `d7c1231df9ea1a4d008aa473210d0ccc735c0302`, exact-head CI run `35846187916` SUCCESS. The hold commit will have a newer HEAD.
+- Owner visual acceptance **PASS**, superseding the real earlier visual rejections. Owner Desktop functional acceptance **NOT COMPLETE**; Sol final exact-head acceptance pending. No product correction is currently authorized.
+- Sol-accepted historical backend proof remains valid: Process A prepared once with one real Sol to Ready; Process B restored Ready without new Prepare/Sol, started once with one real Luna, and mutated the isolated prepared workspace; Process C proved consumed authority could not Start/Luna again. This is backend proof, not current owner Desktop functional acceptance.
+- Prompt 1/10: executor PARTIAL; Sol accepted PARTIAL. Physical native Add Existing Project and final Add Project activation registered project `75ddcba9-b7cc-4ecc-a8a3-78825d7f494b` (registry 3 to 4); same-process Mission Control and Execution visibility PASS. Earlier Finish no-op cause remains unresolved; a reported click does not prove the target control received it. No confirmed APO defect, Prepare, Start, or model call.
+- Prompt 2/10: executor BLOCKED; Sol classified it an executor-session tooling block, not APO product blockage. Missing `node_repl/@oai/sky` did not remove the proven Python/pywinauto/pywin32 physical-click path. No acceptance budget consumed.
+- Prompt 3/10: executor BLOCKED; Sol accepted PARTIAL. The exact project survived restart, appeared in Projects/Mission Control/Execution, and was physically selected in Execution. Fresh publish and native mouse path PASS; disposable fixture created. Text-entry difficulty was not a product defect. No real orchestration call.
+- Prompt 4/10: executor PARTIAL; Sol accepted PARTIAL. Project and fixture remained intact; Python 3.14.6, pywinauto 0.6.9, pywin32, Win32/UIA and clipboard APIs were available. Temporary-probe clipboard paste/readback was not proven because foreground/focus was lost. This is acceptance-harness input fidelity, not a confirmed product defect. No Desktop launch or real orchestration call.
+- Registered project name: `APO-70 Activation Repro 20260924-c296ee933d8e41efa88805ab4a943d4a`. Accepted fixture: `C:\Users\Win11\AppData\Local\Temp\APO-70-final-functional-acceptance\20260923-151140-f6550b98\disposable-repo`; clean local Git `main`, HEAD `5abdf8b150ab9d09e45e8598163d2fc691f4f968`, no remotes. `APO_OWNER_ACCEPTANCE_STATE.txt` = `before`, SHA-256 `6DB7D803E74F1FFA7D8F5ADC0BF95B3E15BF4C8373FFFADF546227CC6C6742CB`. Preserve it.
+- Current owner-functional one-shot budget is **untouched** across Prompts 1–4: Prepare 1, real planner 1, Start 1, real executor 1 available; retry/fallback/reroute/replan/reprepare 0. Historical backend proof used a separate earlier budget.
+- Sol prompt counter after this released contract: **5 / 10**.
+
+### RESUME HERE
+
+Only after Hossam explicitly resumes: persistent Sol reconciles live branch/HEAD, Issue #111, PR #112, CI, registered project, fixture HEAD/clean/no-remotes/sentinel/hash, persisted Ready/Running authority, and unused budget. Retain the standalone lowercase `p` gate for generated executor/reviewer prompts. Start at exact owner-request input in the actual APO Draft field: fresh exact-head Desktop; select the exact project; verify foreground/window identity, target visibility/bounds and WindowFromPoint/UIA hit; one physical click; verify PID/HWND and UIA focus; set exact clipboard text; send Ctrl+A/Ctrl+V via low-level Win32 SendInput; read the actual field with **read-only** UIA and compare exactly. UIA Value must not write business inputs. Continue only on PASS: verify every field; Prepare once/one real planner/Ready in Process A; close; restore same Ready with zero new planner in Process B; Start once/one real executor; prove prepared-workspace sentinel `before` to `after` while original source remains `before`; prove Desktop result/evidence, Process C anti-replay, owner-visible cancellation affordance, owner functional acceptance, and separate Sol final exact-head acceptance. Stop at the first failed gate; never replay consumed authority.
+
+---
 
 ## CURRENT - APO-70 existing-project metadata reconciliation correction
 

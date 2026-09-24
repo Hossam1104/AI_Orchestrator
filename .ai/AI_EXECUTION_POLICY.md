@@ -28,8 +28,9 @@ Cycle:
 DISCUSS -> AGREE -> p -> ONE PROMPT -> RESULT -> SOL REVIEW -> DISCUSS -> p
 ```
 
-The gate applies to prompts for Luna, Codex, Terra, Haiku, Sonnet, Opus, and any Claude/OpenAI
-investigation agent. It does **not** stop normal Sol analysis, architecture discussion, review,
+The gate applies to generated executor/reviewer prompts for any current model. It does not override
+the owner hold; Hossam must explicitly resume first. It does **not** stop normal Sol analysis, architecture
+ discussion, review,
 Jira reasoning, or ordinary answers.
 
 This gate is canonical here; any prior duplicate description elsewhere is superseded by this file.
@@ -52,7 +53,9 @@ directory, publish the current working tree in Release, validate the publish out
 Git state and executable hash, and launch that newly created executable. Existing binaries from
 prior publish or artifact directories must never be reused as current-state evidence.
 
-The script's default interactive mode leaves the fresh application running for owner inspection.
+The script may launch an interactive application, but repository prompt completion stops APO by
+default under AGENTS.md section 16 unless that specific owner instruction explicitly says to
+leave it running.
 Use `-SmokeTest` only for bounded runtime verification; it stops only the process it launched after
 verification and reports the final APO process count.
 
@@ -71,8 +74,8 @@ Executors must report:
 
 Executor self-declaration is **not** final acceptance. **GPT-5.6 Sol is always the final acceptance
 authority** for all routed work, regardless of which executor performed it. Opus may provide
-independent review, findings, and an approval recommendation; Terra may provide security,
-concurrency, data-integrity, or trust-boundary assurance; executors provide evidence. None of these
+independent review, findings, and an approval recommendation; Sonnet may provide bounded recovery
+or bug fixes; executors provide evidence. None of these
 roles replace Sol's final acceptance decision.
 
 ---

@@ -1,7 +1,9 @@
 # AI_Orchestrator — Strategic Orchestration Roadmap
 
+**Current authority (2026-09-24):** AI_Orchestrator is OWNER-PAUSED / ON HOLD until Hossam explicitly resumes it. APO-70 / Issue #111 remains the sole logical gate; PR #112 remains Draft/Open/Unmerged. Owner visual acceptance is PASS; owner Desktop functional acceptance is NOT COMPLETE. No implementation or acceptance run is authorized while paused. See [current state](../.ai/CURRENT_STATE.md#project-status--owner-paused--on-hold) and [resume boundary](../.ai/CURRENT_STATE.md#resume-here). Dated evidence below retains its historical meaning.
+
 **Status:** ACTIVE ROADMAP
-**Last reconciled:** 2026-09-16
+**Last reconciled:** 2026-09-24 (owner hold)
 **Product:** AI_Orchestrator (APO)
 **Active tracker:** GitHub Issues in `Hossam1104/AI_Orchestrator`
 **Historical tracker:** Jira project `APO`
@@ -54,7 +56,7 @@ Current APO-70 product/runtime truth:
 - exactly one real `gpt-5.6-luna` `StartAsync` executed after fresh-process Restore;
 - prepared workspace mutation and original-source isolation passed;
 - fresh-process anti-replay passed with no duplicate execution authority;
-- owner visual/functional acceptance and final exact-head Sol acceptance remain pending.
+- owner visual acceptance is PASS; Desktop functional acceptance and final exact-head Sol acceptance remain pending.
 
 The branch now also contains documentation-only roadmap/governance commits after the source/runtime
 baseline above. Therefore future exact-head validation must use the live branch HEAD and must not
@@ -137,16 +139,14 @@ portfolio simply because another reference project supports a provider.
 
 | Model | Default role |
 |---|---|
-| GPT-5.6 Sol High | Planner / Architect / Router / Quota Governor / Acceptance Authority / Prompt Authority — chat mode |
-| GPT-5.6 Luna xHigh | Primary bounded implementation executor |
-| Claude Sonnet 5 Medium/High | Sol-selected fallback / special-need implementation |
-| GPT-5.6 Luna Max | Exceptional implementation escalation only |
-| Claude Opus 5 | Independent critical reviewer |
-| GPT-5.6 Terra Medium/High | Specialist security/concurrency/data-integrity assurance |
-| Claude Haiku 4.5 | Disabled from active routing |
+| GPT-5.6 High in Chat (Sol) | Persistent planner / architect / project-state / requirements / acceptance / governance / router |
+| GPT-6 Luna Reasoning xHigh in Codex | Default substantial executor |
+| Claude Sonnet 5 Effort HIGH | Difficult recovery/surgical finalization and bounded isolated bug fixes |
+| Claude Opus 5.5 Effort HIGH | Independent critical review; exceptional owner-authorized Grand Master Cleaning |
+| GPT-6 Sol Reasoning High in Codex | Emergency/exceptional direct implementation |
+| Gemini 3.8 Flash Reasoning HIGH | Explicitly delegated low-risk mechanical auxiliary |
 
-A failed executor is not permission to automatically switch models. Future fallback is governed by
-APO-72 and must pass normal eligibility/policy checks.
+GPT-5.6 Terra is retired. Product runtime model IDs are distinct from development roles. No route is active during the owner hold.
 
 ## 6. Current P0 gate — APO-70
 
@@ -188,7 +188,7 @@ and with `STATE=before`. This proves the backend boundary only.
 
 ### 6.2 Current product acceptance gate
 
-The remaining APO-70 gate is **FRESH OWNER-VISIBLE DESKTOP FUNCTIONAL + VISUAL ACCEPTANCE**:
+The remaining APO-70 gate is **OWNER-VISIBLE DESKTOP FUNCTIONAL ACCEPTANCE after explicit owner resume**:
 
 - a fresh Desktop publish;
 - real registered-project workflow;
@@ -196,7 +196,7 @@ The remaining APO-70 gate is **FRESH OWNER-VISIBLE DESKTOP FUNCTIONAL + VISUAL A
 - owner-visible execution and cancellation/result evidence;
 - recovered Mission Control UX;
 - visual requirements already recorded on Issue #111;
-- owner functional + visual acceptance;
+- owner visual PASS remains recorded; obtain owner functional acceptance after explicit resume;
 - final exact-head Sol acceptance.
 
 Only then can APO-70 move toward merge/finalization under a separately authorized gate.
@@ -468,7 +468,7 @@ This is a bounded architecture health check, not a rewrite authorization.
 NOW
 APO-70 backend cross-process proof (SOL-ACCEPTED / COMPLETE)
   ↓
-APO-70 Desktop functional + visual owner acceptance
+APO-70 owner visual PASS; Desktop functional owner acceptance pending
   ↓
 APO-70 final exact-head Sol acceptance
   ↓

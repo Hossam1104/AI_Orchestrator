@@ -12,7 +12,7 @@ This is the universal execution contract for every AI model working in this repo
 **External Reference Roadmap Integration:** `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`
 **Prompt Library:** `docs/SESSION_PROMPTS.md`
 **Live Handoff:** `.ai/CURRENT_STATE.md`
-**Current-State Addendum:** `.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md`
+**Current-State Addenda:** `.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md` and `.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md` (dated history; latest hold in `.ai/CURRENT_STATE.md`)
 **Jira Project:** `APO`
 
 APO-20 renamed the GitHub repository and physical local folder to the current product identity.
@@ -51,67 +51,18 @@ this policy. This does not remove or weaken APO's own
 product-domain support for *monitoring* other AI providers (§6) — that is separate product
 functionality, not orchestration-executor policy.
 
-| Priority | Model | Default role |
-|---|---|---|
-| 1 | GPT-5.6 Sol High | Planner / Architect / Model Router / Quota Governor / Acceptance Authority / Executor Prompt Authority (chat only) |
-| 2 | GPT-5.6 Luna xHigh | Default substantial implementation executor and workhorse unless Sol explicitly routes elsewhere |
-| 3 | Claude Sonnet 5 Medium | Bounded bug-fix specialist when Sol explicitly selects it |
-| 4 | Claude Sonnet 5 High | Bounded bug-fix specialist for difficult isolated defects when Sol explicitly selects it |
-| 5 | GPT-5.6 Luna Max | Exceptional implementation escalation only |
-| 6 | Claude Opus 5 | Independent critical reviewer |
-| 7 | GPT-5.6 Terra Medium/High | Protected recovery / difficult surgical finalization; not the normal executor |
-| 8 | Claude Haiku 4.5 | Disabled from active routing |
+| Model | Current development role |
+|---|---|
+| GPT-5.6 High in Chat (Sol) | Persistent planner, architect, project-state, requirements, acceptance, governance, and routing authority; 0% normal implementation |
+| GPT-6 Luna Reasoning xHigh in Codex | Default substantial executor |
+| Claude Sonnet 5 Effort HIGH | Difficult recovery/surgical finalization and bounded isolated bug fixes |
+| Claude Opus 5.5 Effort HIGH | Independent critical review; exceptional owner-authorized Grand Master Cleaning |
+| GPT-6 Sol Reasoning High in Codex | Emergency/exceptional direct Codex implementation |
+| Gemini 3.8 Flash Reasoning HIGH | Explicitly delegated low-risk mechanical auxiliary |
 
-## Planner - GPT-5.6 Sol
+A failed executor does not authorize an automatic model switch; APO-72 governs future fallback from typed failure, verified checkpoint, side effects, policy, capability, quota, and budget evidence.
 
-Sol owns requirements interpretation, architecture, Jira decomposition, execution contracts,
-model-routing policy, acceptance criteria, approved scope changes, and final acceptance. Sol
-operates in chat mode only, is the control plane with approximately 0% routine local execution,
-and must not become the routine Codex repository executor.
-
-## Primary Executor - GPT-5.6 Luna xHigh
-
-Luna xHigh is the default substantial implementation executor and workhorse (approximately 60%
-target) for feature, multi-file, refactoring, integration, automation, test, CI/CD, architecture,
-and directly related documentation work. First-pass completion is preferred. See
-`.ai/AI_MODEL_ROUTING.md` for the detailed tier mapping and explicit Sol route rules.
-
-## Bounded Bug-Fix Specialist - Claude Sonnet 5 Medium / High
-
-Sonnet is an active Claude-family bounded bug-fix specialist (approximately 10% ceiling) for
-isolated defects, narrow regressions, and localized implementation errors. Preferred flow is
-reproduce -> root cause -> minimal coherent fix -> regression test -> report. Only Sol may select
-it, and it is not the default broad feature or architecture executor.
-
-A failed executor is not permission for an executor or UI layer to self-route to another model.
-Future automatic retry/fallback is governed by APO-72 and must use typed failure, verified
-checkpoint, side-effect, capability, routing/owner policy, quota/capacity, and budget evidence.
-
-## Disabled Model - Claude Haiku 4.5
-
-Haiku is disabled from active routing. Do not assign it automatically or route repository work to it.
-
-## Exceptional Escalation - GPT-5.6 Luna Max
-
-Luna Max is exceptional escalation only and is never the normal executor.
-
-## Independent Reviewer - Claude Opus 5
-
-Opus performs independent review gates at approximately every seven meaningful executor prompts or
-at a critical checkpoint, and is an independent reviewer with an approximately 10% ceiling. Opus is
-not the normal implementation executor, is review-only by default, and must remain independent from
-the implementation executor. Reviewer mode does not add scope or implement fixes unless explicitly
-requested.
-
-## Protected Recovery / Surgical Finalization - GPT-5.6 Terra
-
-Terra is a protected recovery and difficult surgical finalization resource with an approximately
-20% ceiling, not the normal second executor. It is used when Luna work is incomplete, a stubborn
-cross-cutting failure remains, existing accepted work must be preserved while a gap is repaired, or
-another Luna correction is unlikely to be quota-efficient. Before routing Terra, Sol asks whether
-Luna can reasonably finish with a better bounded correction prompt. Security, trust boundaries,
-concurrency, authorization, data integrity, credential boundaries, and destructive operations can
-still justify Terra when recovery or assurance complexity warrants it.
+GPT-5.6 Terra is retired. These development roles do not rename persisted APO product-under-test model identities such as `gpt-5.6-sol` and `gpt-5.6-luna`. Historical model records remain historical facts. No APO work is routed while the 2026-09-24 owner hold is active.
 
 One assigned canonical GitHub APO Issue is the maximum active scope for one executor. No executor
 may choose a different work item, combine unrelated Issues, or continue automatically.
@@ -215,6 +166,8 @@ AI Usage Monitor provider sequence is superseded and must not be treated as exec
 execution prompts are prepared by Sol only after GitHub decomposition and assignment and only after
 the universal standalone lowercase `p` gate opens; do not pre-generate speculative implementation
 prompts.
+
+While the owner hold is active, no work item may be prepared or executed until Hossam explicitly resumes.
 
 After a completed work item is delivered, Sol determines the next approved work item, prepares its
 self-contained execution contract, replaces `TASK.md` when appropriate, commits/pushes that

@@ -1,5 +1,8 @@
 # AI_Orchestrator — Current State Addendum — 2026-09-17
 
+**Current authority (2026-09-24):** AI_Orchestrator is OWNER-PAUSED / ON HOLD until Hossam explicitly resumes it. APO-70 / Issue #111 remains the sole logical gate; PR #112 remains Draft/Open/Unmerged. Owner visual acceptance is PASS; owner Desktop functional acceptance is NOT COMPLETE. No implementation or acceptance run is authorized while paused. See [current state](CURRENT_STATE.md#project-status--owner-paused--on-hold) and [resume boundary](CURRENT_STATE.md#resume-here). Dated evidence below retains its historical meaning.
+
+
 **Mode:** PLANNING / ROADMAP SYNCHRONIZATION ONLY  
 **Execution gate:** unchanged; no implementation permission is granted by this file.  
 **Source runtime gate:** APO-70 / GitHub Issue #111 remains the sole current implementation gate.

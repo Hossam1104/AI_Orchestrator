@@ -1,5 +1,7 @@
 # AI_Orchestrator — GitHub Ecosystem Roadmap Extension
 
+**Current authority (2026-09-24):** AI_Orchestrator is OWNER-PAUSED / ON HOLD until Hossam explicitly resumes it. APO-70 / Issue #111 remains the sole logical gate; PR #112 remains Draft/Open/Unmerged. Owner visual acceptance is PASS; owner Desktop functional acceptance is NOT COMPLETE. No implementation or acceptance run is authorized while paused. See [current state](../.ai/CURRENT_STATE.md#project-status--owner-paused--on-hold) and [resume boundary](../.ai/CURRENT_STATE.md#resume-here). Dated evidence below retains its historical meaning.
+
 **Status:** APPROVED PLANNING EXTENSION  
 **Date:** 2026-09-17  
 **Product:** AI_Orchestrator (APO)  
@@ -323,7 +325,7 @@ The expanded planning order is:
 NOW
 APO-70 real cross-process execution proof
   ↓
-APO-70 Desktop functional + visual owner acceptance
+APO-70 owner visual PASS; Desktop functional owner acceptance pending
   ↓
 APO-70 final exact-head Sol acceptance
   ↓

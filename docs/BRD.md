@@ -1,5 +1,7 @@
 # AI_Orchestrator (APO)
 
+**Current authority (2026-09-24):** AI_Orchestrator is OWNER-PAUSED / ON HOLD until Hossam explicitly resumes it. APO-70 / Issue #111 remains the sole logical gate; PR #112 remains Draft/Open/Unmerged. Owner visual acceptance is PASS; owner Desktop functional acceptance is NOT COMPLETE. No implementation or acceptance run is authorized while paused. See [current state](../.ai/CURRENT_STATE.md#project-status--owner-paused--on-hold) and [resume boundary](../.ai/CURRENT_STATE.md#resume-here). Dated evidence below retains its historical meaning.
+
 ## Business Requirements Document
 
 **Product:** AI_Orchestrator (APO)
@@ -190,20 +192,14 @@ The approved default strategy is quality/risk first and quota/cost second:
 
 | Priority | Model | Default role |
 |---|---|---|
-| 1 | GPT-5.6 Sol High | Planner / Architect / Model Router / Quota Governor / Acceptance Authority / Executor Prompt Authority (chat only) |
-| 2 | GPT-5.6 Luna xHigh | Primary bounded implementation executor |
-| 3 | Claude Sonnet 5 Medium | Fallback / special-need bounded implementation when explicitly selected by Sol |
-| 4 | Claude Sonnet 5 High | Fallback / special-need difficult bounded implementation when explicitly selected by Sol |
-| 5 | GPT-5.6 Luna Max | Exceptional implementation escalation only |
-| 6 | Claude Opus 5 | Independent critical reviewer |
-| 7 | GPT-5.6 Terra Medium/High | Specialist security, concurrency, and data-integrity assurance |
-| 8 | Claude Haiku 4.5 | Disabled from active routing |
+| 1 | GPT-5.6 High in Chat (Sol) | Persistent planner / architect / project-state / requirements / acceptance / governance / router; 0% normal implementation |
+| 2 | GPT-6 Luna Reasoning xHigh in Codex | Default substantial executor |
+| 3 | Claude Sonnet 5 Effort HIGH | Difficult recovery/surgical finalization and bounded isolated bug fixes |
+| 4 | Claude Opus 5.5 Effort HIGH | Independent critical review; exceptional owner-authorized Grand Master Cleaning |
+| 5 | GPT-6 Sol Reasoning High in Codex | Emergency/exceptional direct implementation |
+| 6 | Gemini 3.8 Flash Reasoning HIGH | Explicitly delegated low-risk mechanical auxiliary |
 
-Sol owns requirement interpretation, architecture, task classification, execution contracts,
-routing policy, acceptance criteria, executor prompt authority, and final acceptance. Luna xHigh is
-the normal primary executor. Sonnet remains an explicit fallback/special-need option. Opus remains
-independent review; Terra is risk-triggered. Active execution providers are OpenAI/Codex and
-Anthropic/Claude unless the owner explicitly changes policy.
+GPT-5.6 Terra is retired. Product runtime IDs such as `gpt-5.6-sol` and `gpt-5.6-luna` remain separate from development governance. See `.ai/AI_MODEL_ROUTING.md` for current roles.
 
 Model names, capabilities, availability, routing policy, and project overrides must be represented
 as data/configuration rather than scattered hard-coded workflow conditions.
@@ -763,7 +759,7 @@ The approved current sequence is:
 ```text
 APO-70 backend cross-process proof (SOL-ACCEPTED / COMPLETE)
   ↓
-APO-70 Desktop functional + visual owner acceptance
+APO-70 owner visual PASS; Desktop functional owner acceptance pending
   ↓
 APO-70 final exact-head Sol acceptance
   ↓
