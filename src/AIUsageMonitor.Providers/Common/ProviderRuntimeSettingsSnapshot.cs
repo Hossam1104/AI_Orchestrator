@@ -78,12 +78,26 @@ public sealed class ProviderRuntimeSettingsAccessor : IProviderRuntimeSettingsAc
                     current.Kimi));
                 break;
             case ProviderCode.Claude:
+                var authenticationMode = ProviderAuthenticationMode.LocalSession;
+                if (configuration.TryGetValue(ProviderConnectionConfigurationKeys.AuthenticationMode, out var modeText) &&
+                    Enum.TryParse<ProviderAuthenticationMode>(modeText, ignoreCase: true, out var parsedMode))
+                {
+                    authenticationMode = parsedMode;
+                }
+                else if (!string.IsNullOrWhiteSpace(credentialReference))
+                {
+                    // Existing pre-remediation Claude records were API-key records. Preserve
+                    // their behavior during migration without changing the new default.
+                    authenticationMode = ProviderAuthenticationMode.ApiKey;
+                }
+
                 Replace(new ProviderRuntimeSettingsSnapshot(
                     current.Copilot,
                     new AnthropicOptions
                     {
                         CredentialReference = credentialReference,
-                        StartingAt = current.Anthropic.StartingAt
+                        StartingAt = current.Anthropic.StartingAt,
+                        AuthenticationMode = authenticationMode
                     },
                     current.Kimi));
                 break;

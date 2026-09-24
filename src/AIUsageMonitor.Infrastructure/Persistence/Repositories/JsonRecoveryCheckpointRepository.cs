@@ -130,7 +130,12 @@ public sealed class JsonRecoveryCheckpointRepository : IRecoveryCheckpointReposi
         if ((record.WorkGraphId is null) != (record.WorkGraphSchemaVersion is null) ||
             (record.WorkGraphId is null) != (record.WorkGraphContentHash is null) ||
             (record.HandoffPackageId is null) != (record.HandoffPackageSchemaVersion is null) ||
-            (record.HandoffPackageId is null) != (record.HandoffPackageContentHash is null))
+            (record.HandoffPackageId is null) != (record.HandoffPackageContentHash is null) ||
+            (record.RoutingDecisionId is null) != (record.RoutingDecisionSchemaVersion is null) ||
+            (record.RoutingDecisionId is null) != (record.RoutingDecisionContentHash is null) ||
+            (record.WorkspacePreparationPlanId is null) != (record.WorkspacePreparationPlanProjectId is null) ||
+            (record.WorkspacePreparationPlanId is null) != (record.WorkspacePreparationPlanSchemaVersion is null) ||
+            (record.WorkspacePreparationPlanId is null) != (record.WorkspacePreparationPlanContentHash is null))
         {
             return new(RecoveryCheckpointReadState.Invalid, ErrorMessage: "Recovery checkpoint optional authority shape is invalid.");
         }

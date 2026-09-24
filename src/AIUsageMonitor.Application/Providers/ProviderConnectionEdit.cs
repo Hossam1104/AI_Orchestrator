@@ -23,7 +23,37 @@ public sealed class ProviderConnectionEdit
         RemoveCredential = removeCredential;
     }
 
-    public ProviderCode Code { get; }
+    private ProviderConnectionEdit(
+        Guid providerId,
+        ProviderConnectionType connectionType,
+        IReadOnlyDictionary<string, string?> configuration,
+        string? secret,
+        bool removeCredential)
+    {
+        if (providerId == Guid.Empty)
+        {
+            throw new ArgumentException("Provider id cannot be empty.", nameof(providerId));
+        }
+
+        Configuration = new Dictionary<string, string?>(configuration ??
+            new Dictionary<string, string?>(), StringComparer.OrdinalIgnoreCase);
+        ProviderId = providerId;
+        ConnectionType = connectionType;
+        Secret = secret;
+        RemoveCredential = removeCredential;
+    }
+
+    public static ProviderConnectionEdit ForProvider(
+        Guid providerId,
+        ProviderConnectionType connectionType,
+        IReadOnlyDictionary<string, string?> configuration,
+        string? secret = null,
+        bool removeCredential = false) =>
+        new(providerId, connectionType, configuration, secret, removeCredential);
+
+    public ProviderCode? Code { get; }
+
+    public Guid? ProviderId { get; }
 
     public ProviderConnectionType ConnectionType { get; }
 

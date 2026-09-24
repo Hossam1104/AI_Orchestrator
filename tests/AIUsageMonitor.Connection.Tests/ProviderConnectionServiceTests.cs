@@ -44,6 +44,99 @@ public sealed class ProviderConnectionServiceTests
     }
 
     [Fact]
+    public async Task CustomApiKey_UsesStableIdNamespaceAndNeverPersistsSecretMaterial()
+    {
+        using var store = new TemporaryStore();
+        var repository = new JsonProviderConnectionRepository(
+            store.Paths,
+            store.Files,
+            NullLogger<JsonProviderConnectionRepository>.Instance);
+        var credentials = new FakeCredentialStore();
+        var service = CreateService(repository, credentials, new FakeRuntimeSettingsUpdater());
+        var providerId = Guid.Parse("d9dfed05-6c31-4d16-a4ca-7fc5c36e6df7");
+
+        var saved = await service.SaveAsync(ProviderConnectionEdit.ForProvider(
+            providerId,
+            ProviderConnectionType.ApiKey,
+            new Dictionary<string, string?>
+            {
+                [ProviderConnectionConfigurationKeys.AuthenticationMode] = ProviderAuthenticationMode.ApiKey.ToString(),
+                [ProviderConnectionConfigurationKeys.CapacityMode] = ProviderCapacityMode.Unavailable.ToString()
+            },
+            secret: "custom-secret-material"));
+
+        Assert.StartsWith($"apo-custom-{providerId:N}-", saved.CredentialReference, StringComparison.Ordinal);
+        Assert.Equal("custom-secret-material", await credentials.RetrieveAsync(saved.CredentialReference!));
+        var json = await File.ReadAllTextAsync(store.Paths.ConnectionsFile);
+        Assert.DoesNotContain("custom-secret-material", json, StringComparison.Ordinal);
+        Assert.Contains(providerId.ToString("N"), saved.CredentialReference, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UnsupportedAutomaticLocalSession_IsRejectedBeforeCredentialOrPersistenceSideEffects()
+    {
+        var repository = new InMemoryConnectionRepository();
+        var credentials = new FakeCredentialStore();
+        var service = CreateService(repository, credentials, new FakeRuntimeSettingsUpdater());
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.SaveAsync(new ProviderConnectionEdit(
+            ProviderCode.Claude,
+            ProviderConnectionType.LocalSession,
+            new Dictionary<string, string?>
+            {
+                [ProviderConnectionConfigurationKeys.AuthenticationMode] = ProviderAuthenticationMode.LocalSession.ToString(),
+                [ProviderConnectionConfigurationKeys.CapacityMode] = ProviderCapacityMode.Automatic.ToString()
+            },
+            secret: "must-not-be-staged")));
+
+        Assert.Null(repository.Current);
+        Assert.Equal(0, credentials.StoreCount);
+    }
+
+    [Fact]
+    public async Task SupportedAutomaticApiKey_RemainsAcceptedBelowDesktop()
+    {
+        var repository = new InMemoryConnectionRepository();
+        var credentials = new FakeCredentialStore();
+        var service = CreateService(repository, credentials, new FakeRuntimeSettingsUpdater());
+
+        var saved = await service.SaveAsync(new ProviderConnectionEdit(
+            ProviderCode.Claude,
+            ProviderConnectionType.ApiKey,
+            new Dictionary<string, string?>
+            {
+                [ProviderConnectionConfigurationKeys.AuthenticationMode] = ProviderAuthenticationMode.ApiKey.ToString(),
+                [ProviderConnectionConfigurationKeys.CapacityMode] = ProviderCapacityMode.Automatic.ToString()
+            },
+            secret: "synthetic-secret"));
+
+        Assert.Equal(ProviderConnectionStatus.Updating, saved.Status);
+        Assert.NotNull(repository.Current);
+        Assert.Equal(1, credentials.StoreCount);
+    }
+
+    [Fact]
+    public async Task CustomAutomaticConnection_IsRejectedBeforeCredentialOrPersistenceSideEffects()
+    {
+        var repository = new InMemoryConnectionRepository();
+        var credentials = new FakeCredentialStore();
+        var service = CreateService(repository, credentials, new FakeRuntimeSettingsUpdater());
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.SaveAsync(ProviderConnectionEdit.ForProvider(
+            Guid.NewGuid(),
+            ProviderConnectionType.ApiKey,
+            new Dictionary<string, string?>
+            {
+                [ProviderConnectionConfigurationKeys.AuthenticationMode] = ProviderAuthenticationMode.ApiKey.ToString(),
+                [ProviderConnectionConfigurationKeys.CapacityMode] = ProviderCapacityMode.Automatic.ToString()
+            },
+            secret: "must-not-be-staged")));
+
+        Assert.Null(repository.Current);
+        Assert.Equal(0, credentials.StoreCount);
+    }
+
+    [Fact]
     public async Task FailedPersistence_RemovesStagedCredential_AndPreservesPreviousReference()
     {
         var repository = new InMemoryConnectionRepository { FailWrites = true };
@@ -345,10 +438,13 @@ public sealed class ProviderConnectionServiceTests
 
         public List<string> RemovedReferences { get; } = [];
 
+        public int StoreCount { get; private set; }
+
         public int RetrieveCount { get; private set; }
 
         public Task StoreAsync(string credentialReference, string secret, CancellationToken cancellationToken = default)
         {
+            StoreCount++;
             _values[credentialReference] = secret;
             return Task.CompletedTask;
         }

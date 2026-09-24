@@ -1,8 +1,10 @@
 using System.IO;
 using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.MissionControl;
+using AIUsageMonitor.Application.Orchestration;
 using AIUsageMonitor.Application.Projects;
 using AIUsageMonitor.Application.Planning;
+using AIUsageMonitor.Application.Routing;
 using AIUsageMonitor.Application.Trackers;
 using AIUsageMonitor.Desktop.ViewModels;
 using AIUsageMonitor.Infrastructure;
@@ -41,7 +43,7 @@ public sealed class ProductionCompositionTests : IDisposable
         var aiCapacity = provider.GetRequiredService<AiCapacityViewModel>();
 
         Assert.False(aiCapacity.IsDegraded);
-        Assert.Equal(5, aiCapacity.Cards.Count);
+        Assert.Equal(3, aiCapacity.Cards.Count);
     }
 
     [Fact]
@@ -129,6 +131,50 @@ public sealed class ProductionCompositionTests : IDisposable
 
         Assert.NotNull(provider.GetRequiredService<IPlanningExecutionContractRepository>());
         Assert.NotNull(provider.GetRequiredService<IPlanningExecutionContractService>());
+    }
+
+    [Fact]
+    public void ProductionComposition_ResolvesExactPlannerExecutionAndPolicyServices()
+    {
+        using var provider = BuildProvider();
+
+        Assert.Single(provider.GetServices<IPlannerAdapter>());
+        Assert.Single(provider.GetServices<IExecutionAdapter>());
+        Assert.NotNull(provider.GetRequiredService<IPlannerAdapterResolver>());
+        Assert.NotNull(provider.GetRequiredService<IExecutableRoutingPolicyResolver>());
+    }
+
+    [Fact]
+    public void ProductionComposition_ResolvesAgentConnectionVerificationAndTheExactOneCodexProbe()
+    {
+        using var provider = BuildProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IAgentConnectionVerificationService>());
+        Assert.Single(provider.GetServices<IAgentConnectionProbe>());
+        Assert.NotNull(provider.GetRequiredService<IExecutionCoordinator>());
+    }
+
+    [Fact]
+    public void ProductionComposition_RegisteredCodexProbeMatchesExactSolAndLunaOnly()
+    {
+        // Finding B: the exact-one registered probe must be authoritative only for the exact
+        // built-in Sol and Luna identities, and must fail closed for any other agent, including one
+        // that merely shares its provider — asserted purely via CanProbe, without invoking any real
+        // process, so this composition test remains a 0-model, 0-CLI-invocation check.
+        using var provider = BuildProvider();
+        var catalog = provider.GetRequiredService<IDefaultAgentCatalog>();
+        var probe = Assert.Single(provider.GetServices<IAgentConnectionProbe>());
+        var defaults = catalog.GetDefaults();
+        var sol = defaults.Single(agent => agent.RoleCapabilities.Contains(AgentRole.Planner));
+        var luna = defaults.Single(agent => agent.Name.Contains("Luna", StringComparison.OrdinalIgnoreCase));
+        var unrelatedOpenAiAgent = defaults.Single(agent =>
+            string.Equals(agent.Provider, "OpenAI", StringComparison.OrdinalIgnoreCase) &&
+            agent.Id != sol.Id &&
+            agent.Id != luna.Id);
+
+        Assert.True(probe.CanProbe(sol));
+        Assert.True(probe.CanProbe(luna));
+        Assert.False(probe.CanProbe(unrelatedOpenAiAgent));
     }
 
     [Fact]

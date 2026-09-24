@@ -1,35 +1,17 @@
-# AI_Orchestrator — Planner Handoff
+# AI_Orchestrator — Owner Hold / Closed Execution Gate
 
-**Project:** `AI_Orchestrator`
-**Mode:** `FINAL V1 PLANNER BOUNDARY`
+**Status:** OWNER-PAUSED / ON HOLD since 2026-09-24 by Hossam.
+**Sole logical gate:** APO-70 / open Issue #111 (`current-gate`) / open Draft PR #112.
+**Branch:** `feature/APO-70-v1-desktop-product-recovery`.
+**Pre-hold documentation HEAD:** `b424c36daad93b1b063851ffabb7273d4024907c`; `main`: `d7c1231df9ea1a4d008aa473210d0ccc735c0302`.
+**Sol prompt counter after this contract:** 5 / 10.
 
-## Current authority
+Owner visual acceptance **PASS**; owner Desktop functional acceptance **NOT COMPLETE**. No product correction is authorized while paused. The earlier Sol-accepted backend cross-process proof is separate from the pending Desktop workflow. Current one-shot budget remains untouched: Prepare 1, real planner 1, Start 1, real executor 1; retry/fallback/reroute/replan/reprepare 0.
 
-- Active tracker: GitHub Issues in `Hossam1104/AI_Orchestrator`.
-- APO-33 is **COMPLETE** and Sol accepted.
-- Issue #71 is **CLOSED / COMPLETED** with `status:done`; `status:review` and `current-gate` are absent.
-- PR #109 is **MERGED** into `main` at `c139ce188b71ebbc8035f0d1046ec15e2419cf4b`.
-- GitHub Actions CI is **IMPLEMENTED / ACTIVE**. Post-merge main run `34486056095` passed for the merge SHA.
-- Supported publish RIDs: `win-x86`, `win-x64`, and `win-arm64`.
-- Active implementation current gate: **NONE**.
-- Final V1 Release Audit: **NOT STARTED**.
-- v1.0.0: **NOT RELEASED**.
+Accepted project: `75ddcba9-b7cc-4ecc-a8a3-78825d7f494b` (`APO-70 Activation Repro 20260924-c296ee933d8e41efa88805ab4a943d4a`). Preserve its disposable clean `main` fixture at `C:\Users\Win11\AppData\Local\Temp\APO-70-final-functional-acceptance\20260923-151140-f6550b98\disposable-repo`, HEAD `5abdf8b150ab9d09e45e8598163d2fc691f4f968`, no remotes, `APO_OWNER_ACCEPTANCE_STATE.txt` = `before` (SHA-256 `6DB7D803E74F1FFA7D8F5ADC0BF95B3E15BF4C8373FFFADF546227CC6C6742CB`).
 
-## Closeout evidence
+## RESUME HERE
 
-- Sol-accepted PR head: `33cec23df6774957008e44befac91cb7a9725413`.
-- Accepted PR CI run: `34478101086` passed with restore/build/test and all three publish legs successful.
-- Canonical tests: `1,249 passed / 0 failed / 0 skipped`.
-- OPUS-33-01 and OPUS-33-06 are fixed.
-- OPUS-33-02, OPUS-33-03, OPUS-33-04, and OPUS-33-05 remain deferred, non-blocking inputs to the Final V1 Release Audit.
-- Jira was not modified. No release, tag, deployment, or Final V1 Release Audit work was performed.
+Wait until **Hossam explicitly returns and resumes**. Persistent Sol reconciles live Git/GitHub/local state, fixture integrity, persisted execution authority, and unused budget. Under the normal standalone lowercase `p` gate, resume at exact owner-request entry in the actual APO Draft field: physical target/focus proof, Win32 SendInput Ctrl+A/Ctrl+V, read-only UIA exact readback. Only after every input passes may the one-shot Process A Prepare/real planner/Ready, Process B restore/Start/real executor/workspace isolation, Process C anti-replay, Desktop result/cancellation affordance, owner functional acceptance, and final exact-head Sol acceptance proceed. See [current state](.ai/CURRENT_STATE.md#resume-here) for the full bounded sequence.
 
-## Planner boundary
-
-Next authority is **GPT-5.6 Sol** for Final V1 Release Audit planning.
-
-- No automatic Final V1 Release Audit is authorized.
-- No automatic v1.0.0 release is authorized.
-- A new standalone lowercase `p` from the owner is required before any new executor/reviewer prompt is generated.
-
-This file is a planner handoff, not an active executor contract. Do not begin the audit or release from this handoff alone.
+This file is state guidance, not an executable prompt. No implementation, acceptance run, model call, later roadmap work, PR Ready/merge, Issue closure, or release while paused.

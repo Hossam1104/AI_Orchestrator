@@ -611,6 +611,45 @@ public sealed class BoundedExecutionServiceTests
     }
 
     [Fact]
+    public async Task CrashAfterDurableClaim_DifferentRunIdForSameReadyCheckpoint_DoesNotInvoke()
+    {
+        using var harness = ExecutionHarness.Create(failCheckpointCreationNumber: 1);
+        var first = await harness.Service.ExecuteAsync(harness.Request);
+        var replay = await harness.Service.ExecuteAsync(new BoundedExecutionRequest(
+            harness.Request.ProjectId, Guid.NewGuid(), harness.Request.PlanningContractReference,
+            harness.Request.WorkGraphReference, harness.Request.WorkGraphNodeId, harness.Request.HandoffPackageReference,
+            harness.Request.RoutingDecisionReference, harness.Request.WorkspacePreparationPlanReference,
+            harness.Request.CurrentRecoveryCheckpointReference));
+
+        Assert.Equal(BoundedExecutionStatus.PreRunCheckpointFailed, first.Status);
+        Assert.Equal(BoundedExecutionStatus.AlreadyStarted, replay.Status);
+        Assert.Equal(0, harness.Adapter.InvocationCount);
+    }
+
+    [Fact]
+    public async Task EquivalentCanonicalWorkspacePath_ReachesAdapter()
+    {
+        using var harness = ExecutionHarness.Create(receiptWorkspacePath: EquivalentWorkspacePath);
+
+        var result = await harness.Service.ExecuteAsync(harness.Request);
+
+        Assert.Equal(BoundedExecutionStatus.Succeeded, result.Status);
+        Assert.Equal(1, harness.Adapter.InvocationCount);
+    }
+
+    [Fact]
+    public async Task DifferentWorkspacePath_IsRejectedBeforeAdapterOrAuthorityClaim()
+    {
+        using var harness = ExecutionHarness.Create(receiptWorkspacePath: path => path + "-other");
+
+        var result = await harness.Service.ExecuteAsync(harness.Request);
+
+        Assert.Equal(BoundedExecutionStatus.WorkspaceConflict, result.Status);
+        Assert.Equal(0, harness.Adapter.InvocationCount);
+        Assert.Equal(0, harness.Authorities.Count);
+    }
+
+    [Fact]
     public async Task RunningHistoryFailure_LeavesPreCheckpointAndReplayDoesNotInvoke()
     {
         using var harness = ExecutionHarness.Create(failHistoryStatus: ExecutionRunStatus.Running);
@@ -948,6 +987,10 @@ public sealed class BoundedExecutionServiceTests
         request.WorkspacePreparationPlanReference,
         request.CurrentRecoveryCheckpointReference);
 
+    private static string EquivalentWorkspacePath(string path) => OperatingSystem.IsWindows()
+        ? path.ToUpperInvariant() + Path.DirectorySeparatorChar
+        : path + Path.DirectorySeparatorChar;
+
     public enum AgentSnapshotDrift
     {
         ConnectionMode,
@@ -1085,7 +1128,8 @@ public sealed class BoundedExecutionServiceTests
             Guid? requestedRunId = null,
             IExecutionInvocationGate? invocationGate = null,
             IBoundedExecutionTiming? timing = null,
-            Action? onContextResolved = null)
+            Action? onContextResolved = null,
+            Func<string, string>? receiptWorkspacePath = null)
         {
             var projectId = Guid.NewGuid();
             var contextId = Guid.NewGuid();
@@ -1179,7 +1223,7 @@ public sealed class BoundedExecutionServiceTests
                 plan.CorrelationId,
                 Now,
                 plan.Reference,
-                workspacePath,
+                receiptWorkspacePath?.Invoke(workspacePath) ?? workspacePath,
                 plan.WorkspaceBranch,
                 baseSha,
                 baseSha,
@@ -1619,6 +1663,8 @@ public sealed class BoundedExecutionServiceTests
                 request.WorkGraphReference,
                 request.WorkGraphNodeId,
                 request.HandoffPackageReference,
+                request.RoutingDecisionReference,
+                request.WorkspacePreparationPlanReference,
                 request.PreviousCheckpointReference,
                 request.SelectedAgentRoleReferences,
                 request.EvidenceReferences,
@@ -1648,6 +1694,10 @@ public sealed class BoundedExecutionServiceTests
                 ? new ExecutionRunAuthorityRepositoryWriteResult(ExecutionRunAuthorityRepositoryWriteStatus.Created)
                 : new ExecutionRunAuthorityRepositoryWriteResult(ExecutionRunAuthorityRepositoryWriteStatus.RunConflict));
         public Task<ExecutionRunAuthorityReadResult> GetAsync(Guid projectId, Guid runId, CancellationToken cancellationToken = default) => Task.FromResult(_values.TryGetValue((projectId, runId), out var authority) ? new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Valid, authority) : new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Missing));
+        public Task<ExecutionRunAuthorityReadResult> GetByInputCheckpointAsync(Guid projectId, RecoveryCheckpointReference inputCheckpointReference, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_values.Values.FirstOrDefault(authority => authority.ProjectId == projectId && authority.InputRecoveryCheckpointReference.CheckpointId == inputCheckpointReference.CheckpointId && authority.InputRecoveryCheckpointReference.SchemaVersion == inputCheckpointReference.SchemaVersion && string.Equals(authority.InputRecoveryCheckpointReference.ContentHash, inputCheckpointReference.ContentHash, StringComparison.OrdinalIgnoreCase)) is { } authority
+                ? new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Valid, authority)
+                : new ExecutionRunAuthorityReadResult(ExecutionRunAuthorityReadState.Missing));
     }
 
     private sealed class FakeHistory(ExecutionRunStatus? failStatus) : IProjectOrchestrationStore

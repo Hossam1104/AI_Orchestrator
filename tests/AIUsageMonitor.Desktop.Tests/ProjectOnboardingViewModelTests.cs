@@ -35,6 +35,60 @@ public sealed class ProjectOnboardingViewModelTests
     }
 
     [Fact]
+    public void QueryingNextCanExecuteDoesNotProduceValidationSideEffects()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+
+        // WPF's CommandManager re-queries CanExecute on unrelated UI events; merely asking whether
+        // Next is enabled must never mutate owner-facing validation state.
+        _ = onboarding.NextCommand.CanExecute(null);
+        _ = onboarding.NextCommand.CanExecute(null);
+        _ = onboarding.NextCommand.CanExecute(null);
+
+        Assert.False(onboarding.HasError);
+        Assert.Null(onboarding.ErrorMessage);
+    }
+
+    [Fact]
+    public void CorrectingLocalPathClearsObsoleteMissingPathError()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+        onboarding.Name = "Project";
+
+        onboarding.NextCommand.Execute(null);
+        Assert.Equal("Local workspace path is required.", onboarding.ErrorMessage);
+
+        onboarding.LocalPath = "C:\\project";
+
+        Assert.True(onboarding.NextCommand.CanExecute(null));
+        Assert.False(onboarding.HasError);
+        Assert.Null(onboarding.ErrorMessage);
+    }
+
+    [Fact]
+    public void ExplicitInvalidNextAttemptReportsValidationAndDoesNotAdvance()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+
+        onboarding.NextCommand.Execute(null);
+
+        Assert.Equal(ProjectOnboardingStep.Project, onboarding.CurrentStep);
+        Assert.Equal("Project name is required.", onboarding.ErrorMessage);
+    }
+
+    [Fact]
+    public void ValidNextAdvancesToRepositoryStepWithoutError()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+        SetProjectValues(onboarding);
+
+        onboarding.NextCommand.Execute(null);
+
+        Assert.Equal(ProjectOnboardingStep.Repository, onboarding.CurrentStep);
+        Assert.False(onboarding.HasError);
+    }
+
+    [Fact]
     public void RepositorySkipAdvancesWithoutFakeConnection()
     {
         var onboarding = CreateOnboarding(new FakeOnboardingService());
@@ -63,6 +117,28 @@ public sealed class ProjectOnboardingViewModelTests
         Assert.Equal(ProjectOnboardingStep.Agents, onboarding.CurrentStep);
         Assert.Equal(6, onboarding.AgentOptions.Count);
         Assert.Contains("Planner", onboarding.AgentOptions[0].RolesText + onboarding.AgentOptions[1].RolesText);
+    }
+
+    [Fact]
+    public void GitHubTrackerIsFirstClassAndRequiresItsBoundedReference()
+    {
+        var onboarding = CreateOnboarding(new FakeOnboardingService());
+        SetProjectValues(onboarding);
+        onboarding.NextCommand.Execute(null);
+        onboarding.SkipRepositoryCommand.Execute(null);
+        onboarding.NextCommand.Execute(null);
+
+        Assert.Contains("GitHub", onboarding.TrackerOptions);
+        onboarding.SelectedTrackerOption = "GitHub";
+
+        Assert.False(onboarding.NextCommand.CanExecute(null));
+        Assert.Contains("GITHUB", onboarding.TrackerReferenceLabel, StringComparison.Ordinal);
+        Assert.Contains("owner/repository", onboarding.TrackerReferenceHelpText, StringComparison.Ordinal);
+        Assert.Contains("not tested", onboarding.TrackerStateText, StringComparison.OrdinalIgnoreCase);
+
+        onboarding.TrackerReference = "Hossam1104/AI_Orchestrator";
+
+        Assert.True(onboarding.NextCommand.CanExecute(null));
     }
 
     [Fact]

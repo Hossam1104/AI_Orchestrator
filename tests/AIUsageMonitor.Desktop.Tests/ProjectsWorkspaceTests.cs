@@ -139,6 +139,27 @@ public sealed class ProjectsWorkspaceTests
     }
 
     [Fact]
+    public async Task ProjectsWorkspace_EmptyRegistryYieldsToAnActiveCreateFlow()
+    {
+        var viewModel = CreateViewModel(new FakeProjectRepository());
+        await viewModel.InitializeAsync();
+        Assert.True(viewModel.ShowEmptyRegistryState);
+
+        viewModel.NewProjectCommand.Execute(null);
+
+        // The detail card hosting the create flow renders on the inverse of this state, so an empty
+        // registry must stop claiming the surface while the flow is open — otherwise the first run
+        // with no registered project has nowhere to draw the flow.
+        Assert.False(viewModel.ShowEmptyRegistryState);
+        Assert.True(viewModel.IsEditorVisible);
+
+        viewModel.CancelEditCommand.Execute(null);
+
+        Assert.True(viewModel.ShowEmptyRegistryState);
+        Assert.False(viewModel.IsEditorVisible);
+    }
+
+    [Fact]
     public async Task ProjectsWorkspace_SearchAndStatusFilterStayInMemory()
     {
         var repository = new FakeProjectRepository(
@@ -452,6 +473,20 @@ public sealed class ProjectsWorkspaceTests
         Assert.False(viewModel.RefreshCommand.CanExecute(null));
         Assert.False(viewModel.NewProjectCommand.CanExecute(null));
         Assert.False(viewModel.IsRegistryInteractionEnabled);
+    }
+
+    [Fact]
+    public async Task AddExistingProjectIsEnabledAfterHealthyRegistryInitialization()
+    {
+        var viewModel = CreateViewModel(new FakeProjectRepository());
+
+        Assert.False(viewModel.AddExistingProjectCommand.CanExecute(null));
+
+        await viewModel.InitializeAsync();
+
+        Assert.True(viewModel.CanAddExistingProject);
+        Assert.True(viewModel.AddExistingProjectCommand.CanExecute(null));
+        Assert.Equal(string.Empty, viewModel.AddExistingProjectStateText);
     }
 
     [Fact]

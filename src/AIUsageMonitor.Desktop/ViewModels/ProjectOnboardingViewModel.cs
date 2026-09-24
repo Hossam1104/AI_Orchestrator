@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using AIUsageMonitor.Application.Agents;
 using AIUsageMonitor.Application.Projects;
+using AIUsageMonitor.Application.Trackers;
 
 namespace AIUsageMonitor.Desktop.ViewModels;
 
@@ -59,25 +60,32 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
     private string _name = string.Empty;
     private string _localPath = string.Empty;
     private string _repositoryDefaultBranch = string.Empty;
-    private string _selectedTrackerOption = TrackerOptionsList[0];
+    private string _selectedTrackerOption = NoTrackerOption;
     private string _trackerReference = string.Empty;
     private bool _isBusy;
     private bool _isCompletionTerminal;
     private string? _errorMessage;
+    private Func<string?>? _pathPicker;
+
+    private const string NoTrackerOption = "No tracker / Skip";
+    private const string GitHubTrackerOption = "GitHub";
+    private const int MaxTrackerReferenceLength = TrackerLimits.MaxStringLength;
 
     private static readonly IReadOnlyList<string> TrackerOptionsList =
-        ["No tracker / Skip", "Jira", "Azure Boards", "Other / Manual reference"];
+        [NoTrackerOption, GitHubTrackerOption, "Jira", "Azure Boards", "Other / Manual reference"];
 
     public ProjectOnboardingViewModel(
         IProjectOnboardingService service,
         IDefaultAgentCatalog catalog,
         Func<ProjectOnboardingResult, Task>? onFinished = null,
-        Action? onCanceled = null)
+        Action? onCanceled = null,
+        Func<string?>? pathPicker = null)
     {
         _service = service ?? throw new ArgumentNullException(nameof(service));
         ArgumentNullException.ThrowIfNull(catalog);
         _onFinished = onFinished;
         _onCanceled = onCanceled;
+        _pathPicker = pathPicker;
         AgentOptions = new ObservableCollection<ProjectOnboardingAgentOptionViewModel>(
             catalog.GetDefaults().Select(static definition => new ProjectOnboardingAgentOptionViewModel(definition)));
 
@@ -92,6 +100,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             () => !IsBusy && IsRepositoryStep);
         FinishCommand = new AsyncCommand(FinishAsync, CanFinish);
         CancelCommand = new RelayCommand(Cancel, () => !IsBusy && !IsCompletionTerminal);
+        BrowsePathCommand = new RelayCommand(BrowsePath, CanBrowsePath);
     }
 
     public ObservableCollection<ProjectOnboardingAgentOptionViewModel> AgentOptions { get; }
@@ -121,7 +130,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
     public string StepTitle => CurrentStep switch
     {
         ProjectOnboardingStep.Project => "Project",
-        ProjectOnboardingStep.Repository => "Repository",
+        ProjectOnboardingStep.Repository => "Preview",
         ProjectOnboardingStep.Tracker => "Tracker",
         ProjectOnboardingStep.Agents => "AI roles",
         _ => "Project"
@@ -138,6 +147,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         {
             if (SetProperty(ref _name, value ?? string.Empty))
             {
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
@@ -163,6 +173,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
                 }
             }
 
+            ClearStaleValidationError();
             NotifyCommands();
         }
     }
@@ -175,6 +186,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             if (SetProperty(ref _repositoryChoice, value))
             {
                 OnPropertyChanged(nameof(RepositoryDecisionText));
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
@@ -192,6 +204,12 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
                 OnPropertyChanged(nameof(RepositoryRootText));
                 OnPropertyChanged(nameof(RepositoryBranchText));
                 OnPropertyChanged(nameof(RepositoryRemoteText));
+                OnPropertyChanged(nameof(RepositoryHeadText));
+                OnPropertyChanged(nameof(RemoteProviderText));
+                OnPropertyChanged(nameof(RemoteUrlText));
+                OnPropertyChanged(nameof(GovernanceFilesText));
+                OnPropertyChanged(nameof(ProjectFilesText));
+                OnPropertyChanged(nameof(WorkspaceReadinessText));
                 OnPropertyChanged(nameof(RepositoryCapturedAtText));
                 OnPropertyChanged(nameof(CanAcceptRepository));
                 NotifyCommands();
@@ -226,6 +244,34 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             ? "No configured local remotes"
             : "Detected from local Git configuration — connectivity not verified";
 
+    public string RepositoryHeadText => RepositoryInspection?.HeadShortSha
+        ?? (RepositoryInspection?.HeadSha is { Length: > 0 } head ? head[..Math.Min(7, head.Length)] : "Not available");
+
+    public string RemoteProviderText => RepositoryInspection?.Workspace?.RemoteProvider ??
+        (RepositoryInspection is null ? "Not inspected" : "No remote provider identified");
+
+    public string RemoteUrlText => RepositoryInspection?.Remotes.FirstOrDefault(remote =>
+        string.Equals(remote.Name, "origin", StringComparison.OrdinalIgnoreCase))?.SanitizedUrl
+        ?? "No origin remote";
+
+    public string GovernanceFilesText => RepositoryInspection?.Workspace is not { } workspace
+        ? "Not inspected"
+        : string.Join(", ", workspace.GovernanceFiles.Select(static item => $"{item.Key}: {item.Value}"));
+
+    public string ProjectFilesText => RepositoryInspection?.Workspace is not { } workspace
+        ? "Not inspected"
+        : workspace.ProjectFiles.Count == 0
+            ? "No solution/build files detected at the selected root"
+            : string.Join(", ", workspace.ProjectFiles);
+
+    public string WorkspaceReadinessText => RepositoryInspection?.Workspace is not { } workspace
+        ? "Select a folder and inspect it to build the preview."
+        : !workspace.Exists
+            ? "The selected folder no longer exists. Choose another workspace."
+            : !workspace.IsReadable
+                ? "The selected folder could not be read safely."
+                : "Read-only discovery complete. APO will persist only its local registry metadata.";
+
     public string RepositoryCapturedAtText => RepositoryInspection is null
         ? "Not inspected"
         : RepositoryInspection.CapturedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt");
@@ -245,6 +291,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             if (SetProperty(ref _repositoryDefaultBranch, value ?? string.Empty))
             {
                 OnPropertyChanged(nameof(CanAcceptRepository));
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
@@ -263,13 +310,27 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
             if (SetProperty(ref _selectedTrackerOption, value ?? TrackerOptionsList[0]))
             {
                 OnPropertyChanged(nameof(IsTrackerSkipped));
+                OnPropertyChanged(nameof(IsGitHubTracker));
+                OnPropertyChanged(nameof(TrackerReferenceLabel));
+                OnPropertyChanged(nameof(TrackerReferenceHelpText));
                 OnPropertyChanged(nameof(TrackerStateText));
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
     }
 
-    public bool IsTrackerSkipped => string.Equals(SelectedTrackerOption, TrackerOptionsList[0], StringComparison.Ordinal);
+    public bool IsTrackerSkipped => string.Equals(SelectedTrackerOption, NoTrackerOption, StringComparison.Ordinal);
+
+    public bool IsGitHubTracker => string.Equals(SelectedTrackerOption, GitHubTrackerOption, StringComparison.Ordinal);
+
+    public string TrackerReferenceLabel => IsGitHubTracker
+        ? "GITHUB REPOSITORY / PROJECT / ISSUE REFERENCE"
+        : "REFERENCE / PROJECT KEY";
+
+    public string TrackerReferenceHelpText => IsGitHubTracker
+        ? "Accepts owner/repository, a GitHub repository or Project URL, or an Issue/work-item reference. APO stores it locally and does not verify GitHub connectivity here."
+        : "Enter a bounded project or reference ID. Connectivity is not checked during onboarding.";
 
     public string TrackerReference
     {
@@ -278,6 +339,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         {
             if (SetProperty(ref _trackerReference, value ?? string.Empty))
             {
+                ClearStaleValidationError();
                 NotifyCommands();
             }
         }
@@ -285,7 +347,8 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
 
     public string TrackerStateText => IsTrackerSkipped
         ? "Skipped — no tracker connectivity is checked."
-        : "Configured / connectivity not verified. Enter only a bounded project or reference ID.";
+        : "Configured / connectivity not verified."
+            + (IsGitHubTracker ? " GitHub access is not tested during onboarding." : "");
 
     public string? ErrorMessage
     {
@@ -315,16 +378,25 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
     public AsyncCommand FinishCommand { get; }
     public RelayCommand CancelCommand { get; }
 
+    public RelayCommand BrowsePathCommand { get; }
+
+    public void SetPathPicker(Func<string?> pathPicker)
+    {
+        _pathPicker = pathPicker ?? throw new ArgumentNullException(nameof(pathPicker));
+        BrowsePathCommand.NotifyCanExecuteChanged();
+    }
+
     private bool CanNext() => !IsBusy && CurrentStep != ProjectOnboardingStep.Agents && IsCurrentStepValid();
 
     private void Next()
     {
-        ErrorMessage = null;
-        if (!IsCurrentStepValid())
+        if (!TryValidateCurrentStep(out var error))
         {
+            ErrorMessage = error;
             return;
         }
 
+        ErrorMessage = null;
         CurrentStep = (ProjectOnboardingStep)((int)CurrentStep + 1);
     }
 
@@ -337,32 +409,77 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         }
     }
 
-    private bool IsCurrentStepValid()
+    /// <summary>
+    /// Pure eligibility check used by command CanExecute evaluation. WPF's CommandManager can query
+    /// this at any time (focus changes, input events); it must never mutate owner-facing state.
+    /// </summary>
+    private bool IsCurrentStepValid() => TryValidateCurrentStep(out _);
+
+    /// <summary>
+    /// Called from onboarding input setters (Name, LocalPath, tracker/repository fields) so a
+    /// correction deterministically clears a stale field-level error from an earlier explicit Next
+    /// attempt. Deliberately not wired into NotifyCommands/IsBusy: those also run after
+    /// business-outcome error assignment (e.g. FinishAsync failure), which must not be cleared here.
+    /// </summary>
+    private void ClearStaleValidationError()
+    {
+        if (HasError && TryValidateCurrentStep(out _))
+        {
+            ErrorMessage = null;
+        }
+    }
+
+    /// <summary>
+    /// Produces the validation outcome and, when invalid, the message an explicit attempted action
+    /// (e.g. Next) should display. Side-effect-free: callers decide whether/how to surface the error.
+    /// </summary>
+    private bool TryValidateCurrentStep(out string? error)
     {
         switch (CurrentStep)
         {
             case ProjectOnboardingStep.Project when string.IsNullOrWhiteSpace(Name):
-                ErrorMessage = "Project name is required.";
+                error = "Project name is required.";
                 return false;
             case ProjectOnboardingStep.Project when string.IsNullOrWhiteSpace(LocalPath):
-                ErrorMessage = "Local workspace path is required.";
+                error = "Local workspace path is required.";
                 return false;
             case ProjectOnboardingStep.Repository when RepositoryChoice == RepositoryOnboardingChoice.NotSelected:
-                ErrorMessage = "Accept the detected local metadata or choose to continue without repository integration.";
+                error = "Confirm the preview evidence or choose to continue without repository integration.";
                 return false;
             case ProjectOnboardingStep.Repository when RepositoryChoice == RepositoryOnboardingChoice.AcceptDetected && !CanAcceptRepository:
-                ErrorMessage = "A verified repository with a usable branch is required; otherwise choose skip.";
+                error = "A verified repository with a usable branch is required; otherwise choose skip.";
                 return false;
             case ProjectOnboardingStep.Tracker when !IsTrackerSkipped && string.IsNullOrWhiteSpace(TrackerReference):
-                ErrorMessage = "A bounded tracker reference is required, or choose No tracker / Skip.";
+                error = "A bounded tracker reference is required, or choose No tracker / Skip.";
+                return false;
+            case ProjectOnboardingStep.Tracker when !IsTrackerSkipped && TrackerReference.Length > MaxTrackerReferenceLength:
+                error = $"The tracker reference cannot exceed {MaxTrackerReferenceLength} characters.";
                 return false;
             default:
+                error = null;
                 return true;
         }
     }
 
+    private static string CanonicalTrackerType(string option) => option switch
+    {
+        GitHubTrackerOption => GitHubTrackerOption,
+        _ => option
+    };
+
     private bool CanInspectRepository() =>
         !IsBusy && IsRepositoryStep && !string.IsNullOrWhiteSpace(LocalPath);
+
+    private bool CanBrowsePath() => !IsBusy && IsProjectStep && _pathPicker is not null;
+
+    private void BrowsePath()
+    {
+        var selectedPath = _pathPicker?.Invoke();
+        if (!string.IsNullOrWhiteSpace(selectedPath))
+        {
+            LocalPath = selectedPath;
+        }
+    }
 
     private async Task InspectRepositoryAsync()
     {
@@ -416,7 +533,7 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
                         RepositoryInspection = RepositoryInspection,
                         RepositoryDefaultBranch = RepositoryDefaultBranch,
                         SkipTracker = IsTrackerSkipped,
-                        TrackerType = IsTrackerSkipped ? null : SelectedTrackerOption,
+                        TrackerType = IsTrackerSkipped ? null : CanonicalTrackerType(SelectedTrackerOption),
                         TrackerReference = IsTrackerSkipped ? null : TrackerReference,
                         EnabledAgentIds = AgentOptions
                             .Where(static option => option.IsEnabled)
@@ -427,6 +544,20 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
 
             if (!result.Succeeded)
             {
+                if (result.Status == ProjectOnboardingCompletionStatus.AlreadyRegistered)
+                {
+                    _isCompletionTerminal = true;
+                    OnPropertyChanged(nameof(IsCompletionTerminal));
+                    ErrorMessage = result.ErrorMessage ?? "Project already registered.";
+                    NotifyCommands();
+                    if (_onFinished is not null)
+                    {
+                        await _onFinished(result).ConfigureAwait(true);
+                    }
+
+                    return;
+                }
+
                 if (result.IsPartialProjectCreated && result.Project is not null)
                 {
                     _isCompletionTerminal = true;
@@ -492,5 +623,6 @@ public sealed class ProjectOnboardingViewModel : ObservableObject
         SkipRepositoryCommand.NotifyCanExecuteChanged();
         FinishCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
+        BrowsePathCommand.NotifyCanExecuteChanged();
     }
 }

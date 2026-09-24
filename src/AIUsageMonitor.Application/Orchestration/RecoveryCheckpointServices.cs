@@ -2,8 +2,10 @@ using System.Collections.Concurrent;
 using AIUsageMonitor.Application.Handoffs;
 using AIUsageMonitor.Application.Planning;
 using AIUsageMonitor.Application.Projects;
+using AIUsageMonitor.Application.Routing;
 using AIUsageMonitor.Application.Security;
 using AIUsageMonitor.Application.Time;
+using AIUsageMonitor.Application.Workspaces;
 
 namespace AIUsageMonitor.Application.Orchestration;
 
@@ -23,6 +25,8 @@ public sealed class RecoveryCheckpointCreationRequest
         WorkGraphReference? workGraphReference = null,
         Guid? workGraphNodeId = null,
         HandoffPackageReference? handoffPackageReference = null,
+        RoutingDecisionReference? routingDecisionReference = null,
+        WorkspacePreparationPlanReference? workspacePreparationPlanReference = null,
         RecoveryCheckpointReference? previousCheckpointReference = null,
         IReadOnlyList<RecoveryAgentRoleReference>? selectedAgentRoleReferences = null)
     {
@@ -39,6 +43,8 @@ public sealed class RecoveryCheckpointCreationRequest
         WorkGraphReference = workGraphReference;
         WorkGraphNodeId = workGraphNodeId;
         HandoffPackageReference = handoffPackageReference;
+        RoutingDecisionReference = routingDecisionReference;
+        WorkspacePreparationPlanReference = workspacePreparationPlanReference;
         PreviousCheckpointReference = previousCheckpointReference;
         SelectedAgentRoleReferences = selectedAgentRoleReferences ?? Array.Empty<RecoveryAgentRoleReference>();
     }
@@ -56,6 +62,8 @@ public sealed class RecoveryCheckpointCreationRequest
     public WorkGraphReference? WorkGraphReference { get; }
     public Guid? WorkGraphNodeId { get; }
     public HandoffPackageReference? HandoffPackageReference { get; }
+    public RoutingDecisionReference? RoutingDecisionReference { get; }
+    public WorkspacePreparationPlanReference? WorkspacePreparationPlanReference { get; }
     public RecoveryCheckpointReference? PreviousCheckpointReference { get; }
     public IReadOnlyList<RecoveryAgentRoleReference> SelectedAgentRoleReferences { get; }
 }
@@ -76,6 +84,12 @@ public enum RecoveryCheckpointCreationStatus
     HandoffMissing,
     HandoffInvalid,
     HandoffMismatch,
+    RoutingMissing,
+    RoutingInvalid,
+    RoutingMismatch,
+    WorkspacePlanMissing,
+    WorkspacePlanInvalid,
+    WorkspacePlanMismatch,
     PredecessorMissing,
     PredecessorInvalid,
     InvalidLineage,
@@ -115,6 +129,8 @@ public sealed class RecoveryCheckpointService : IRecoveryCheckpointService
     private readonly IPlanningExecutionContractRepository _contracts;
     private readonly IWorkGraphRepository _graphs;
     private readonly IHandoffPackageRepository _handoffs;
+    private readonly IRoutingDecisionRepository _routing;
+    private readonly IWorkspacePreparationPlanRepository _workspacePlans;
     private readonly IRecoveryCheckpointRepository _checkpoints;
     private readonly IContinuationHeadRepository _heads;
     private readonly IHandoffRedactionService _redaction;
@@ -127,6 +143,8 @@ public sealed class RecoveryCheckpointService : IRecoveryCheckpointService
         IPlanningExecutionContractRepository contracts,
         IWorkGraphRepository graphs,
         IHandoffPackageRepository handoffs,
+        IRoutingDecisionRepository routing,
+        IWorkspacePreparationPlanRepository workspacePlans,
         IRecoveryCheckpointRepository checkpoints,
         IContinuationHeadRepository heads,
         IHandoffRedactionService redaction,
@@ -137,6 +155,8 @@ public sealed class RecoveryCheckpointService : IRecoveryCheckpointService
         _contracts = contracts ?? throw new ArgumentNullException(nameof(contracts));
         _graphs = graphs ?? throw new ArgumentNullException(nameof(graphs));
         _handoffs = handoffs ?? throw new ArgumentNullException(nameof(handoffs));
+        _routing = routing ?? throw new ArgumentNullException(nameof(routing));
+        _workspacePlans = workspacePlans ?? throw new ArgumentNullException(nameof(workspacePlans));
         _checkpoints = checkpoints ?? throw new ArgumentNullException(nameof(checkpoints));
         _heads = heads ?? throw new ArgumentNullException(nameof(heads));
         _redaction = redaction ?? throw new ArgumentNullException(nameof(redaction));
@@ -225,6 +245,18 @@ public sealed class RecoveryCheckpointService : IRecoveryCheckpointService
             if (handoffStatus is not null)
             {
                 return handoffStatus;
+            }
+
+            var routingStatus = await ValidateRoutingAsync(request, contract, context, cancellationToken).ConfigureAwait(false);
+            if (routingStatus is not null)
+            {
+                return routingStatus;
+            }
+
+            var workspacePlanStatus = await ValidateWorkspacePlanAsync(request, contract, cancellationToken).ConfigureAwait(false);
+            if (workspacePlanStatus is not null)
+            {
+                return workspacePlanStatus;
             }
 
             var predecessorStatus = await ValidatePredecessorAsync(request, cancellationToken).ConfigureAwait(false);
@@ -431,6 +463,83 @@ public sealed class RecoveryCheckpointService : IRecoveryCheckpointService
         return null;
     }
 
+    private async Task<RecoveryCheckpointCreationResult?> ValidateRoutingAsync(
+        RecoveryCheckpointCreationRequest request,
+        PlanningExecutionContract contract,
+        ProjectContextReference context,
+        CancellationToken cancellationToken)
+    {
+        if (request.RoutingDecisionReference is null)
+        {
+            return null;
+        }
+
+        var read = await _routing.GetAsync(request.ProjectId, request.RoutingDecisionReference.DecisionId, cancellationToken)
+            .ConfigureAwait(false);
+        if (read.State == RoutingDecisionReadState.Missing)
+        {
+            return new(RecoveryCheckpointCreationStatus.RoutingMissing, ErrorMessage: "The exact routing decision is missing.");
+        }
+
+        if (!read.IsValid || read.Decision is null)
+        {
+            return new(read.State == RoutingDecisionReadState.Unavailable
+                ? RecoveryCheckpointCreationStatus.PersistenceUnavailable
+                : RecoveryCheckpointCreationStatus.RoutingInvalid, ErrorMessage: "The exact routing decision is not valid.");
+        }
+
+        var decision = read.Decision;
+        var contextIdentity = new WorkspaceContextIdentity(context.ProjectId, context.ContextId, context.ContractVersion, context.UpdatedAt);
+        if (decision.ProjectId != request.ProjectId ||
+            !SameRoutingReference(decision.Reference, request.RoutingDecisionReference) ||
+            !WorkspacePreparationPlanningService.IsUsableRoutingDecision(decision, request.ProjectId, contract.Reference, contextIdentity))
+        {
+            return new(RecoveryCheckpointCreationStatus.RoutingMismatch, ErrorMessage: "The routing decision is not the exact usable decision for this checkpoint.");
+        }
+
+        return null;
+    }
+
+    private async Task<RecoveryCheckpointCreationResult?> ValidateWorkspacePlanAsync(
+        RecoveryCheckpointCreationRequest request,
+        PlanningExecutionContract contract,
+        CancellationToken cancellationToken)
+    {
+        if (request.WorkspacePreparationPlanReference is null)
+        {
+            return null;
+        }
+
+        var read = await _workspacePlans.GetAsync(request.ProjectId, request.WorkspacePreparationPlanReference.PlanId, cancellationToken)
+            .ConfigureAwait(false);
+        if (read.State == WorkspacePreparationPlanReadState.Missing)
+        {
+            return new(RecoveryCheckpointCreationStatus.WorkspacePlanMissing, ErrorMessage: "The exact workspace preparation plan is missing.");
+        }
+
+        if (read.State != WorkspacePreparationPlanReadState.Valid || read.Plan is null)
+        {
+            return new(read.State == WorkspacePreparationPlanReadState.Unavailable
+                ? RecoveryCheckpointCreationStatus.PersistenceUnavailable
+                : RecoveryCheckpointCreationStatus.WorkspacePlanInvalid, ErrorMessage: "The exact workspace preparation plan is not valid.");
+        }
+
+        var plan = read.Plan;
+        if (plan.ProjectId != request.ProjectId ||
+            !SameWorkspacePlanReference(plan.Reference, request.WorkspacePreparationPlanReference) ||
+            !SameContractReference(plan.ContractReference, contract.Reference) ||
+            (plan.WorkGraphReference is not null) != (request.WorkGraphReference is not null) ||
+            (plan.WorkGraphReference is not null && request.WorkGraphReference is not null &&
+             !SameGraphReference(plan.WorkGraphReference, request.WorkGraphReference)) ||
+            plan.WorkGraphNodeId != request.WorkGraphNodeId ||
+            !SameRoutingReference(plan.RoutingDecisionReference, request.RoutingDecisionReference))
+        {
+            return new(RecoveryCheckpointCreationStatus.WorkspacePlanMismatch, ErrorMessage: "The workspace preparation plan does not bind to the checkpoint authorities.");
+        }
+
+        return null;
+    }
+
     private async Task<RecoveryCheckpointCreationResult?> ValidatePredecessorAsync(
         RecoveryCheckpointCreationRequest request,
         CancellationToken cancellationToken)
@@ -536,6 +645,8 @@ public sealed class RecoveryCheckpointService : IRecoveryCheckpointService
             request.WorkGraphReference,
             request.WorkGraphNodeId,
             request.HandoffPackageReference,
+            request.RoutingDecisionReference,
+            request.WorkspacePreparationPlanReference,
             request.PreviousCheckpointReference,
             request.SelectedAgentRoleReferences,
             request.EvidenceReferences,
@@ -589,6 +700,20 @@ public sealed class RecoveryCheckpointService : IRecoveryCheckpointService
 
     private static bool SameCheckpointReference(RecoveryCheckpointReference left, RecoveryCheckpointReference right) =>
         left.CheckpointId == right.CheckpointId &&
+        left.SchemaVersion == right.SchemaVersion &&
+        string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase);
+
+    private static bool SameRoutingReference(RoutingDecisionReference? left, RoutingDecisionReference? right) =>
+        (left is null && right is null) ||
+        (left is not null && right is not null &&
+         left.DecisionId == right.DecisionId &&
+         left.SchemaVersion == right.SchemaVersion &&
+         string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase));
+
+    private static bool SameWorkspacePlanReference(WorkspacePreparationPlanReference? left, WorkspacePreparationPlanReference? right) =>
+        left is not null && right is not null &&
+        left.ProjectId == right.ProjectId &&
+        left.PlanId == right.PlanId &&
         left.SchemaVersion == right.SchemaVersion &&
         string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase);
 
@@ -768,6 +893,8 @@ public sealed class SmartContinueResolver : ISmartContinueResolver
     private readonly IPlanningExecutionContractRepository _contracts;
     private readonly IWorkGraphRepository _graphs;
     private readonly IHandoffPackageRepository _handoffs;
+    private readonly IRoutingDecisionRepository _routing;
+    private readonly IWorkspacePreparationPlanRepository _workspacePlans;
     private readonly IRecoveryCheckpointRepository _checkpoints;
     private readonly IContinuationHeadRepository _heads;
     private readonly IClock _clock;
@@ -778,6 +905,8 @@ public sealed class SmartContinueResolver : ISmartContinueResolver
         IPlanningExecutionContractRepository contracts,
         IWorkGraphRepository graphs,
         IHandoffPackageRepository handoffs,
+        IRoutingDecisionRepository routing,
+        IWorkspacePreparationPlanRepository workspacePlans,
         IRecoveryCheckpointRepository checkpoints,
         IContinuationHeadRepository heads,
         IClock clock)
@@ -787,6 +916,8 @@ public sealed class SmartContinueResolver : ISmartContinueResolver
         _contracts = contracts ?? throw new ArgumentNullException(nameof(contracts));
         _graphs = graphs ?? throw new ArgumentNullException(nameof(graphs));
         _handoffs = handoffs ?? throw new ArgumentNullException(nameof(handoffs));
+        _routing = routing ?? throw new ArgumentNullException(nameof(routing));
+        _workspacePlans = workspacePlans ?? throw new ArgumentNullException(nameof(workspacePlans));
         _checkpoints = checkpoints ?? throw new ArgumentNullException(nameof(checkpoints));
         _heads = heads ?? throw new ArgumentNullException(nameof(heads));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -987,6 +1118,46 @@ public sealed class SmartContinueResolver : ISmartContinueResolver
                 !SameCheckpointReference(predecessor.Checkpoint.Reference, checkpoint.PreviousCheckpointReference))
             {
                 return "The checkpoint predecessor authority is not valid.";
+            }
+        }
+
+        if (checkpoint.RoutingDecisionReference is not null)
+        {
+            var routingRead = await _routing.GetAsync(checkpoint.ProjectId, checkpoint.RoutingDecisionReference.DecisionId, cancellationToken)
+                .ConfigureAwait(false);
+            var contextIdentity = new WorkspaceContextIdentity(
+                currentContext.ProjectId,
+                currentContext.ContextId,
+                currentContext.ContractVersion,
+                currentContext.UpdatedAt);
+            if (!routingRead.IsValid || routingRead.Decision is null ||
+                routingRead.Decision.ProjectId != checkpoint.ProjectId ||
+                !SameRoutingReference(routingRead.Decision.Reference, checkpoint.RoutingDecisionReference) ||
+                !WorkspacePreparationPlanningService.IsUsableRoutingDecision(
+                    routingRead.Decision, checkpoint.ProjectId, checkpoint.PlanningContractReference, contextIdentity))
+            {
+                return "The exact routing decision bound to the checkpoint is not valid or usable against the current context.";
+            }
+        }
+
+        if (checkpoint.WorkspacePreparationPlanReference is not null)
+        {
+            var planRead = await _workspacePlans.GetAsync(
+                    checkpoint.ProjectId,
+                    checkpoint.WorkspacePreparationPlanReference.PlanId,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (planRead.State != WorkspacePreparationPlanReadState.Valid || planRead.Plan is null ||
+                planRead.Plan.ProjectId != checkpoint.ProjectId ||
+                !SameWorkspacePlanReference(planRead.Plan.Reference, checkpoint.WorkspacePreparationPlanReference) ||
+                !SameContractReference(planRead.Plan.ContractReference, checkpoint.PlanningContractReference) ||
+                (planRead.Plan.WorkGraphReference is not null) != (checkpoint.WorkGraphReference is not null) ||
+                (planRead.Plan.WorkGraphReference is not null && checkpoint.WorkGraphReference is not null &&
+                 !SameGraphReference(planRead.Plan.WorkGraphReference, checkpoint.WorkGraphReference)) ||
+                planRead.Plan.WorkGraphNodeId != checkpoint.WorkGraphNodeId ||
+                !SameRoutingReference(planRead.Plan.RoutingDecisionReference, checkpoint.RoutingDecisionReference))
+            {
+                return "The exact workspace preparation plan bound to the checkpoint is not valid or compatible.";
             }
         }
 
@@ -1233,5 +1404,16 @@ public sealed class SmartContinueResolver : ISmartContinueResolver
 
     private static bool SameCheckpointReference(RecoveryCheckpointReference left, RecoveryCheckpointReference right) =>
         left.CheckpointId == right.CheckpointId && left.SchemaVersion == right.SchemaVersion &&
+        string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase);
+
+    private static bool SameRoutingReference(RoutingDecisionReference? left, RoutingDecisionReference? right) =>
+        (left is null && right is null) ||
+        (left is not null && right is not null &&
+         left.DecisionId == right.DecisionId && left.SchemaVersion == right.SchemaVersion &&
+         string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase));
+
+    private static bool SameWorkspacePlanReference(WorkspacePreparationPlanReference? left, WorkspacePreparationPlanReference? right) =>
+        left is not null && right is not null &&
+        left.ProjectId == right.ProjectId && left.PlanId == right.PlanId && left.SchemaVersion == right.SchemaVersion &&
         string.Equals(left.ContentHash, right.ContentHash, StringComparison.OrdinalIgnoreCase);
 }

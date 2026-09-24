@@ -15,6 +15,7 @@ public sealed class ProjectsViewModel : ObservableObject
     private readonly IProjectRepositoryStateService? _repositoryStateService;
     private readonly IProjectOnboardingService? _onboardingService;
     private readonly IDefaultAgentCatalog? _defaultAgentCatalog;
+    private readonly IProjectFolderPreferenceService? _folderPreferences;
     private CancellationTokenSource? _repositoryVerificationCancellation;
     private long _repositoryVerificationGeneration;
     private Guid? _editingProjectId;
@@ -46,6 +47,8 @@ public sealed class ProjectsViewModel : ObservableObject
     private RepositoryStateSnapshot? _repositoryState;
     private bool _isVerifying;
     private ProjectOnboardingViewModel? _onboarding;
+    private Func<string?, string?>? _pathPicker;
+    private string? _preferredPickerRoot;
 
     public ProjectsViewModel()
         : this(null, null, null, null)
@@ -68,18 +71,21 @@ public sealed class ProjectsViewModel : ObservableObject
         IProjectRegistryService? registryService,
         IProjectRepositoryStateService? repositoryStateService,
         IProjectOnboardingService? onboardingService,
-        IDefaultAgentCatalog? defaultAgentCatalog)
+        IDefaultAgentCatalog? defaultAgentCatalog,
+        IProjectFolderPreferenceService? folderPreferences = null)
     {
         _registryService = registryService;
         _repositoryStateService = repositoryStateService;
         _onboardingService = onboardingService;
         _defaultAgentCatalog = defaultAgentCatalog;
+        _folderPreferences = folderPreferences;
         _isStorageAvailable = registryService is not null;
 
         RefreshCommand = new AsyncCommand(
             () => RefreshAsync(),
             () => _registryService is not null && !IsSaving && !IsLoading && !IsEditing && !IsVerifying);
         NewProjectCommand = new RelayCommand(NewProject, CanInteractWithRegistry);
+        AddExistingProjectCommand = NewProjectCommand;
         EditProjectCommand = new RelayCommand(EditSelectedProject, CanEditSelectedProject);
         SaveProjectCommand = new AsyncCommand(SaveAsync, CanSaveProject);
         CancelEditCommand = new RelayCommand(CancelEdit, () => IsEditing && !IsSaving);
@@ -100,6 +106,8 @@ public sealed class ProjectsViewModel : ObservableObject
     public AsyncCommand RefreshCommand { get; }
 
     public RelayCommand NewProjectCommand { get; }
+
+    public RelayCommand AddExistingProjectCommand { get; }
 
     public RelayCommand EditProjectCommand { get; }
 
@@ -286,8 +294,14 @@ public sealed class ProjectsViewModel : ObservableObject
     public bool ShowRegistrySurface =>
         !IsLoading && IsStorageAvailable && !HasLoadError;
 
+    /// <summary>
+    /// The empty-registry state owns the whole registry surface: it hides the project list and the
+    /// detail card that hosts the editor and the onboarding wizard. An active create/onboarding flow
+    /// is therefore not an empty registry any more — it is the flow that fills it — otherwise a first
+    /// run with no registered project collapses the only host the wizard can render into.
+    /// </summary>
     public bool ShowEmptyRegistryState =>
-        ShowRegistrySurface && !HasProjects;
+        ShowRegistrySurface && !HasProjects && !IsEditing && !IsOnboardingVisible;
 
     public bool ShowNoMatchState =>
         ShowRegistrySurface && HasProjects && !HasFilteredProjects;
@@ -297,12 +311,91 @@ public sealed class ProjectsViewModel : ObservableObject
     public ProjectOnboardingViewModel? Onboarding
     {
         get => _onboarding;
-        private set => _onboarding = value;
+        private set => SetProperty(ref _onboarding, value);
+    }
+
+    /// <summary>
+    /// The folder the picker should open at, or <see langword="null"/> when no preferred root is
+    /// proven to exist and the normal Windows folder-picker default applies. Offering a root never
+    /// registers or selects a project; the operator still chooses the folder.
+    /// </summary>
+    public string? PreferredPickerRoot => _preferredPickerRoot;
+
+    /// <summary>
+    /// Accepts the host folder picker. It receives the preferred initial root and returns the
+    /// folder the operator chose, or <see langword="null"/> when the picker was dismissed.
+    /// </summary>
+    public void SetPathPicker(Func<string?, string?> pathPicker)
+    {
+        _pathPicker = pathPicker ?? throw new ArgumentNullException(nameof(pathPicker));
+        if (CreateBoundPathPicker() is { } bound)
+        {
+            Onboarding?.SetPathPicker(bound);
+        }
+    }
+
+    /// <summary>
+    /// Binds the current preferred root to the host picker so the onboarding wizard keeps its
+    /// simple "ask the host for a folder" contract.
+    /// </summary>
+    private Func<string?>? CreateBoundPathPicker()
+    {
+        var picker = _pathPicker;
+        return picker is null ? null : () => picker(_preferredPickerRoot);
+    }
+
+    private async Task RefreshPreferredPickerRootAsync(CancellationToken cancellationToken)
+    {
+        if (_folderPreferences is null)
+        {
+            return;
+        }
+
+        string? resolved;
+        try
+        {
+            resolved = await _folderPreferences
+                .GetPreferredPickerRootAsync(cancellationToken)
+                .ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // No proven preferred root is a truthful outcome; the picker uses the Windows default.
+            resolved = null;
+        }
+
+        if (!string.Equals(_preferredPickerRoot, resolved, StringComparison.Ordinal))
+        {
+            _preferredPickerRoot = resolved;
+            OnPropertyChanged(nameof(PreferredPickerRoot));
+        }
     }
 
     public bool IsEditorVisible => IsEditing && !IsOnboardingVisible;
 
     public bool IsRegistryInteractionEnabled => !IsEditing && !IsOnboardingVisible && !IsSaving && !IsLoading;
+
+    public bool CanAddExistingProject => AddExistingProjectCommand.CanExecute(null);
+
+    public string AddExistingProjectStateText => CanAddExistingProject
+        ? string.Empty
+        : !IsStorageAvailable
+            ? "Project storage unavailable."
+            : IsLoading
+                ? "Loading the local project registry…"
+                : HasLoadError
+                    ? "Project registry could not be loaded. Retry before adding a workspace."
+                    : IsSaving
+                        ? "A project change is still being saved."
+                        : IsVerifying
+                            ? "Repository verification is still running."
+                            : IsOnboardingVisible
+                                ? "Finish or cancel the current onboarding flow first."
+                                : "Project onboarding is unavailable.";
 
     public bool IsVerifying
     {
@@ -501,8 +594,11 @@ public sealed class ProjectsViewModel : ObservableObject
         set => SetProperty(ref _editorSafetyPolicyReference, value ?? string.Empty);
     }
 
-    public async Task InitializeAsync(CancellationToken cancellationToken = default) =>
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        await RefreshPreferredPickerRootAsync(cancellationToken).ConfigureAwait(true);
         await RefreshAsync(cancellationToken).ConfigureAwait(true);
+    }
 
     public void SetPersistenceAvailability(bool persistenceAvailable)
     {
@@ -668,7 +764,8 @@ public sealed class ProjectsViewModel : ObservableObject
             _onboardingService,
             _defaultAgentCatalog,
             FinishOnboardingAsync,
-            CancelOnboarding);
+            CancelOnboarding,
+            CreateBoundPathPicker());
         ValidationMessage = null;
         ErrorMessage = null;
         OnPropertyChanged(nameof(IsOnboardingVisible));
@@ -684,6 +781,10 @@ public sealed class ProjectsViewModel : ObservableObject
         }
 
         ReplaceProject(result.Project);
+        if (result.Status == ProjectOnboardingCompletionStatus.AlreadyRegistered)
+        {
+            ErrorMessage = "Project already registered. The existing entry is selected.";
+        }
         if (result.IsPartialProjectCreated)
         {
             ErrorMessage = result.ErrorMessage ??
@@ -693,7 +794,13 @@ public sealed class ProjectsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsOnboardingVisible));
         OnPropertyChanged(nameof(IsEditorVisible));
         OnWorkspaceStateChanged();
-        await Task.CompletedTask.ConfigureAwait(true);
+
+        if (result.Succeeded)
+        {
+            // The application service records the folder of a proven registration; re-read it so
+            // the next picker opens where the operator last worked.
+            await RefreshPreferredPickerRootAsync(CancellationToken.None).ConfigureAwait(true);
+        }
     }
 
     private void CancelOnboarding()
@@ -1000,6 +1107,8 @@ public sealed class ProjectsViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowEmptyRegistryState));
         OnPropertyChanged(nameof(ShowNoMatchState));
         OnPropertyChanged(nameof(IsRegistryInteractionEnabled));
+        OnPropertyChanged(nameof(CanAddExistingProject));
+        OnPropertyChanged(nameof(AddExistingProjectStateText));
         OnPropertyChanged(nameof(IsEditorVisible));
         OnPropertyChanged(nameof(IsOnboardingVisible));
         RefreshCommand.NotifyCanExecuteChanged();

@@ -5,14 +5,44 @@ using AIUsageMonitor.Application.Projects;
 
 namespace AIUsageMonitor.Desktop.ViewModels;
 
-public sealed class MissionControlProjectOption
+public sealed class MissionControlProjectOption : ObservableObject
 {
+    private Project _project;
+
     public MissionControlProjectOption(Project project)
     {
-        Project = project ?? throw new ArgumentNullException(nameof(project));
+        _project = project ?? throw new ArgumentNullException(nameof(project));
     }
 
-    public Project Project { get; }
+    public Project Project => _project;
+
+    /// <summary>
+    /// Applies newer registry truth for the same project ID in place, so bound selectors keep this
+    /// exact instance (<c>SelectedItem</c> identity survives) while their displayed facts stop being
+    /// stale. A no-op when the incoming snapshot is reference-equal to what is already held.
+    /// </summary>
+    public void Update(Project project)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        if (project.Id != _project.Id)
+        {
+            throw new ArgumentException("Cannot update a project option with a different project ID.", nameof(project));
+        }
+
+        if (ReferenceEquals(project, _project))
+        {
+            return;
+        }
+
+        _project = project;
+        OnPropertyChanged(nameof(Project));
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(DisplayText));
+        OnPropertyChanged(nameof(RepositoryContextText));
+        OnPropertyChanged(nameof(TrackerContextText));
+        OnPropertyChanged(nameof(GovernanceContextText));
+    }
 
     public Guid Id => Project.Id;
 
@@ -21,6 +51,18 @@ public sealed class MissionControlProjectOption
     public string StatusText => Project.Status.ToString();
 
     public string DisplayText => $"{Name} · {StatusText}";
+
+    public string RepositoryContextText => Project.RepositoryProvider is { Length: > 0 } provider
+        ? $"{provider} · {Project.DefaultBranch ?? "branch unknown"}"
+        : "No repository context configured";
+
+    public string TrackerContextText => Project.TrackerType is { Length: > 0 } type && Project.TrackerId is { Length: > 0 } id
+        ? $"{type} · {id}"
+        : "No tracker context configured";
+
+    public string GovernanceContextText => Project.GovernanceReferences.Count > 0
+        ? string.Join(", ", Project.GovernanceReferences)
+        : "No governance reference configured";
 }
 
 /// <summary>
@@ -291,6 +333,101 @@ public sealed class MissionControlViewModel : ObservableObject
         await RefreshSelectedProjectAsync(SelectedProject.Id, _selectionGeneration, cancellationToken).ConfigureAwait(true);
     }
 
+    /// <summary>
+    /// Reconciles <see cref="ProjectOptions"/> with current registry truth without app restart.
+    /// Unlike <see cref="LoadProjectsAsync"/>, this never clears the collection and never replaces
+    /// or removes the currently selected option's instance while it still exists in the registry:
+    /// the selector binds <c>SelectedItem</c> TwoWay, so dropping that exact instance out of the
+    /// collection — even momentarily — lets WPF push a transient null back through the binding and
+    /// silently reset the read model in view. It also never auto-selects a project; that remains a
+    /// <see cref="LoadProjectsAsync"/>-only, cold-start behavior.
+    /// </summary>
+    public async Task RefreshProjectsAsync(CancellationToken cancellationToken = default)
+    {
+        if (_projects is null || !IsStorageAvailable)
+        {
+            return;
+        }
+
+        try
+        {
+            var latest = await _projects.GetProjectsAsync(cancellationToken).ConfigureAwait(true);
+            ReconcileProjectOptions(latest);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // A same-process synchronization refresh must not destroy an already-loaded project list.
+        }
+    }
+
+    private void ReconcileProjectOptions(IReadOnlyList<Project> latest)
+    {
+        var latestById = latest.ToDictionary(static project => project.Id);
+        var existingIds = new HashSet<Guid>();
+
+        for (var index = ProjectOptions.Count - 1; index >= 0; index--)
+        {
+            var option = ProjectOptions[index];
+            if (latestById.TryGetValue(option.Id, out var project))
+            {
+                existingIds.Add(option.Id);
+                option.Update(project);
+            }
+            else
+            {
+                ProjectOptions.RemoveAt(index);
+            }
+        }
+
+        var comparer = StringComparer.CurrentCultureIgnoreCase;
+        foreach (var project in latest.OrderBy(value => value.Name, comparer))
+        {
+            if (existingIds.Contains(project.Id))
+            {
+                continue;
+            }
+
+            var option = new MissionControlProjectOption(project);
+            var insertAt = ProjectOptions.Count;
+            for (var index = 0; index < ProjectOptions.Count; index++)
+            {
+                if (comparer.Compare(ProjectOptions[index].Name, project.Name) > 0)
+                {
+                    insertAt = index;
+                    break;
+                }
+            }
+
+            ProjectOptions.Insert(insertAt, option);
+        }
+
+        ReorderAlphabetically(comparer);
+        OnPropertyChanged(nameof(HasProjects));
+    }
+
+    /// <summary>
+    /// Restores alphabetical order after in-place metadata updates (e.g. a rename) using
+    /// <see cref="ObservableCollection{T}.Move"/>, which raises a Move notification rather than a
+    /// Remove+Add pair. A bound <c>SelectedItem</c> survives a Move; it does not survive Remove+Add,
+    /// which would momentarily null the binding.
+    /// </summary>
+    private void ReorderAlphabetically(StringComparer comparer)
+    {
+        var sorted = ProjectOptions.OrderBy(option => option.Name, comparer).ToList();
+        for (var index = 0; index < sorted.Count; index++)
+        {
+            var currentIndex = ProjectOptions.IndexOf(sorted[index]);
+            if (currentIndex != index)
+            {
+                ProjectOptions.Move(currentIndex, index);
+            }
+        }
+    }
+
     private async Task LoadProjectsAsync(CancellationToken cancellationToken)
     {
         if (_projects is null)
@@ -390,8 +527,10 @@ public sealed class MissionControlViewModel : ObservableObject
         long generation,
         CancellationToken cancellationToken = default)
     {
+        // Cancel only. The superseded refresh still owns that source and disposes it in its own
+        // finally; disposing it here races an in-flight operation that may still register on its
+        // token, which surfaces as an ObjectDisposedException instead of a clean cancellation.
         _selectionRefreshCancellation?.Cancel();
-        _selectionRefreshCancellation?.Dispose();
         var selectionCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _selectionRefreshCancellation = selectionCancellation;
         try

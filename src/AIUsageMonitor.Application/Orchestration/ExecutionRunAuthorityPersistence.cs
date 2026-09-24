@@ -4,6 +4,7 @@ public enum ExecutionRunAuthorityRepositoryWriteStatus
 {
     Created,
     RunConflict,
+    InputCheckpointConflict,
     Unavailable
 }
 
@@ -46,5 +47,11 @@ public interface IExecutionRunAuthorityRepository
     Task<ExecutionRunAuthorityReadResult> GetAsync(
         Guid projectId,
         Guid runId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Returns the one durable execution claim for an immutable Ready checkpoint.</summary>
+    Task<ExecutionRunAuthorityReadResult> GetByInputCheckpointAsync(
+        Guid projectId,
+        RecoveryCheckpointReference inputCheckpointReference,
         CancellationToken cancellationToken = default);
 }

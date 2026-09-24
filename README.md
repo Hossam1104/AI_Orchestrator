@@ -21,17 +21,26 @@
 
 > APO is a local-first Windows control center for supervising AI-assisted software delivery. It is being built to coordinate the planner, executor, reviewer, Git/GitHub/Azure Repos, Jira/Azure Boards, validation/CI, and owner approval in one place—without replacing the IDE or those platforms.
 
-## FAST V1 closeout status
+## Current V1 status
 
-`FAST V1 CLOSEOUT MODE` is complete. APO-48, APO-51, APO-49, APO-63, APO-50, and APO-33 are
-delivered and accepted. APO-33 merged through PR #109, and GitHub Actions CI is active on `main`.
-The active implementation current gate is `NONE`. The next planner boundary is the Final V1
-Release Audit, which has not started; v1.0.0 has not been released.
+The accepted FAST V1 foundation through APO-48, APO-51, APO-49, APO-63, APO-50, and APO-33 remains
+preserved. GitHub Actions CI is active on `main`, and v1.0.0 has **not** been released.
 
-V1 execution is focused on OpenAI, Claude, and Antigravity Plus. `COPILOT = POST-V1`, and all new
-inactive-provider-specific work is deferred until after V1. No new provider integration enters V1
-unless it is strictly required for release safety. GitHub remains V1 infrastructure; GitHub Actions
-is implemented and active on `main` after APO-33 acceptance.
+**Project status: OWNER-PAUSED / ON HOLD since 2026-09-24 by Hossam.** APO-70 / open Issue #111 remains the sole logical gate on `feature/APO-70-v1-desktop-product-recovery`; PR #112 remains Open/Draft/Unmerged. Owner visual acceptance is **PASS**, superseding earlier rejections. Owner Desktop functional acceptance is **NOT COMPLETE**. The Sol-accepted backend cross-process proof remains valid but does not close the Desktop gate. The current real Prepare/planner/Start/executor acceptance budget remains unused (one each). No implementation or acceptance attempt is authorized until Hossam explicitly resumes. See [current state](.ai/CURRENT_STATE.md#project-status--owner-paused--on-hold) and [RESUME HERE](.ai/CURRENT_STATE.md#resume-here).
+
+The external-reference reviews have now been integrated as **planning/governance only**. They did
+not replace APO's stack or execution architecture. See
+[`docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`](docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md)
+and [`.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md`](.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md), plus
+[`docs/GITHUB_ECOSYSTEM_ROADMAP_EXTENSION_2026-09-17.md`](docs/GITHUB_ECOSYSTEM_ROADMAP_EXTENSION_2026-09-17.md).
+
+V1 execution is focused on OpenAI and Claude under the canonical routing policy. Antigravity remains
+auxiliary bounded capacity where separately approved. `COPILOT = POST-V1`, and new
+provider-specific expansion is deferred unless it is required for release safety.
+
+Under the owner's cross-project governance, Gemini may be delegated for explicitly selected
+low-risk/mechanical work. This does not add a Gemini APO V1 runtime adapter or executable-provider
+implementation.
 
 ## What is AI_Orchestrator?
 
@@ -53,35 +62,56 @@ The product direction brings these capabilities into one supervised workflow:
 - :brain: Intelligent, quality-first model and agent routing with quota awareness.
 - :bar_chart: AI capacity, subscription, quota, credit, and reset monitoring.
 - :file_folder: Project awareness with isolated local workspaces and repository state.
-- :robot: AI agent and model registry with truthful connection capabilities.
+- :robot: AI agent and model registry with truthful connection capabilities and future readiness evidence.
 - :compass: Planner-authored work classification and execution contracts.
 - :gear: Bounded, cancellable execution with explicit budgets and stop conditions.
+- :repeat: Recoverable execution with authoritative checkpoints and future failure-classified retry/fallback.
 - :test_tube: Validation evidence captured independently from executor claims.
 - :mag: Independent review and bounded remediation at configured checkpoints.
 - :shield: Human approval gates for high-risk decisions and delivery actions.
 - :page_facing_up: Local activity, audit, history, notifications, and reconstructable state.
+- :desktop_computer: Local-PC-first execution with durable project/workspace/evidence state.
+- :bar_chart: Future controlled multi-model benchmarking in isolated workspaces.
 
 These are the approved product capabilities, not a claim that every adapter or runtime is already
 implemented. See [Current implementation status](#current-implementation-status).
 
 ## Orchestration flow
 
-The following is the target product flow. Several stages are still planned and must not be read as
-an assertion that the autonomous runtime exists today.
+The target product flow is:
 
 ```mermaid
 flowchart TD
-    Owner([Owner intent]) --> Work[Work item]
-    Work --> Planner[Sol planner / execution contract]
+    Owner([Owner intent]) --> Project[Registered local project / Smart Continue]
+    Project --> Readiness[Agent readiness / environment validation]
+    Readiness --> Planner[Sol planner / execution contract]
     Planner --> Router[Quality-first routing]
-    Router --> Executor[Assigned executor]
-    Executor --> Validation[Independent validation]
+    Router --> Permission[Policy / permission / gate resolution]
+    Permission --> Workspace[Isolated workspace + checkpoint]
+    Workspace --> Executor[Assigned local executor]
+    Executor --> Evidence[Runtime / Git / process evidence]
+    Evidence --> Validation[Independent validation]
     Validation --> Review[Independent review]
     Review -->|findings| Remediation[Bounded remediation]
     Remediation --> Validation
     Review --> Acceptance[Sol acceptance]
     Acceptance --> Gate{Human gate when required}
     Gate --> Delivery[Git / tracker delivery]
+    Delivery --> History[Persistent evidence + next safe checkpoint]
+```
+
+The retry/fallback direction is intentionally policy-driven rather than a hard-coded provider chain:
+
+```text
+Typed failure
+  + latest verified checkpoint
+  + observed side effects
+  + task/capability requirements
+  + routing and owner policy
+  + current readiness/capacity truth
+  + remaining budget
+      ↓
+Retry same executor / eligible fallback / wait / reconcile / remediate / owner gate / stop
 ```
 
 ## Current implementation status
@@ -95,49 +125,41 @@ APO is an active foundation, not a finished orchestration product.
 | :white_check_mark: Implemented / validated | Provider-independent quota, subscription, usage, alert, and refresh contracts |
 | :white_check_mark: Implemented / validated | Windows Credential Manager adapter with opaque credential references and focused security tests |
 | :white_check_mark: Implemented / validated | Self-contained multi-RID publish configuration for `win-x64`, `win-x86`, and `win-arm64` |
-| :white_check_mark: Implemented / validated | Project and orchestration storage foundation (APO-27 merged); stores and contracts for projects, agents, routing policies, runs, and review/audit records |
-| :white_check_mark: Implemented / validated | Projects workspace (APO-35 merged); project registry list/detail/editor, search/filter, Active/Paused/Blocked/Archived lifecycle state, and truthful local persistence states; APO-36 fixed DI startup regression |
+| :white_check_mark: Implemented / validated | Project and orchestration storage foundation with stores/contracts for projects, agents, routing, runs, checkpoints, evidence, review, and audit state |
+| :white_check_mark: Implemented / validated | Projects workspace and durable project registry with truthful local persistence states |
 | :white_check_mark: Implemented / validated | APO-37 read-only local Git repository verification with bounded status evidence, cancellation/project isolation, sanitized remotes, and explicit unavailable states |
-| :white_check_mark: Implemented / validated | APO-38..43 control-plane contracts and services: agent/model truth, progressive onboarding, versioned contracts, dependency-aware work graphs, structured handoffs, and durable Smart Continue/recovery state |
+| :white_check_mark: Implemented / validated | APO-38..43 control-plane contracts/services: agent/model truth, progressive onboarding, versioned contracts, dependency-aware WorkGraphs, structured handoffs, and durable Smart Continue/recovery state |
 | :white_check_mark: Implemented / validated | APO-44..46 bounded execution foundation: explainable quality-first routing, isolated workspaces, and bounded cancellable execution with project/authority/recovery safeguards |
 | :white_check_mark: Implemented / validated | APO-68 workspace-preparation hardening: fail-closed approval-index recovery, mutation timeout safety, repository lock identity, and inherited Git-environment hardening |
-| :white_check_mark: Implemented / validated | APO-47 tracker-agnostic Jira work-item and dependency synchronization with bounded reads, explicit mutation authority, post-verification, and audit evidence |
+| :warning: Partial / validated | APO-70 backend cross-process proof is Sol-accepted and complete; owner visual acceptance is PASS; Desktop functional acceptance remains pending |
+| :white_check_mark: Implemented / validated | APO-47 tracker-agnostic work-item/dependency synchronization foundation with bounded reads, explicit mutation authority, post-verification, and audit evidence |
 | :white_check_mark: Implemented / validated | Official provider capacity adapter surfaces for Codex, Claude, Kimi, GitHub Copilot, and Antigravity, with documented manual/unsupported boundaries |
 | :white_check_mark: Implemented / validated | APO-62 provider-independent, read-only remote SCM and CI evidence (GitHub and Azure Repos) |
-| :white_check_mark: Delivered / accepted | APO-48 independent validation evidence and evidence-based QA gates; accepted merge `7fe179844ceb056c542067485843bc892ebdefcc` |
-| :white_check_mark: Delivered / accepted | APO-51 Review Inbox and bounded remediation loop; accepted merge `ea96beefeec5b2fc2381ad1d4ade39c6c63fc56c` |
-| :white_check_mark: Delivered / accepted | APO-49 human approval policy and gates; accepted merge `8d2934bfba844d30365d2c4f3b0b8a53dc2a6fd6` |
+| :white_check_mark: Delivered / accepted | APO-48 independent validation evidence and evidence-based QA gates |
+| :white_check_mark: Delivered / accepted | APO-51 Review Inbox and bounded remediation loop |
+| :white_check_mark: Delivered / accepted | APO-49 human approval policy and gates |
 | :white_check_mark: Delivered / accepted | APO-63 controlled remote source-control delivery with explicit gates and exact-target evidence |
-| :white_check_mark: Delivered / accepted | APO-33 repository-owned GitHub Actions CI and multi-RID packaging; PR #109 merged at `c139ce188b71ebbc8035f0d1046ec15e2419cf4b` |
-| :compass: Strategic roadmap | Mission Control, Smart Continue, recovery, dependency-aware work, isolated workspaces, decision ledger, project health, skills, bounded automation, and optional remote approval design |
+| :white_check_mark: Delivered / accepted | APO-33 repository-owned GitHub Actions CI and multi-RID packaging |
+| :compass: Active roadmap | APO-55 → APO-71 → APO-75 → APO-72 → APO-52/APO-54 → APO-76 → APO-77 → APO-73 → APO-74 → APO-78 |
 
-APO-48 was accepted on product head `caed10d0486994e9235a66ef44ec6137649dd347`, with product
-tree `f152699b89b4c1f498c3dbb4357ee07ac00fda77`, merge SHA
-`7fe179844ceb056c542067485843bc892ebdefcc`, canonical independent suite **1,136 passed / 0 failed /
-0 skipped**, and build **0 warnings / 0 errors**. This is historical APO-48 validation evidence;
-at that earlier acceptance point, `GITHUB ACTIONS CI = NONE / NOT CLAIMED`.
+The source/runtime validation baseline immediately before the 2026-09-16 planning-only roadmap
+commits was feature SHA `14d8d470d63c17e726278cb0336e737b4fdc5022`, PR CI run
+`34987372556`, **1,406 passed / 0 failed / 0 skipped**, Release build **0 warnings / 0 errors**, and
+successful self-contained publish validation for `win-x86`, `win-x64`, and `win-arm64`. Later
+planning/documentation commits move the branch HEAD and must not reuse that older SHA as an
+exact-head runtime acceptance claim.
 
-Not yet implemented: full consumer capacity surfaces beyond the documented adapter boundaries,
-end-to-end autonomous provider execution, tracker automation, and the full APO-15 dashboard.
-The durable control-plane contracts, bounded execution safeguards, and bounded Jira tracker slice in
-APO-38 through APO-47 and APO-68 are implemented; APO-62 provider-independent, read-only remote
-SCM/CI evidence (GitHub and Azure Repos) is also delivered. APO-48 independent validation evidence
-and QA gates, APO-49 human approval policy and gates, and APO-51 Review Inbox and bounded remediation
-are delivered and accepted. APO-50 Mission Control and APO-63 controlled remote delivery are also
-delivered and accepted. APO-33 repository-owned GitHub Actions CI is implemented and active on
-`main`; PR #109 is merged and the post-merge main workflow passed. APO-37 verifies a selected registered local path only
-when the owner clicks Verify repository; it does not inspect file contents, use credentials, contact
-a remote service, or perform Git writes. APO does not fabricate provider numbers or treat local
-state as a substitute for official remote CI evidence.
+Not yet proven/accepted: the complete owner-visible end-to-end lifecycle, owner functional
+acceptance, final APO-70 exact-head acceptance, and release readiness. Claude execution remains a
+separate provider/runtime capability and must not be claimed from the Codex proof.
 
 ## Smart Continue and integration boundaries
 
-The Smart Continue contract and durable recovery state are implemented by APO-43, but the owner-facing
-command-center experience is not complete. The implemented boundary resolves project/run context,
-work, contract version, dependency state, selected roles, repository/tracker evidence, validation,
-review, approval, blockers, and next safe action from project-isolated state rather than treating old
-chat history as current evidence. It must require fresh Git, tracker, approval, and validation
-evidence when a checkpoint is stale or incomplete.
+The Smart Continue contract and durable recovery state are implemented by APO-43 and have been
+extended by the APO-70 persisted-Ready recovery work. The owner-facing command-center experience is
+not yet final. Recovery resolves project/run context, contract version, dependency state, selected
+roles, repository/tracker evidence, validation, review, approval, blockers, and next safe action
+from project-isolated state rather than treating old chat history as current evidence.
 
 The roadmap keeps source-control responsibilities distinct:
 
@@ -146,12 +168,36 @@ The roadmap keeps source-control responsibilities distinct:
 - **Remote SCM evidence — APO-62:** delivered provider-independent, read-only evidence from official
   GitHub and Azure Repos integration paths for repository identity, branches/commits, pull requests,
   reviews, checks, and CI/workflow state where exposed.
-- **Controlled delivery — APO-63:** planned, separately gated remote write operations bound to exact
+- **Controlled delivery — APO-63:** separately gated remote write operations bound to exact
   immutable targets, current validation evidence, applicable approval policy, and audit identity.
 
-APO-33 is the delivered repository-owned GitHub Actions build/test/release Story. A model CLI,
-missing remote evidence, or a local branch state must not be presented as proof of remote health,
-CI success, synchronization, or delivery completion.
+A model CLI, missing remote evidence, or a local branch state must not be presented as proof of
+remote health, CI success, synchronization, or delivery completion.
+
+## Local-PC-first execution and recovery
+
+APO's normal software-delivery execution target is the owner's persistent Windows PC:
+
+```text
+APO Desktop
+    │
+    ├── persistent LocalAppData configuration/state
+    ├── durable registered local projects
+    ├── real local Git repositories
+    ├── APO-managed isolated workspaces
+    ├── local authenticated AI CLIs where supported
+    ├── local Git / SDKs / compilers / test runners / browsers / tools
+    └── durable checkpoint, execution, validation, review, and audit evidence
+```
+
+Temporary provider output folders, test harnesses, or chat sandboxes are implementation/testing
+details and are never the canonical project state. A future remote/sandbox execution target, if
+approved, remains optional and separately governed.
+
+The reference-derived local durability roadmap adds process/PID evidence and restart reconciliation
+to APO-55, executable provenance/version/readiness to APO-71, and failure-classified retry/fallback
+to APO-72. Installation, authentication, entitlement/subscription, and capacity remain separate
+facts.
 
 ## WPF shell preview
 
@@ -173,41 +219,36 @@ Node.js runtime, embedded browser, or APO-owned cloud backend is required by V1.
 flowchart LR
     Desktop[Desktop / WPF shell] --> Application[Application contracts & use cases]
     Application --> Domain[Provider-independent Domain]
-    Infrastructure["Infrastructure<br/>JSON / JSONL / secure store / logging"] --> Application
-    Providers["Providers & integrations<br/>verified collection / normalization"] --> Application
+    Infrastructure["Infrastructure<br/>JSON / JSONL / secure store / logging / OS process evidence"] --> Application
+    Providers["Providers & integrations<br/>verified collection / normalization / CLI adapters"] --> Application
 ```
 
 The technical solution and namespaces still use the compatibility-sensitive `AIUsageMonitor` name.
 That is deliberate: the product identity has changed, but a large technical rename and LocalAppData
 migration require their own planner-approved work.
 
+The external-reference work does **not** introduce another runner, registry, router, state machine,
+workspace system, or persistence layer. New features must extend existing APO authorities.
+
 ## AI operating model
 
 APO follows a quality- and risk-first operating policy. Capacity can inform routing, but it never
-overrides capability, risk, or the required review gate. These are project roles and target policy;
-the routing service is implemented, while provider execution and end-to-end autonomous orchestration
-remain bounded future work.
+overrides capability, risk, or the required review gate.
 
 | Model | Default role |
 | --- | --- |
-| **GPT-5.6 Sol High** | Planner, architect, router, quota governor, acceptance and prompt authority (chat only) |
-| **GPT-5.6 Luna xHigh** | Primary bounded implementation executor |
-| **Claude Sonnet 5 Medium** | Fallback / special-need bounded implementation when explicitly selected by Sol |
-| **Claude Sonnet 5 High** | Fallback / special-need difficult bounded implementation when explicitly selected by Sol |
-| **GPT-5.6 Luna Max** | Exceptional implementation escalation only |
-| **Claude Opus 5** | Independent critical reviewer at meaningful checkpoints |
-| **GPT-5.6 Terra Medium/High** | Specialist security, concurrency, and data-integrity assurance |
-| **Claude Haiku 4.5** | Disabled from active routing |
+| **GPT-5.6 High in Chat (Sol)** | Persistent planning, architecture, state, requirements, acceptance, governance, routing; 0% normal implementation |
+| **GPT-6 Luna Reasoning xHigh in Codex** | Default substantial executor |
+| **Claude Sonnet 5 Effort HIGH** | Bounded isolated bug fixes and difficult recovery/surgical finalization |
+| **Claude Opus 5.5 Effort HIGH** | Independent critical review; exceptional owner-authorized Grand Master Cleaning |
+| **GPT-6 Sol Reasoning High in Codex** | Emergency/exceptional direct implementation |
+| **Gemini 3.8 Flash Reasoning HIGH** | Explicitly delegated low-risk mechanical auxiliary |
 
-OpenAI/Codex and Anthropic/Claude are the active execution providers. GPT-5.6 Sol remains the
-planner, architect, router, quota governor, acceptance authority, and prompt authority in chat mode.
-Luna xHigh is the normal primary executor. Sonnet is an explicit fallback/special-need option;
-Haiku is disabled from active routing; Opus remains independent; and Terra is risk-triggered. The
-canonical policy is maintained in
-[AI model routing](.ai/AI_MODEL_ROUTING.md) and [AI execution policy](.ai/AI_EXECUTION_POLICY.md).
+GPT-5.6 Terra is retired. Development roles are separate from persisted APO product model IDs such as `gpt-5.6-sol` and `gpt-5.6-luna`. [Canonical routing](.ai/AI_MODEL_ROUTING.md) remains authoritative; no work is routed during the owner hold.
 
-For FAST V1 resource planning, Antigravity Plus is an auxiliary bounded/mechanical capacity source;
-it does not change the canonical OpenAI/Claude orchestration executor policy.
+Future APO-74 historical-performance routing is advisory and transparent: it may affect selection
+only among already eligible candidates and cannot override correctness, security, capability,
+project/owner policy, authentication/entitlement, or required gates.
 
 ## Security and privacy
 
@@ -215,11 +256,13 @@ it does not change the canonical OpenAI/Claude orchestration executor policy.
 - :key: Application state stores only opaque credential references; raw tokens and passwords are not persisted.
 - :no_entry_sign: APO does not extract browser cookies, scrape passwords, or treat a consumer subscription as API entitlement.
 - :package: Local-first project state and history remain under per-user application data.
-- :scroll: Evidence and audit history are designed to explain routing, validation, review, and approval decisions without storing secrets.
+- :scroll: Evidence and audit history explain routing, validation, review, recovery, and approval decisions without requiring private chain-of-thought.
 - :shield: High-risk operations stop at explicit human approval gates.
+- :closed_lock_with_key: Broad provider permission bypasses and generic shell-interpolated runners are not part of APO's execution architecture.
 
 Project isolation, configured exclusions, secret scanning/redaction, least privilege, and visible
-destinations are part of the product contract for future integrations.
+destinations are part of the product contract for future integrations. Environment fingerprints
+use a documented non-secret allowlist, never unrestricted process environments.
 
 ## Windows compatibility
 
@@ -246,24 +289,27 @@ AI_Orchestrator/
 |-- docs/
 |   |-- BRD.md
 |   |-- IMPLEMENTATION_PLAN.md
-|   |-- LEGACY_IMPLEMENTATION_MAP.md
 |   |-- STRATEGIC_ROADMAP.md
-|   `-- SESSION_PROMPTS.md
+|   |-- EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md
+|   |-- LEGACY_IMPLEMENTATION_MAP.md
+|   |-- SESSION_PROMPTS.md
+|   |-- APO-31_PROVIDER_EVIDENCE.md
+|   `-- evidence/ (retained acceptance screenshots)
+|-- scripts/Validate-PublishOutput.ps1
+|-- .github/workflows/ci.yml
 |-- src/
 |   |-- AIUsageMonitor.Desktop/
-|   |   `-- Resources/ (WPF brand dictionaries)
 |   |-- AIUsageMonitor.Application/
 |   |-- AIUsageMonitor.Domain/
 |   |-- AIUsageMonitor.Infrastructure/
 |   `-- AIUsageMonitor.Providers/
 |-- tests/
-|   |-- AIUsageMonitor.Domain.Tests/
-|   |-- AIUsageMonitor.Connection.Tests/
-|   |-- AIUsageMonitor.Provider.Tests/
-|   |-- AIUsageMonitor.Desktop.Tests/
-|   `-- AIUsageMonitor.Infrastructure.Tests/
+|-- .ai/AI_EXECUTION_POLICY.md
+|-- .ai/AI_MODEL_ROUTING.md
 |-- .ai/CURRENT_STATE.md
+|-- .ai/CURRENT_STATE_ADDENDUM_2026-09-16.md
 |-- AGENTS.md
+|-- CLAUDE.md
 |-- TASK.md
 |-- Directory.Build.props
 `-- AIUsageMonitor.sln
@@ -279,6 +325,15 @@ dotnet build AIUsageMonitor.sln
 dotnet test AIUsageMonitor.sln
 ```
 
+The desktop test project builds for the `x64` platform. Running it on its own, rather than through
+the solution, needs that platform stated explicitly or the run may execute a stale `AnyCPU`
+assembly:
+
+```powershell
+dotnet test tests/AIUsageMonitor.Desktop.Tests/AIUsageMonitor.Desktop.Tests.csproj `
+  -p:Platform=x64
+```
+
 For a self-contained Windows artifact, use one of the desktop publish profiles:
 
 ```powershell
@@ -286,67 +341,84 @@ dotnet publish src/AIUsageMonitor.Desktop/AIUsageMonitor.Desktop.csproj `
   -p:PublishProfile=win-x64
 ```
 
-The matching profiles for `win-x86` and `win-arm64` are in
-`src/AIUsageMonitor.Desktop/Properties/PublishProfiles/`. Build, test, and publish output should
-be treated as evidence only after the command completes successfully on the current checkout.
+For an owner-visible local run, use the canonical fresh-run script:
+
+```powershell
+.\scripts\Run-FreshDesktop.ps1
+```
+
+The script recreates `artifacts/local-run/win-x64`, publishes a fresh Release build from the
+current working tree, validates that output, then launches only its executable. Use the
+runtime/stop semantics defined in `AGENTS.md` and `.ai/AI_EXECUTION_POLICY.md`; `-SmokeTest`
+provides bounded startup validation and cleanup. Existing binaries from prior publish/artifact
+directories are not current-run evidence.
 
 ### Continuous integration
 
 GitHub Actions runs on pull requests targeting `main`, pushes to `main`, and manual dispatches.
 The `AI_Orchestrator CI` workflow restores and builds the solution in Release, runs the canonical
 test suite with TRX results, and publishes independently validated artifacts for every runtime
-identifier declared by the desktop project: `win-x86`, `win-x64`, and `win-arm64`. Downloadable
-artifacts are named `AI_Orchestrator-Release-<rid>`; the publish profiles remain the source of
-truth for their self-contained, single-file settings. APO-33 was Sol-accepted and merged through
-PR #109 at `c139ce188b71ebbc8035f0d1046ec15e2419cf4b`. The accepted PR run `34478101086` and the
-post-merge `main` run `34486056095` passed; the canonical suite reported 1,249 passed / 0 failed /
-0 skipped.
+identifier declared by the desktop project: `win-x86`, `win-x64`, and `win-arm64`.
+
+Historical accepted `main` evidence remains tied to the exact SHAs/runs recorded in the relevant
+Issues/current-state history. Unmerged APO-70 evidence is similarly exact-SHA scoped; do not carry
+an older test count forward as proof for a newer documentation or source head.
 
 ## Documentation
 
 - [Business Requirements Document](docs/BRD.md)
 - [Implementation Plan](docs/IMPLEMENTATION_PLAN.md)
 - [Strategic Orchestration Roadmap](docs/STRATEGIC_ROADMAP.md)
+- [External Reference Roadmap Integration](docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md)
 - [Legacy Implementation Map](docs/LEGACY_IMPLEMENTATION_MAP.md)
 - [Session Prompt Library](docs/SESSION_PROMPTS.md)
-- [Execution Contract and Sol Checkpoint](AGENTS.md)
+- [Universal Execution Contract](AGENTS.md)
+- [Canonical AI Execution Policy](.ai/AI_EXECUTION_POLICY.md)
+- [Canonical AI Model Routing Policy](.ai/AI_MODEL_ROUTING.md)
 - [Current State and Validation Handoff](.ai/CURRENT_STATE.md)
-- [Current Task Contract](TASK.md)
+- [Current-State Addendum — 2026-09-16](.ai/CURRENT_STATE_ADDENDUM_2026-09-16.md)
+- [Current-State Addendum — 2026-09-17](.ai/CURRENT_STATE_ADDENDUM_2026-09-17.md)
+- [GitHub Ecosystem Roadmap Extension — 2026-09-17](docs/GITHUB_ECOSYSTEM_ROADMAP_EXTENSION_2026-09-17.md)
+- [Current Task / Execution Gate](TASK.md)
 
 ## Roadmap
 
-The roadmap follows the approved APO Epics and the strategic P0/P1/P2/P3 backlog in Jira. Delivered
-slices are identified explicitly; the remaining entries are planned capability boundaries, not
-shipped runtime claims:
+The roadmap follows the approved APO Epics and canonical GitHub work items. Delivered slices are
+identified explicitly; remaining entries are planned capability boundaries, not shipped runtime
+claims:
 
-1. **Delivered P0 control plane — APO-38..46 and APO-68:** agent/model truth, progressive onboarding, contracts, dependency graphs, handoffs, durable recovery, quality-first routing, bounded execution, isolated workspaces, and workspace-preparation hardening.
-2. **P0 tracker/evidence inputs — APO-47 and APO-62 delivered:** Jira/Azure Boards awareness (APO-47) and read-only remote SCM/CI evidence (APO-62) are both delivered.
-3. **P0 evidence, approval, and delivery — APO-48, APO-49, and APO-63 delivered:** independent QA evidence, gates, human approval policy, and controlled remote delivery are accepted.
-4. **P0 Mission Control — APO-50:** one evidence-backed command-center read model and surface.
-5. **P1 acceleration — APO-51..56:** APO-51 Review Inbox is delivered and accepted; later P1 capabilities remain deferred until separately authorized.
-6. **P2 controlled expansion — APO-57..58:** bounded background housekeeping and optional remote approval security design.
-7. **P3 remaining/planned hardening — APO-59..61 (Jira: To Do):** APO-37 evidence bounds, verification UX truthfulness, and explicit real-Git availability semantics.
+1. **Current P0 gate — APO-70 / #111:** owner visual PASS; Desktop functional acceptance only after explicit owner resume, then final exact-head Sol acceptance.
+2. **P0/P1 runtime evidence — APO-55 / #93:** process ownership, process-tree termination truth, restart reconciliation, environment fingerprint, and Mission Control runtime evidence.
+3. **P1 local Agent Readiness — APO-71 / #113:** executable provenance/path/version + supported modes + authentication/entitlement/capability/freshness truth.
+4. **P1 Project Intelligence Map — APO-75 / #117:** HEAD-bound, read-only planning context and impact analysis.
+5. **P1 safe recovery — APO-72 / #114:** failure-classified retry/fallback and attempt lineage from verified checkpoints.
+6. **P1 workflow/evidence UX — APO-52 / #90 and APO-54 / #92:** versioned skills/hooks plus owner-browsable run/evidence history.
+7. **P1/P2 shared-core CLI — APO-76 / #118:** headless presentation over the existing Application/Domain core.
+8. **P2 governed triggers — APO-77 / #119:** schedules/events entering the normal policy and evidence pipeline.
+9. **P2 benchmarking — APO-73 / #115:** opt-in multi-model comparison with isolated workspace/authority/evidence per candidate.
+10. **P2 routing optimization — APO-74 / #116:** transparent deterministic historical-performance signals after sufficient trustworthy evidence exists.
+11. **P2 interoperability — APO-78 / #120:** governed ACP/A2A/MCP adapters that cannot bypass APO authorities.
 
-APO-33 remains the existing CI/release Story under APO-17. Existing APO-27, APO-35, APO-36, and
-APO-37 work is implemented evidence, not a claim that the full orchestration runtime exists.
+The detailed reference-derived sequence and anti-patterns are maintained in
+`docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md`.
 
-Each Story is scoped by a Sol-approved `TASK.md` contract. A completed foundation does not
-authorize the next Story automatically.
+Each implementation Story remains scoped by Sol and the universal standalone lowercase `p` prompt
+gate. A completed foundation or planning update does not authorize the next Story automatically.
 
 ## Contributing and governance
 
 APO work is evidence-led and branch-scoped. A contributor or executor should:
 
-1. read `AGENTS.md`, the BRD, current state, implementation plan, and the active `TASK.md`;
-2. work only within the assigned canonical GitHub APO Issue and preserve unrelated owner changes;
-3. validate the relevant build, tests, security, compatibility, and documentation surfaces;
-4. update `.ai/CURRENT_STATE.md` with factual evidence and limitations; and
-5. commit and push the branch, open or update one Draft PR, and stop at the planner boundary so
-   GPT-5.6 Sol can accept, reject, or issue the next contract.
+1. read `AGENTS.md`, `.ai/AI_EXECUTION_POLICY.md`, `.ai/AI_MODEL_ROUTING.md`, the relevant BRD/plan sections, current state/addendum, and active `TASK.md`;
+2. read `docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md` when working in the reference-derived capability areas;
+3. work only within the assigned canonical GitHub APO Issue and preserve unrelated owner changes;
+4. validate the relevant build, tests, security, compatibility, and documentation surfaces;
+5. update current-state evidence honestly; and
+6. commit/push the branch, open or update one Draft PR, and stop at the planner boundary so GPT-5.6 Sol can accept, reject, or issue the next contract.
 
 The owner remains the authority for protected-branch merges, high-risk actions, and material
-architecture or requirement changes. A Draft PR is not a merge or acceptance. `TASK.md` is the
-current planner boundary/execution contract when Sol has populated it; it is not a historical log.
+architecture or requirement changes. A Draft PR is not a merge or acceptance. `TASK.md` may either
+contain a current executable contract or explicitly state that the execution gate is closed.
 
 ## Product identity mapping
 

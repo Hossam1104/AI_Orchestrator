@@ -28,8 +28,9 @@ Cycle:
 DISCUSS -> AGREE -> p -> ONE PROMPT -> RESULT -> SOL REVIEW -> DISCUSS -> p
 ```
 
-The gate applies to prompts for Luna, Codex, Terra, Haiku, Sonnet, Opus, and any Claude/OpenAI
-investigation agent. It does **not** stop normal Sol analysis, architecture discussion, review,
+The gate applies to generated executor/reviewer prompts for any current model. It does not override
+the owner hold; Hossam must explicitly resume first. It does **not** stop normal Sol analysis, architecture
+ discussion, review,
 Jira reasoning, or ordinary answers.
 
 This gate is canonical here; any prior duplicate description elsewhere is superseded by this file.
@@ -43,6 +44,20 @@ This gate is canonical here; any prior duplicate description elsewhere is supers
 - Make the minimum coherent change that satisfies the assigned scope.
 - No unrelated cleanup, no speculative abstractions, no requirement invention.
 - Stop and report on contradictory evidence rather than guessing.
+
+### 2.1 Fresh APO desktop runs
+
+The canonical local desktop workflow is `scripts/Run-FreshDesktop.ps1`. Requests to run, launch,
+or open APO always mean: verify the current repository state, recreate the dedicated local-run
+directory, publish the current working tree in Release, validate the publish output, report the
+Git state and executable hash, and launch that newly created executable. Existing binaries from
+prior publish or artifact directories must never be reused as current-state evidence.
+
+The script may launch an interactive application, but repository prompt completion stops APO by
+default under AGENTS.md section 16 unless that specific owner instruction explicitly says to
+leave it running.
+Use `-SmokeTest` only for bounded runtime verification; it stops only the process it launched after
+verification and reports the final APO process count.
 
 ---
 
@@ -59,8 +74,8 @@ Executors must report:
 
 Executor self-declaration is **not** final acceptance. **GPT-5.6 Sol is always the final acceptance
 authority** for all routed work, regardless of which executor performed it. Opus may provide
-independent review, findings, and an approval recommendation; Terra may provide security,
-concurrency, data-integrity, or trust-boundary assurance; executors provide evidence. None of these
+independent review, findings, and an approval recommendation; Sonnet may provide bounded recovery
+or bug fixes; executors provide evidence. None of these
 roles replace Sol's final acceptance decision.
 
 ---
@@ -138,3 +153,79 @@ this section states the durable rule, not a point-in-time snapshot:
 
 Verify current upstream instructions for all three tools before reinstalling or upgrading; do not
 blindly trust commands recorded here if upstream documentation has changed.
+
+---
+
+## 8. Local-PC Execution, Recovery, and Evidence Policy
+
+APO's normal software-delivery execution environment is the owner's persistent local Windows PC and
+APO-managed project/workspace state. Temporary chat, test, provider-output, or validation sandboxes
+must never become the canonical project or execution store.
+
+### 8.1 Agent readiness
+
+A local AI CLI is not considered ready merely because a command name or executable exists. Where
+supported, readiness should derive from independently observable facts such as executable path and
+provenance, CLI version, supported invocation modes, authentication/session truth, entitlement when
+verifiable, registered capabilities/limitations, freshness, and provider-specific health evidence.
+
+Installation, authentication, entitlement/subscription, and quota/capacity are separate facts and
+must never be inferred from one another.
+
+### 8.2 Process ownership
+
+Every local process started by APO must remain bounded and owned by the orchestration runtime. The
+runtime must consume stdout/stderr safely, record bounded process evidence where appropriate,
+support cancellation/timeout, and either confirm execution-owned process-tree termination or mark
+termination as unconfirmed and keep the workspace guarded.
+
+PID/process identity is evidence, not completion proof. A missing process after restart must not be
+interpreted as successful business completion.
+
+### 8.3 Restart reconciliation
+
+After APO or Windows restart, persisted Running/Waiting work must be reconciled against durable run
+authority, checkpoint, workspace/repository/Git state, process reality, and known side effects before
+any automatic continuation. The result must be a typed safe state such as completed externally,
+safely interrupted, reconciliation required, blocked, or unsafe to resume automatically.
+
+Retry must resume from the latest **verified authoritative checkpoint**, not merely from a UI stage
+number.
+
+### 8.4 Retry and fallback
+
+A fallback executor is never selected solely because another model failed. Retry/fallback policy
+must consider failure class, checkpoint truth, side effects, task requirements, allowed agents,
+capabilities, routing/owner policy, quota/capacity truth, and remaining execution budget.
+
+Authentication failures, quota exhaustion, unsupported capability, source/workspace conflicts,
+validation failures, security boundaries, owner-approval boundaries, and irreversible side-effect
+ambiguity require different dispositions. Model switching must never bypass an authority or safety
+gate.
+
+### 8.5 Environment fingerprint
+
+Where reproducibility/recovery requires it, APO may persist a lightweight explicit allowlist of
+non-secret environment facts such as OS/version, architecture, APO version, selected CLI version,
+Git version, project path/branch/commit, working directory, and selected tool/runtime availability.
+Never capture unrestricted environment variables or secret-bearing values.
+
+### 8.6 Evidence contents
+
+Persist observable operational evidence: requests, immutable authority references, decisions,
+assumptions/limitations, commands/tool results where safe, process metadata, Git/validation/review
+findings, timing, failure classification, and final disposition.
+
+Do **not** require or persist private hidden chain-of-thought. Do not retain raw provider transcripts,
+prompts, unrestricted stdout/stderr, credentials, or unrelated source content merely to create a
+complete-looking execution folder.
+
+### 8.7 Parallel benchmarking
+
+Any future multi-model benchmark with write-capable executors must use a separate isolated workspace,
+run authority, checkpoint chain, and evidence set per candidate. Competing executors must never
+write to the same working tree. Benchmarking is measurement only unless a separately approved
+routing policy explicitly consumes its evidence.
+
+The approved roadmap integration for these behaviors is maintained in
+`docs/EXTERNAL_REFERENCE_ROADMAP_INTEGRATION.md` and the associated canonical GitHub APO Issues.

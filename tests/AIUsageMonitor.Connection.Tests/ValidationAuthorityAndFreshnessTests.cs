@@ -188,7 +188,7 @@ public sealed class ValidationAuthorityAndFreshnessTests
         var routing = new RoutingDecisionReference(Guid.NewGuid(), 1, Hash('d'));
         var workspacePlan = new WorkspacePreparationPlanReference(Guid.NewGuid(), 1, Hash('e'), projectId);
         var workspace = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "apo-authority-tests"));
-        var inputCheckpoint = new RecoveryCheckpoint(projectId, Guid.NewGuid(), 1, now.AddMinutes(-2),
+        var inputCheckpoint = new RecoveryCheckpoint(projectId, Guid.NewGuid(), RecoveryCheckpointSchema.CurrentVersion, now.AddMinutes(-2),
             RecoveryCheckpointLifecycleState.Ready, new RecoveryContextReference(Guid.NewGuid(), 1, now), contract, graph, Guid.NewGuid(), handoff,
             nextSafeAction: RecoveryNextSafeAction.ContinueFromCheckpoint);
         var receipt = CreateReceipt(projectId, workspaceId, workspacePlan, workspace, now, Sha40('f'));
@@ -197,12 +197,12 @@ public sealed class ValidationAuthorityAndFreshnessTests
         var executionEvidence = new RecoveryEvidenceReference(authority.RunId, RecoveryEvidenceKind.Other,
             $"execution-run:{authority.ProjectId:D}/{authority.RunId:D}/{authority.ContentHash}", authority.CreatedAt,
             RecoveryEvidenceFreshness.PointInTime, contentHash: authority.ContentHash);
-        var preRunCheckpoint = new RecoveryCheckpoint(projectId, Guid.NewGuid(), 1, now,
+        var preRunCheckpoint = new RecoveryCheckpoint(projectId, Guid.NewGuid(), RecoveryCheckpointSchema.CurrentVersion, now,
             RecoveryCheckpointLifecycleState.Waiting, inputCheckpoint.Context, contract, graph, inputCheckpoint.WorkGraphNodeId, handoff,
-            inputCheckpoint.Reference, evidenceReferences: [executionEvidence], nextSafeAction: RecoveryNextSafeAction.ResolveBlocker);
-        var checkpoint = new RecoveryCheckpoint(projectId, Guid.NewGuid(), 1, now,
+            previousCheckpointReference: inputCheckpoint.Reference, evidenceReferences: [executionEvidence], nextSafeAction: RecoveryNextSafeAction.ResolveBlocker);
+        var checkpoint = new RecoveryCheckpoint(projectId, Guid.NewGuid(), RecoveryCheckpointSchema.CurrentVersion, now,
             RecoveryCheckpointLifecycleState.Ready, inputCheckpoint.Context, contract, graph, inputCheckpoint.WorkGraphNodeId, handoff,
-            preRunCheckpoint.Reference, evidenceReferences: [executionEvidence], nextSafeAction: RecoveryNextSafeAction.RunValidation);
+            previousCheckpointReference: preRunCheckpoint.Reference, evidenceReferences: [executionEvidence], nextSafeAction: RecoveryNextSafeAction.RunValidation);
         var plan = new ValidationPlan(projectId, Guid.NewGuid(), 1, now, authority.Reference, contract, graph, checkpoint.WorkGraphNodeId!.Value,
             workspaceId, workspace, receipt.ContentHash, checkpoint.Reference,
             [requirement ?? new ValidationRequirement("tests", ValidationEvidenceKind.Test, true, ValidationCoverageScope.Targeted, ValidationBaselineRelation.Standalone, "collector")], handoff);
@@ -237,7 +237,7 @@ public sealed class ValidationAuthorityAndFreshnessTests
         new(projectId, workspaceId, Guid.NewGuid(), now, planReference, workspace, "main", Sha40('f'), actualHead, "local-repository", "test");
 
     private static RecoveryCheckpoint CreateCheckpoint(Fixture fixture, Guid id) =>
-        new(fixture.Plan.ProjectId, id, 1, fixture.Now, RecoveryCheckpointLifecycleState.Ready,
+        new(fixture.Plan.ProjectId, id, RecoveryCheckpointSchema.CurrentVersion, fixture.Now, RecoveryCheckpointLifecycleState.Ready,
             fixture.Checkpoint.Context, fixture.Plan.PlanningContractReference, fixture.Plan.WorkGraphReference, fixture.Plan.WorkGraphNodeId,
             fixture.Plan.HandoffPackageReference, nextSafeAction: RecoveryNextSafeAction.RunValidation);
 

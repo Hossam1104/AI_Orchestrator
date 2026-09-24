@@ -1,5 +1,7 @@
 # AI_Orchestrator - Execution Contract Library
 
+**Historical prompt library:** The model/version assignments and execution boundaries below record their original dates and are not current routing or execution authority. APO is OWNER-PAUSED since 2026-09-24; see [current state](../.ai/CURRENT_STATE.md) and [model routing](../.ai/AI_MODEL_ROUTING.md). No prompt below authorizes work while paused.
+
 **Product:** AI_Orchestrator (APO)
 **BRD:** `docs/BRD.md`
 **Plan:** `docs/IMPLEMENTATION_PLAN.md`
